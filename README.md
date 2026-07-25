@@ -1,5 +1,7 @@
 # PoE Upgrade Advisor
 
+[![ci](https://github.com/decross1/poe-upgrade-advisor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/decross1/poe-upgrade-advisor/actions/workflows/ci.yml)
+
 **Path of Building's math. Raidbots' simplicity. Built and maintained by an autonomous three-agent org.**
 
 An overlay + web tool for Path of Exile that answers one question instantly — *"is this item an upgrade?"* — with zero configuration, powered by the full Path of Building calculation engine underneath, and offering progressive disclosure into deep build analysis for those who want it.
