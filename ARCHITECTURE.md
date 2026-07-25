@@ -25,7 +25,7 @@
 
 ## The loop map (L0–L6)
 
-- **L0 Work loop** — postmaster wakes an agent on inbound mail (cron fallback heartbeat). Agent syncs repo state, works in its worktree/branch, pushes, writes outbox messages. Agents are amnesiac between invocations: all memory lives in the repo (ADRs, task files, `AGENTS.md`), never in email history.
+- **L0 Work loop** — an agent session (interactive or cron-woken) polls its ledger inbox. Agent syncs repo state, works in its worktree/branch, pushes, sends ledger messages, acks its inbox. Agents are amnesiac between invocations: all memory lives in the repo (ADRs, task files, `AGENTS.md`), never in message history.
 - **L1 Adversarial review loop** — evidence-based, bounded (max 3 rounds), arbitrated by PM with a binding ADR. Full protocol: `docs/REVIEW_PROTOCOL.md`.
 - **L2 Integration loop** — merge robot merges iff: required CI green + contract check green + reviewer evidence artifact present + protected paths untouched (or authorized) + no unauthorized test deletion + coverage ratchet holds. Spec: `agents/merge_robot/SPEC.md`.
 - **L3 Release loop** — channels dev→beta→stable; crash telemetry; auto-promote after soak under crash-rate threshold; auto-rollback on spike. Signing key exists only in CI on the stable branch — never in any agent environment.
@@ -35,8 +35,8 @@
 
 ## Communication model
 
-- **Git/GitHub is the only state machine.** Issues are tasks; PRs are proposals; ADRs are rulings. Email is pure transport with a validated JSON schema (`agents/postmaster/message_schema.json`), idempotency keys, and hop limits. A claim that exists only in email does not exist.
-- Agents never send mail directly; they write files to `.mailroom/outbox/` and the postmaster validates + sends. No agent holds SMTP/IMAP credentials.
+- **Git/GitHub is the only state machine.** Issues are tasks; PRs are proposals; ADRs are rulings. The shared append-only ledger (ADR-0002) is pure transport with a validated JSON schema (`agents/postmaster/message_schema.json`), idempotency keys, and hop limits. A claim that exists only in the ledger does not exist.
+- Agents send via `agents/postmaster/ledger.py send` (validates on write) and read via `ledger.py inbox`; entries are immutable files, read-state is per-role ack cursors. No mail infrastructure, no credentials.
 
 ## Security model
 

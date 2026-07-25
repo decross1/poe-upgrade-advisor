@@ -4,7 +4,7 @@
 
 An overlay + web tool for Path of Exile that answers one question instantly — *"is this item an upgrade?"* — with zero configuration, powered by the full Path of Building calculation engine underneath, and offering progressive disclosure into deep build analysis for those who want it.
 
-This repository is also an **agent-native organization**: a PM/Architect agent (Claude Code), a Backend agent (Codex CLI), and a Frontend agent (Kimi Code CLI) coordinate via structured email, work in git, adversarially review each other, and ship without human-in-the-loop approvals. Humans set budgets and hold a kill switch; nothing else waits on a human.
+This repository is also an **agent-native organization**: a PM/Architect agent (Claude Code), a Backend agent (Codex CLI), and a Frontend agent (Kimi Code CLI) coordinate via a structured append-only message ledger, work in git, adversarially review each other, and ship without human-in-the-loop approvals. Humans set budgets and hold a kill switch; nothing else waits on a human.
 
 ---
 
@@ -28,7 +28,7 @@ ARCHITECTURE.md          Components, the L0–L6 loop map, security model
 AGENTS.md                Shared operating rules every agent loads on every invocation
 CLAUDE.md                Pointer file so Claude Code loads AGENTS.md + its role
 agents/roles/            Role prompts: pm.md, backend.md, frontend.md
-agents/postmaster/       Email transport daemon (IMAP in → agent CLI → outbox → SMTP)
+agents/postmaster/       Message transport: ledger.py (append-only filesystem bus, ADR-0002)
 agents/governor/         Budget governor: quotas, backoff, circuit breaker, dead-letter
 agents/merge_robot/      The only identity that can merge. Spec + implementation.
 contracts/               OpenAPI + JSON Schemas. PM-owned. FE/BE code against these.
@@ -49,7 +49,7 @@ scripts/                 CI checks incl. doctrine invariant checker
 
 1. **Repo**: create a GitHub repo, push this scaffold. Add the PoB engine:
    `git submodule add https://github.com/PathOfBuildingCommunity/PathOfBuilding engine/vendor/PathOfBuilding`
-2. **Mailboxes**: create `pm@`, `backend@`, `frontend@`, `intake@` on your domain (Migadu/Fastmail/docker-mailserver). Put credentials in env vars referenced by `agents/postmaster/config.example.yaml` → copy to `config.yaml`.
+2. **Ledger**: create a shared `mailroom/` directory beside the role clones (e.g. `<project>/mailroom/`). No accounts, no credentials — messages are append-only JSON files written/read via `agents/postmaster/ledger.py` (ADR-0002).
 3. **Agent CLIs** on the worker box (can be one machine, three git worktrees):
    - Claude Code (Claude Max login) — PM/Architect
    - Codex CLI (ChatGPT login) — Backend
@@ -57,13 +57,13 @@ scripts/                 CI checks incl. doctrine invariant checker
    Verify each CLI's current headless/non-interactive flags and put the exact command templates in `config.yaml` (`{prompt_file}` placeholder). **Check each vendor's ToS for automated use and whether headless invocations bill outside your subscription — set governor caps accordingly.**
 4. **Identities**: create three GitHub machine users (or fine-grained PATs) with *branch-push only* rights, plus one for the merge robot with merge rights. Branch protection on `main`: only the merge robot can merge; required checks per `.github/workflows/ci.yml`.
 5. **Governor**: review `agents/governor/policy.yaml` caps — this is your spend firewall.
-6. **Cron / systemd timers**: run `postmaster.py --once` every 15–30 min per role (or `--daemon`). Heartbeats also make each agent check its assigned issues even with an empty inbox.
+6. **Sessions**: run each role's CLI session (interactive, or cron-woken with a prompt that says "process your ledger inbox per AGENTS.md"). Heartbeat prompts make each agent check its assigned issues even with an empty inbox.
 7. **Discord**: create the bot (see `bot/README.md`), point it at `intake@` and the repo, invite it, create the `#suggestions` forum and `#dev-log` channels.
-8. **Ignition**: send the bootstrap email in `tasks/BACKLOG.md` §Ignition to `pm@`. The PM triages Phase 0/1 tasks and the org starts running.
+8. **Ignition**: append the bootstrap message in `tasks/BACKLOG.md` §Ignition to the ledger addressed to `pm`. The PM triages Phase 0/1 tasks and the org starts running.
 
 ## Human controls (the only two)
 
-- **Kill switch**: `touch .mailroom/HALT` (postmaster refuses all invocations) and/or revoke the merge robot token.
+- **Kill switch**: `touch <project>/mailroom/HALT` (ledger inbox refuses all reads) and/or revoke the merge robot token.
 - **Budgets**: `agents/governor/policy.yaml`.
 
 Everything else — planning, coding, review, arbitration, merging, releasing, community triage — is agent-driven per `docs/REVIEW_PROTOCOL.md` and `ARCHITECTURE.md`.
