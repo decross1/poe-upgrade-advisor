@@ -1,0 +1,186 @@
+openapi: 3.1.0
+info:
+  title: PoE Upgrade Advisor — Local Server API
+  version: 0.1.0
+  description: >
+    Contract between overlay/web (FE) and server (BE). PM-owned; changes require an RFC.
+    All endpoints are localhost-only. VerdictCard is additionally constrained by
+    contracts/verdict.schema.json (the stricter of the two wins).
+servers:
+  - url: http://127.0.0.1:47791/api/v0
+paths:
+  /build:
+    get:
+      operationId: getActiveBuild
+      summary: Current active build summary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildSummary' }
+        '404': { description: No build imported }
+    post:
+      operationId: importBuild
+      summary: Import a build (PoB code/XML or account+character)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              oneOf:
+                - required: [pob_code]
+                - required: [account, character]
+              properties:
+                pob_code: { type: string, description: PoB share code or raw XML }
+                account: { type: string }
+                character: { type: string }
+      responses:
+        '200':
+          description: Imported
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildSummary' }
+        '422': { description: Unparseable build }
+  /diff:
+    post:
+      operationId: diffItem
+      summary: The core call — clipboard item vs equipped, under inferred assumptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_text]
+              properties:
+                item_text: { type: string, maxLength: 20000, description: Raw Ctrl+C clipboard text (untrusted) }
+                preset: { type: string, enum: [mapping, bossing, balanced], description: Omit to use build default }
+                overrides:
+                  type: array
+                  description: One-tap assumption flips (Doctrine I3)
+                  items:
+                    type: object
+                    required: [assumption_id, value]
+                    properties:
+                      assumption_id: { type: string }
+                      value: {}
+      responses:
+        '200':
+          description: Verdict
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VerdictCard' }
+        '404': { description: No active build }
+        '422': { description: Item text unparseable }
+  /scan:
+    post:
+      operationId: scanStash
+      summary: Rank pasted/stored items by score delta (Tier 3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items: { type: array, maxItems: 2000, items: { type: string } }
+                preset: { type: string, enum: [mapping, bossing, balanced] }
+      responses:
+        '200':
+          description: Ranked results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, verdict]
+                      properties:
+                        index: { type: integer }
+                        verdict: { $ref: '#/components/schemas/VerdictCard' }
+  /breakdown/{diff_id}:
+    get:
+      operationId: getBreakdown
+      summary: Tier-2/3 detail for a previous diff
+      parameters:
+        - { name: diff_id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Full mod-level delta tree + raw PoB breakdown reference
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Breakdown' }
+        '404': { description: Expired or unknown diff_id }
+components:
+  schemas:
+    BuildSummary:
+      type: object
+      required: [build_id, character_class, main_skill, level, preset_default]
+      properties:
+        build_id: { type: string }
+        character_class: { type: string }
+        ascendancy: { type: string }
+        level: { type: integer }
+        main_skill:
+          type: object
+          required: [name, inferred]
+          properties:
+            name: { type: string }
+            inferred: { type: boolean, description: false if user overrode }
+            confidence: { type: number, minimum: 0, maximum: 1 }
+        preset_default: { type: string, enum: [mapping, bossing, balanced] }
+    Assumption:
+      type: object
+      required: [id, label, value, impactful, reversible]
+      properties:
+        id: { type: string, description: Stable rule id from assumptions/rules }
+        label: { type: string, maxLength: 40, description: Chip text, e.g. "flasks up" }
+        value: {}
+        impactful: { type: boolean, description: Materially affected this verdict }
+        reversible: { const: true }
+        source_rule: { type: string }
+    VerdictCard:
+      type: object
+      required: [diff_id, verdict, offense_delta_pct, defense_delta_pct, sentence, assumptions, confidence, preset]
+      properties:
+        diff_id: { type: string }
+        verdict: { type: string, enum: [UPGRADE, SIDEGRADE, DOWNGRADE, CANT_EVALUATE] }
+        offense_delta_pct: { type: number }
+        defense_delta_pct: { type: number }
+        sentence: { type: string, maxLength: 140, description: Doctrine I2 cap }
+        assumptions:
+          type: array
+          maxItems: 6
+          items: { $ref: '#/components/schemas/Assumption' }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        cant_evaluate_reasons:
+          type: array
+          items: { type: string }
+        preset: { type: string, enum: [mapping, bossing, balanced] }
+        compute_ms: { type: integer, description: Engine time; I6 telemetry }
+    Breakdown:
+      type: object
+      required: [diff_id, drivers]
+      properties:
+        diff_id: { type: string }
+        drivers:
+          type: array
+          description: Tier-2 — mods ranked by contribution to the delta
+          items:
+            type: object
+            required: [mod_text, contribution_pct, stat]
+            properties:
+              mod_text: { type: string }
+              contribution_pct: { type: number }
+              stat: { type: string, description: e.g. total_dps, ehp }
+        pob_breakdown:
+          type: object
+          description: Tier-3 — raw engine breakdown tree (schema owned by engine/)
+          additionalProperties: true

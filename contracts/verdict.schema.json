@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poe-upgrade-advisor/verdict.schema.json",
+  "title": "VerdictCard",
+  "description": "Doctrine I2 enforcement schema. The overlay may render ONLY these fields; scripts/check_invariants.py verifies constraints stay tight. Loosening maxLength/maxItems or enum here is a protected change.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["diff_id", "verdict", "offense_delta_pct", "defense_delta_pct", "sentence", "assumptions", "confidence", "preset"],
+  "properties": {
+    "diff_id": { "type": "string" },
+    "verdict": { "enum": ["UPGRADE", "SIDEGRADE", "DOWNGRADE", "CANT_EVALUATE"] },
+    "offense_delta_pct": { "type": "number" },
+    "defense_delta_pct": { "type": "number" },
+    "sentence": { "type": "string", "maxLength": 140 },
+    "assumptions": { "type": "array", "maxItems": 6 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "cant_evaluate_reasons": { "type": "array", "items": { "type": "string" } },
+    "preset": { "enum": ["mapping", "bossing", "balanced"] },
+    "compute_ms": { "type": "integer" }
+  }
+}

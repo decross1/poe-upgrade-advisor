@@ -1,0 +1,11 @@
+# The spend firewall. Edit caps here; nothing else in the org limits spend.
+per_task_max_invocations: 12       # lifetime invocations per TASK-id per role
+per_day_max:
+  pm: 24
+  backend: 36
+  frontend: 36
+backoff:
+  base_minutes: 10                 # after a failed invocation: base * 2^(consecutive_failures-1)
+  max_minutes: 480
+circuit_breaker_consecutive_failures: 3   # trips task->dead_letter + needs-redesign
+daily_reset_hour_utc: 4

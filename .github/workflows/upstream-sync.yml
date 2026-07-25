@@ -1,0 +1,27 @@
+name: upstream-sync   # L6: weekly PoB submodule bump + corpus verification
+on:
+  schedule: [{ cron: '0 6 * * 1' }]
+  workflow_dispatch:
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive, token: '${{ secrets.SYNC_BOT_TOKEN }}' }
+      - name: bump PoB to latest release tag
+        run: |
+          cd engine/vendor/PathOfBuilding
+          git fetch --tags origin
+          TAG=$(git tag --sort=-creatordate | head -1)
+          git checkout "$TAG"
+          echo "POB_TAG=$TAG" >> "$GITHUB_ENV"
+      - name: run corpus (fails PR if league patch broke us)
+        run: |
+          if [ -f engine/run_corpus.sh ]; then bash engine/run_corpus.sh; fi
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.SYNC_BOT_TOKEN }}
+          branch: sync/pob-${{ env.POB_TAG }}
+          title: 'TASK-SYNC: bump PoB to ${{ env.POB_TAG }}'
+          body: 'Automated L6 sync. If corpus failed, PM: file rule-update tasks (keep fixtures green).'
+          labels: upstream-sync

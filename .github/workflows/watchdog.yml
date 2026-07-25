@@ -1,0 +1,9 @@
+name: watchdog   # runs on the worker box normally; Actions variant for visibility
+on:
+  schedule: [{ cron: '0 */6 * * *' }]
+  workflow_dispatch:
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Watchdog runs on the worker box via cron -> budget_governor.py watchdog"

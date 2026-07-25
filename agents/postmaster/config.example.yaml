@@ -1,0 +1,28 @@
+# Copy to config.yaml (gitignored). Secrets via ${ENV_VAR} interpolation is NOT
+# implemented in v0 — use a secrets-injected environment or an encrypted config.
+poll_seconds: 300            # daemon poll interval
+heartbeat_seconds: 1800      # min gap between synthetic heartbeats per role
+agent_timeout_seconds: 1800  # hard wall-clock cap per invocation
+
+accounts:                    # postmaster-only credentials; agents never see these
+  pm:       { address: pm@yourdomain.dev,       user: pm@yourdomain.dev,       password: CHANGE_ME, imap_host: imap.yourhost.com, smtp_host: smtp.yourhost.com }
+  backend:  { address: backend@yourdomain.dev,  user: backend@yourdomain.dev,  password: CHANGE_ME, imap_host: imap.yourhost.com, smtp_host: smtp.yourhost.com }
+  frontend: { address: frontend@yourdomain.dev, user: frontend@yourdomain.dev, password: CHANGE_ME, imap_host: imap.yourhost.com, smtp_host: smtp.yourhost.com }
+
+roles:
+  pm:
+    worktree: /srv/pob/worktrees/pm          # each role: own clone/worktree, own gh auth
+    heartbeat: true
+    # Verify current flag names for your installed CLI versions before first run:
+    cli_command: 'claude -p "$(cat {prompt_file})" --permission-mode acceptEdits'
+  backend:
+    worktree: /srv/pob/worktrees/backend
+    heartbeat: true
+    cli_command: 'codex exec --full-auto "$(cat {prompt_file})"'
+  frontend:
+    worktree: /srv/pob/worktrees/frontend
+    heartbeat: true
+    cli_command: 'kimi --prompt-file {prompt_file} --yolo'   # placeholder; set per Kimi CLI docs
+
+# Arbiter fallback if pm circuit-breaks (governor consecutive-failure trip):
+arbiter_fallback: backend

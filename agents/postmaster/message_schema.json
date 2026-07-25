@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poe-upgrade-advisor/message.schema.json",
+  "title": "AgentMessage",
+  "description": "The entire email body MUST be exactly one JSON object matching this schema. Subject line format: [POB][TASK-<id>][<intent>] <summary>. Anything else is rejected by the postmaster and dead-lettered.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "message_id", "idempotency_key", "task_id", "from_role", "to_role", "intent", "hop_count", "max_hops", "refs", "body_markdown"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "message_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Stable per logical message. Postmaster drops duplicates. Convention: <task_id>:<intent>:<short-hash-of-body>."
+    },
+    "task_id": { "type": "string", "pattern": "^TASK-[0-9]+$|^ORG$", "description": "ORG only for non-task org messages (retro, bootstrap)." },
+    "thread_id": { "type": "string", "description": "First message_id in the thread. Omit on thread start." },
+    "in_reply_to": { "type": "string" },
+    "from_role": { "enum": ["pm", "backend", "frontend", "intake", "human"] },
+    "to_role": { "enum": ["pm", "backend", "frontend"] },
+    "intent": {
+      "enum": [
+        "TASK_ASSIGN",
+        "STATUS",
+        "QUESTION",
+        "ANSWER",
+        "REVIEW_REQUEST",
+        "REVIEW_VERDICT",
+        "ARBITRATION_REQUEST",
+        "ARBITRATION_RULING",
+        "INTAKE_TICKET",
+        "SYNC",
+        "BOOTSTRAP"
+      ]
+    },
+    "hop_count": { "type": "integer", "minimum": 0 },
+    "max_hops": { "type": "integer", "minimum": 1, "maximum": 6, "default": 6 },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "issue": { "type": "integer" },
+        "pr": { "type": "integer" },
+        "branch": { "type": "string" },
+        "adr": { "type": "string" },
+        "discord_thread": { "type": "string" }
+      },
+      "description": "At least one of issue/pr required for all intents except BOOTSTRAP, SYNC, INTAKE_TICKET (postmaster enforces)."
+    },
+    "body_markdown": {
+      "type": "string",
+      "maxLength": 8000,
+      "description": "Human-readable content. NEVER code (push branches instead). For INTAKE_TICKET this contains only normalizer-fenced untrusted content."
+    },
+    "untrusted": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for anything originating outside the org (Discord). Postmaster wraps body in UNTRUSTED fences in the agent prompt."
+    }
+  }
+}

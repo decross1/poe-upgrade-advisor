@@ -1,0 +1,8 @@
+# Scenario preset: Mapping — sustained clear vs packs.
+label: Mapping
+pob_config:
+  enemyIsBoss: NONE
+  enemyLevel: 84
+  multiplierEnemyCount: pack
+  conditionKilledRecently: true
+  buffOnslaught: false

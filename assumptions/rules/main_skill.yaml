@@ -1,0 +1,18 @@
+# Main-skill auto-detection (Doctrine I1). First match wins; user override is
+# sticky and stored per build (BuildSummary.main_skill.inferred=false).
+rules:
+  - id: main_skill.user_override
+    when: { user_override_exists: true }
+    set: { main_skill: "$user_override" }
+    confidence_weight: 1.0
+    chip_label: "skill: {skill} (yours)"
+  - id: main_skill.most_linked_highest_dps
+    when: { always: true }
+    set: { main_skill: "$argmax(active_skills, links desc, dps desc)" }
+    confidence_weight: 0.8
+    chip_label: "skill: {skill}"
+  - id: main_skill.trigger_ambiguity
+    when: { has_trigger_setup: true }
+    effect: reduce_confidence     # triggers routinely confuse detection -> may push I5 CANT_EVALUATE
+    confidence_weight: -0.3
+    chip_label: "trigger build"

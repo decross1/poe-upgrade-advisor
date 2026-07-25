@@ -1,0 +1,27 @@
+# Keystone/build-derived PoB config inference. Extend per league (L6 loop).
+rules:
+  - id: config.elemental_overload
+    when: { allocated_keystone: "Elemental Overload" }
+    set: { conditionCritRecently: true }
+    confidence_weight: 0.9
+    chip_label: "crit recently"
+  - id: config.chill_from_setup
+    when: { any_skill_tag: "chill" }
+    set: { conditionEnemyChilled: true }
+    confidence_weight: 0.7
+    chip_label: "enemy chilled"
+  - id: config.shock_from_setup
+    when: { any_skill_tag: "shock" }
+    set: { conditionEnemyShocked: true }
+    confidence_weight: 0.7
+    chip_label: "enemy shocked"
+  - id: config.flasks_up
+    when: { always: true }
+    set: { flasks_active: true }
+    confidence_weight: 0.9
+    chip_label: "flasks up"
+  - id: config.power_charges_from_generation
+    when: { has_charge_generation: power }
+    set: { usePowerCharges: true }
+    confidence_weight: 0.8
+    chip_label: "power charges"

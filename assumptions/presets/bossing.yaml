@@ -1,0 +1,7 @@
+# Scenario preset: Bossing — single-target, pinnacle-tier defaults.
+label: Bossing
+pob_config:
+  enemyIsBoss: PINNACLE
+  enemyLevel: 85
+  conditionKilledRecently: false
+  conditionNearEnemy: true

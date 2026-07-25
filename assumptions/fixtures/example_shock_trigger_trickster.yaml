@@ -1,0 +1,16 @@
+# Placeholder fixture (real build code lands in TASK-102). Covers the remaining
+# seed rules so I8 starts green; TASK-102 must keep it green with real builds.
+build: fixtures/builds/shock_trigger_trickster.pob
+preset: mapping
+expected:
+  - rule_id: config.shock_from_setup
+    fires: true
+  - rule_id: config.flasks_up
+    fires: true
+  - rule_id: config.power_charges_from_generation
+    fires: true
+  - rule_id: main_skill.trigger_ambiguity
+    fires: true
+  - rule_id: main_skill.user_override
+    fires: false
+min_confidence: 0.0   # trigger ambiguity expected to sink confidence (I5 path)

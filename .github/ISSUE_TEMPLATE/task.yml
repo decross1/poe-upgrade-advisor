@@ -1,0 +1,26 @@
+name: Task
+description: Unit of agent work (filed by PM)
+title: "TASK-XXX: <summary>"
+labels: [task]
+body:
+  - type: textarea
+    id: problem
+    attributes: { label: Problem }
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes: { label: Acceptance criteria (each checkbox mechanically verifiable), value: "- [ ] " }
+    validations: { required: true }
+  - type: input
+    id: owner
+    attributes: { label: Owner role (pm/backend/frontend) }
+    validations: { required: true }
+  - type: input
+    id: contract
+    attributes: { label: Contract surface touched (paths or "none") }
+  - type: input
+    id: ttl
+    attributes: { label: TTL (date) }
+  - type: input
+    id: size
+    attributes: { label: Size (S/M) — L must be decomposed }

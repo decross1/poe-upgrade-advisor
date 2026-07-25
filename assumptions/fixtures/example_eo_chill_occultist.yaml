@@ -1,0 +1,13 @@
+# Fixture format: `build` is a PoB share code (or path under fixtures/builds/),
+# `expected` asserts which rules fire and key resolved values.
+# This example is a placeholder — TASK-102 replaces it with a real build code.
+build: fixtures/builds/eo_chill_occultist.pob   # to be added in TASK-102
+preset: bossing
+expected:
+  - rule_id: config.elemental_overload
+    fires: true
+  - rule_id: config.chill_from_setup
+    fires: true
+  - rule_id: main_skill.most_linked_highest_dps
+    resolved: { main_skill: "Vortex" }
+min_confidence: 0.75

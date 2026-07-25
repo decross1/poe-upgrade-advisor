@@ -1,0 +1,57 @@
+name: ci
+on:
+  pull_request:
+  push: { branches: [main] }
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install ruff pyyaml jsonschema
+      - run: ruff check . || true   # ratchet to hard-fail in TASK-002
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pytest pytest-cov pyyaml jsonschema requests
+      - name: run tests
+        run: |
+          pytest --cov --cov-report=json -q || [ ! -d tests ]
+          python - << 'PY'
+          import json, os
+          cov = 0.0
+          if os.path.exists('coverage.json'):
+              cov = json.load(open('coverage.json'))['totals']['percent_covered']
+          print(f"COVERAGE: {cov:.1f}")
+          PY
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install openapi-spec-validator jsonschema pyyaml
+      - run: |
+          python -c "from openapi_spec_validator import validate; import yaml; validate(yaml.safe_load(open('contracts/openapi.yaml')))"
+          python -c "import json, jsonschema; jsonschema.Draft202012Validator.check_schema(json.load(open('contracts/verdict.schema.json')))"
+          python -c "import json, jsonschema; jsonschema.Draft202012Validator.check_schema(json.load(open('agents/postmaster/message_schema.json')))"
+  doctrine-invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pyyaml jsonschema
+      - run: python scripts/check_invariants.py
+  assumptions-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pyyaml pytest
+      - run: python scripts/check_fixture_coverage.py

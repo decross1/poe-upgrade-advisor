@@ -1,0 +1,8 @@
+pyyaml>=6.0
+jsonschema>=4.21
+requests>=2.31
+discord.py>=2.3        # bot only
+openapi-spec-validator  # CI
+pytest
+pytest-cov
+ruff

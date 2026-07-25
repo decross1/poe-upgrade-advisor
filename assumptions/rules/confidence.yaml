@@ -1,0 +1,4 @@
+# Doctrine I5 thresholds — data, not code.
+cant_evaluate_below: 0.55     # aggregate confidence under this => CANT_EVALUATE
+low_confidence_badge_below: 0.75
+aggregation: weighted_min     # conservative: one confused inference sinks confidence
