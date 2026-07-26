@@ -49,10 +49,13 @@ scripts/                 CI checks incl. doctrine invariant checker
 
 ## Building the tester distributable (TASK-208/209)
 
-The tester-facing artifact is the Windows x86-64 zip (product decision on
-issue #75: Windows-only; macOS dropped) — web bundle, local API, real PoB
-engine (vendored PathOfBuilding + pinned LuaJIT runtime), `run.bat`
-entrypoint:
+**Platform support: Windows x86-64 is the only supported player platform**
+(decision on issue #75, 2026-07-26). macOS is not supported — dropped, not
+deferred. Linux x86-64 builds exist for development and CI only.
+
+The tester-facing artifact is the Windows x86-64 zip — web bundle, local
+API, real PoB engine (vendored PathOfBuilding + pinned LuaJIT runtime),
+`run.bat` entrypoint:
 
 ```powershell
 scripts/package_mvp_windows.ps1 -RuntimeDir <lane A runtime dir>

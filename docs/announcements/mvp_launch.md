@@ -12,13 +12,12 @@ Note:  Discord caps messages at 2000 characters. Post each "---"-separated
 
 Record (PM, 2026-07-26): both release decisions ruled by the operator —
        (a) distribution: public repo, GitHub Release v0.1.0, asset link wired
-       below; (b) Windows: fast-follow tracked as #75, stated honestly below.
-Record (operator, 2026-07-26 ~15:55 UTC): product target is WINDOWS-ONLY;
-       macOS is dropped entirely (not deferred) — macOS copy removed below.
-       Linux remains dev/CI-only.
+       below; (b) platform: WINDOWS-ONLY, ruled on #75 (2026-07-26). macOS
+       support is dropped entirely (no run.command, no macOS copy anywhere);
+       Linux is dev/CI-only, stated below as a dev note.
 -->
 
-# The MVP is live: paste an item, get a verdict
+# The MVP is live: pick an item, get a verdict
 
 The core loop works. Run the tool, and your browser opens a page on your own machine. Import your build once by pasting your Path of Building code, pick an item on the page, and you get a verdict card:
 
@@ -34,17 +33,13 @@ Coming next: the in-game overlay — hover an item, hit `Ctrl+C`, and the card a
 
 ---
 
-## Install & run
+## Install & run (Windows)
 
-1. **Download** `poe-upgrade-advisor-v0-8eaa2a4.tar.gz` (~63 MB):
-   <https://github.com/decross1/poe-upgrade-advisor/releases/download/v0.1.0/poe-upgrade-advisor-v0-8eaa2a4.tar.gz>
-2. **Extract it anywhere:**
-   - Linux: `tar -xzf poe-upgrade-advisor-v0-*.tar.gz && cd poe-upgrade-advisor-v0`
-   - Windows: double-click the archive, then open the
-     `poe-upgrade-advisor-v0` folder.
-3. **Run it:**
-   - Linux: `./run.sh`
-   - Windows: double-click `run.bat`
+1. **Download** the latest Windows build (`.zip`) from the releases page:
+   <https://github.com/decross1/poe-upgrade-advisor/releases>
+2. **Extract it anywhere** (right-click → Extract All…), then open the
+   extracted folder.
+3. **Run it:** double-click `run.bat`.
 4. Your browser opens `http://127.0.0.1:47791/` — that page **is** the whole
    app. Paste your Path of Building code into the import box, pick an item,
    read the verdict. Tap any assumption chip to flip it and recompute.
@@ -56,22 +51,22 @@ one-time data cache. Every launch after that is a few seconds.
 ---
 
 **You need:**
-- **Linux x86-64** for this v0 build — the bundled calc engine's runtime is
-  compiled for it. On Windows the launcher starts but stops with an
-  honest "engine cannot start on this machine" message instead of guessing
-  (that's deliberate: a wrong verdict is worse than none). v0 is
-  Linux-first: **the Windows build is days away** (tracked as issue #75 on
-  the public repo — we'll announce it in #poe). macOS is not planned —
-  every current and planned user is on Windows.
-- **Python 3.10+** (`python3 --version`; on Windows the python.org
-  installer's `py` launcher is what `run.bat` looks for first).
-- **~400 MB free disk** (63 MB download, ~320 MB extracted + first-run
-  engine cache).
+- **Windows 10/11 x86-64** — the bundled calc engine's runtime is compiled
+  for it. On any other platform the launcher stops with an honest "engine
+  cannot start on this machine" message instead of guessing (that's
+  deliberate: a wrong verdict is worse than none).
+- **Python 3.10+** — the python.org installer's `py` launcher is what
+  `run.bat` looks for first.
+- **~400 MB free disk** (download, ~320 MB extracted + first-run engine
+  cache).
 - **Internet once**, first run only, IF your Python doesn't already have
   `pyyaml` — one small dependency fetched into a private folder (`.venv/`),
   nothing installed system-wide. No npm, no compiler, no dev tools.
 
 Everything runs on `127.0.0.1`; nothing leaves your machine.
+
+*Dev note: Linux x86-64 builds (`run.sh`) exist for development and CI only
+and are not a supported player platform.*
 
 ---
 

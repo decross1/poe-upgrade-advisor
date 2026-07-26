@@ -1,13 +1,20 @@
+import importlib.machinery
 import importlib.util
 import json
 import os
 import pathlib
 import subprocess
+import sys
+import tempfile
 import unittest
-
+from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CLI = ROOT / "engine" / "pobcalc"
+LOADER = importlib.machinery.SourceFileLoader("pobcalc_invoker", str(CLI))
+CLI_SPEC = importlib.util.spec_from_loader(LOADER.name, LOADER)
+INVOKER = importlib.util.module_from_spec(CLI_SPEC)
+LOADER.exec_module(INVOKER)
 SPEC = importlib.util.spec_from_file_location(
     "preset_config", ROOT / "engine" / "preset_config.py"
 )
@@ -31,6 +38,43 @@ def runtime_is_available():
 
 
 class PobcalcCliTest(unittest.TestCase):
+    def test_server_starts_invoker_with_active_python(self):
+        from server.calculator import PobCalculator
+
+        with mock.patch("server.calculator.JsonRpcWorker") as worker_class:
+            calculator = PobCalculator(ROOT)
+            self.addCleanup(calculator.close)
+            worker_class.assert_called_once_with(
+                [sys.executable, str(CLI), "serve"],
+                ROOT,
+            )
+
+    def test_runtime_artifacts_are_selected_by_platform(self):
+        self.assertEqual(
+            INVOKER._runtime_artifacts("linux"), ("luajit", "lua-utf8.so")
+        )
+        self.assertEqual(
+            INVOKER._runtime_artifacts("win32"),
+            ("luajit.exe", "lua-utf8.dll"),
+        )
+
+    def test_windows_runtime_discovery_uses_exe_without_execute_bit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = pathlib.Path(temporary)
+            binary = runtime / "bin" / "luajit.exe"
+            library = runtime / "lib" / "lua" / "5.1" / "lua-utf8.dll"
+            binary.parent.mkdir(parents=True)
+            library.parent.mkdir(parents=True)
+            binary.touch(mode=0o600)
+            library.touch()
+            self.assertEqual(
+                INVOKER._find_lua(runtime, {}, "win32"), str(binary)
+            )
+            self.assertEqual(
+                INVOKER._lua_cpath(runtime, {}, "win32"),
+                f"{library.parent / '?.dll'};;",
+            )
+
     def test_compiles_versioned_pob_translation(self):
         presets = PRESET_CONFIG.compile_presets(ROOT)
         self.assertEqual(
@@ -55,7 +99,7 @@ class PobcalcCliTest(unittest.TestCase):
 
     def test_usage_rejects_incomplete_invocation(self):
         result = subprocess.run(
-            [CLI, "diff", "--json"],
+            [sys.executable, CLI, "diff", "--json"],
             cwd=ROOT,
             text=True,
             capture_output=True,
@@ -66,7 +110,7 @@ class PobcalcCliTest(unittest.TestCase):
 
     def test_serve_rejects_extra_arguments(self):
         result = subprocess.run(
-            [CLI, "serve", "unexpected"],
+            [sys.executable, CLI, "serve", "unexpected"],
             cwd=ROOT,
             text=True,
             capture_output=True,
@@ -81,6 +125,7 @@ class PobcalcCliTest(unittest.TestCase):
 
         fixture = ROOT / "engine" / "tests" / "fixtures"
         command = [
+            sys.executable,
             CLI,
             "diff",
             "--build",
@@ -132,7 +177,7 @@ class PobcalcCliTest(unittest.TestCase):
             },
         }
         worker = subprocess.Popen(
-            [CLI, "serve"],
+            [sys.executable, CLI, "serve"],
             cwd=ROOT,
             text=True,
             stdin=subprocess.PIPE,

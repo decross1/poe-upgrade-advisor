@@ -141,10 +141,16 @@ try {
     if ($ExpectStubRuntime) {
         # The launcher must stop on its own with the honest failure (I5).
         $exited = $Process.WaitForExit(120 * 1000)
+        # launch.py's sys.exit(message) writes the honest failure to STDERR,
+        # so the validated log must combine BOTH captured streams — the
+        # stdout capture alone is empty on this path (review round 1).
         $log = ""
         if (Test-Path -LiteralPath $outLog) { $log = [System.IO.File]::ReadAllText($outLog) }
-        if ($exited) {
-            Ok "launcher stopped on its own (exit code $($Process.ExitCode)) — no guessing"
+        if (Test-Path -LiteralPath $errLog) { $log += "`n" + [System.IO.File]::ReadAllText($errLog) }
+        if ($exited -and $Process.ExitCode -ne 0) {
+            Ok "launcher stopped on its own with a nonzero exit ($($Process.ExitCode)) — no guessing"
+        } elseif ($exited) {
+            Bad "launcher exited 0 despite the stub runtime — a missing engine must never look like success"
         } else {
             Bad "launcher still running after 120s with a stub runtime"
         }

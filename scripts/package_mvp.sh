@@ -18,8 +18,9 @@
 #
 # PLATFORM: the pinned Lua runtime (engine/.runtime) is compiled for the
 # packaging machine's platform — Linux x86-64 from CI/this repo. The engine
-# worker itself (engine/pobcalc) is a bash script. Testers on other
-# platforms get an honest launcher error, not fixture verdicts (I5).
+# worker itself (engine/pobcalc) runs through the bundle's Python interpreter.
+# Testers without a native pinned Lua runtime get an honest launcher error,
+# not fixture verdicts (I5).
 #
 # Usage: scripts/package_mvp.sh [--skip-web-build]
 set -euo pipefail
