@@ -1,5 +1,7 @@
 import base64
 import json
+import selectors
+import sys
 import threading
 import zlib
 from collections.abc import Mapping
@@ -19,6 +21,7 @@ from server.calculator import (
     EngineTreePlan,
     ImportedBuild,
     ItemParseError,
+    JsonRpcWorker,
     decode_pob_code,
     extract_build_facts,
 )
@@ -38,6 +41,43 @@ SIMPLE_XML = b"""<?xml version="1.0"?>
   </Skills>
 </PathOfBuilding>
 """
+
+
+def test_worker_reads_subprocess_pipes_without_selector_support(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Windows selectors reject anonymous subprocess pipes with WinError 10038."""
+
+    class WindowsPipeRejectingSelector:
+        def register(self, *_args: object, **_kwargs: object) -> None:
+            raise OSError(
+                10038,
+                "An operation was attempted on something that is not a socket",
+            )
+
+        def close(self) -> None:
+            return
+
+    monkeypatch.setattr(selectors, "DefaultSelector", WindowsPipeRejectingSelector)
+    worker_script = (
+        "import json, sys\n"
+        "for line in sys.stdin:\n"
+        "    request = json.loads(line)\n"
+        "    response = {\n"
+        "        'jsonrpc': '2.0',\n"
+        "        'id': request['id'],\n"
+        "        'result': {'method': request['method']},\n"
+        "    }\n"
+        "    print(json.dumps(response), flush=True)\n"
+    )
+    worker = JsonRpcWorker(
+        [sys.executable, "-u", "-c", worker_script],
+        tmp_path,
+    )
+    try:
+        assert worker.call("echo", {}, 1) == {"method": "echo"}
+    finally:
+        worker.close()
 
 
 class StubCalculator:
