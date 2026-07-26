@@ -258,3 +258,100 @@ button.chip.chip--overridden:disabled:hover {
   font-weight: 600;
   opacity: 1;
 }
+
+/* ---- TASK-207: build-import surface (web tier — not the I2-capped card) ---- */
+
+.build-import {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.build-import h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.build-import form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.build-import-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.build-import-input {
+  background: #10131a;
+  color: var(--text);
+  border: 1px solid var(--track);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  resize: vertical;
+}
+
+.build-import-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.build-import-submit,
+.build-import-reset {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.build-import-submit:disabled {
+  border-color: var(--track);
+  color: var(--muted);
+  cursor: default;
+}
+
+.build-import-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--red);
+}
+
+.build-import-success-word {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.build-summary {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.build-summary-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+}
+
+.build-summary-row dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.build-summary-row dd {
+  margin: 0;
+  font-size: 0.9rem;
+}

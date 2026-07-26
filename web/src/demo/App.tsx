@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { SessionCard } from "../session/SessionCard";
 import { useCardSession } from "../session/useCardSession";
+import { BuildImport } from "../components/BuildImport";
+import { importBuildViaClient } from "./importBuildClient";
 
 /**
  * Demo harness (npm run mock + npm run dev): every picker entry is a "hotkey
@@ -49,6 +51,10 @@ export function App() {
         <code>npm run mock</code>). Tapping a boolean chip issues one real <code>POST /diff</code>{" "}
         with the accumulated overrides (I3; spec §7).
       </p>
+
+      {/* TASK-207: build-import surface, wired to POST /build on the TASK-206
+          mock (or the real server — same generated client, same base URL). */}
+      <BuildImport onImport={importBuildViaClient} />
       <label className="fixture-picker">
         Hotkey item:{" "}
         <select value={itemName} onChange={(e) => setItemName(e.target.value)}>
