@@ -28,10 +28,31 @@ That's the whole card. No settings screen, no config wizard, nothing to fill in 
 
 ## Install & run
 
-> **TBD — this section is a placeholder.** Download link, supported platforms,
-> and setup steps will be added by the release task before this announcement is
-> posted. If you are reading "TBD" in #poe, something went wrong —
-> call it out in a reply.
+> **DO NOT POST YET — release guard (TASK-208).** The steps below are real and
+> match the packaged build, but this announcement stays blocked until ALL of:
+> (1) TASK-103 GO decision and the real PoB engine in the package (today's
+> build answers from canned fixtures — fine for install testing, NOT for
+> announcing); (2) clean-machine install test on a non-dev box (done so far:
+> clean-dir test on the dev box only); (3) the download link below is live.
+> If you are reading this guard in #poe, something went wrong — call it out.
+
+1. **Download** `poe-upgrade-advisor-v0.tar.gz` — link posted in this thread
+   **(LINK TBD until the release task attaches the build)**.
+2. **Extract it anywhere** (double-click the archive).
+3. **Run it:**
+   - macOS: double-click `run.command` (if Gatekeeper complains: right-click →
+     Open → Open).
+   - Linux: open a terminal in the folder and run `./run.sh`.
+4. Your browser opens `http://127.0.0.1:47791/` — that page **is** the whole
+   app. Paste your Path of Building code into the import box, pick an item,
+   read the verdict. Tap any assumption chip to flip it and recompute.
+5. Stop it with `Ctrl+C` in the terminal window.
+
+**You need:** Python 3.10+ (macOS already has it; Linux almost certainly does;
+Windows build is coming). First run uses the internet once to fetch one small
+Python dependency into a private folder — no npm, no dev tools, nothing
+installed system-wide. Everything runs on `127.0.0.1`; nothing leaves your
+machine.
 
 ---
 
