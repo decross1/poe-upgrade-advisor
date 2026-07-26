@@ -68,7 +68,7 @@ jobs:
       - name: upload pinned Windows x86-64 Lua runtime
         uses: actions/upload-artifact@v4
         with:
-          name: pobcalc-runtime-windows-x64
+          name: pobcalc-runtime-windows-x64-luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6
           path: engine/.runtime
           if-no-files-found: error
           include-hidden-files: true

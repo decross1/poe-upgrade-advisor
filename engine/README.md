@@ -23,8 +23,10 @@ engine/runtime/build-windows.ps1
 This produces `engine/.runtime/bin/{luajit.exe,lua51.dll}` and
 `engine/.runtime/lib/lua/5.1/lua-utf8.dll`. The `windows-runtime-build` CI job
 runs the same script on `windows-latest`, smoke-tests `require("lua-utf8")`,
-and publishes `pobcalc-runtime-windows-x64`. Both platform scripts fetch the
-same exact LuaJIT and lua-utf8 revisions recorded in the runtime manifest.
+and publishes an artifact named
+`pobcalc-runtime-windows-x64-luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6`.
+Both platform scripts fetch those same exact LuaJIT and lua-utf8 revisions,
+which are also recorded in the runtime manifest.
 
 Never patch vendored PoB code (see backend.md); wrap gaps and document them in
 `GAPS.md`.
