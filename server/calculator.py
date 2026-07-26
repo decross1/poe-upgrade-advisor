@@ -393,7 +393,7 @@ def decode_pob_code(value: str) -> bytes:
             raise BuildImportError("unparseable Path of Building code") from error
     if len(xml) > MAX_BUILD_BYTES:
         raise BuildImportError("decoded Path of Building XML is too large")
-    return xml
+    return xml.strip()
 
 
 def extract_build_facts(xml: bytes) -> dict[str, Any]:

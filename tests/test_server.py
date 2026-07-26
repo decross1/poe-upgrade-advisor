@@ -422,7 +422,9 @@ def test_tree_suggestions_validation_determinism_and_contract(
 
 def test_pob_code_decode_and_conservative_fact_extraction() -> None:
     encoded = base64.urlsafe_b64encode(zlib.compress(SIMPLE_XML)).rstrip(b"=")
-    assert decode_pob_code(encoded.decode()) == SIMPLE_XML
+    normalized = SIMPLE_XML.strip()
+    assert decode_pob_code(encoded.decode()) == normalized
+    assert decode_pob_code(f"\n{SIMPLE_XML.decode()} \t") == normalized
     facts = extract_build_facts(SIMPLE_XML)
     assert facts["active_skills"] == [
         {"name": "Arc", "links": 2, "dps": 1, "tags": []}
