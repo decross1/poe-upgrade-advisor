@@ -1,0 +1,592 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel 404 — expired/unknown diff renders an alert 1`] = `
+<div>
+  <section
+    aria-label="Details"
+    class="details-panel"
+  >
+    <h2>
+      Details (diff d-8f2c41a7)
+    </h2>
+    <p
+      role="alert"
+    >
+      Breakdown expired or unknown for this diff.
+    </p>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel cant_evaluate — reasons list plus empty drivers and raw detection tree 1`] = `
+<div>
+  <section
+    aria-label="Details"
+    class="details-panel"
+  >
+    <h2>
+      Details (diff d-6efc9d24)
+    </h2>
+    <ul>
+      <li>
+        main_skill.trigger_ambiguity: trigger setup reduces skill-detection confidence
+      </li>
+      <li>
+        aggregate confidence 0.50 below cant_evaluate_below threshold 0.55
+      </li>
+    </ul>
+    <section
+      aria-label="Top stat drivers"
+      class="tier2-drivers"
+    >
+      <h3>
+        What drove this
+      </h3>
+      <p
+        class="drivers-empty"
+      >
+        No drivers — no delta was computed for this verdict.
+      </p>
+    </section>
+    <section
+      aria-label="Raw engine breakdown"
+      class="tier3-breakdown"
+    >
+      <h3>
+        Raw breakdown (Tier 3)
+      </h3>
+      <pre
+        class="payload-preview"
+      >
+        {
+  "skill": {
+    "name": null,
+    "source": "main_skill.trigger_ambiguity",
+    "candidates": [
+      "Cremation",
+      "Detonate Dead"
+    ]
+  },
+  "detection": {
+    "trigger_setup_detected": true,
+    "skill_confidence": 0.5,
+    "cant_evaluate_below": 0.55,
+    "note": "Ambiguous main skill — no deltas computed (Doctrine I5: honest under uncertainty)."
+  },
+  "engine": {
+    "name": "pobcalc",
+    "version": "0.1.0-fixture"
+  }
+}
+      </pre>
+    </section>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loaded state — drivers + raw tree behind the one details affordance 1`] = `
+<div>
+  <section
+    aria-label="Details"
+    class="details-panel"
+  >
+    <h2>
+      Details (diff d-8f2c41a7)
+    </h2>
+    <section
+      aria-label="Top stat drivers"
+      class="tier2-drivers"
+    >
+      <h3>
+        What drove this
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+            >
+              Mod
+            </th>
+            <th
+              scope="col"
+            >
+              Stat
+            </th>
+            <th
+              scope="col"
+            >
+              Contribution
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              +1 to Level of all Cold Skill Gems
+            </td>
+            <td>
+              <code>
+                total_dps
+              </code>
+            </td>
+            <td>
+              <span
+                class="driver-contribution driver-contribution--positive"
+              >
+                <span
+                  aria-hidden="true"
+                >
+                  ▲
+                </span>
+                 +5.6%
+              </span>
+              <span
+                aria-hidden="true"
+                class="delta-track driver-track"
+              >
+                <span
+                  class="delta-fill delta-fill--positive"
+                  style="width: 100%;"
+                />
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Adds 24 to 41 Cold Damage to Spells
+            </td>
+            <td>
+              <code>
+                total_dps
+              </code>
+            </td>
+            <td>
+              <span
+                class="driver-contribution driver-contribution--positive"
+              >
+                <span
+                  aria-hidden="true"
+                >
+                  ▲
+                </span>
+                 +4.9%
+              </span>
+              <span
+                aria-hidden="true"
+                class="delta-track driver-track"
+              >
+                <span
+                  class="delta-fill delta-fill--positive"
+                  style="width: 87.50000000000001%;"
+                />
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              38% increased Cold Damage
+            </td>
+            <td>
+              <code>
+                total_dps
+              </code>
+            </td>
+            <td>
+              <span
+                class="driver-contribution driver-contribution--positive"
+              >
+                <span
+                  aria-hidden="true"
+                >
+                  ▲
+                </span>
+                 +1.9%
+              </span>
+              <span
+                aria-hidden="true"
+                class="delta-track driver-track"
+              >
+                <span
+                  class="delta-fill delta-fill--positive"
+                  style="width: 33.92857142857143%;"
+                />
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              +62 to maximum Life (equipped has +89)
+            </td>
+            <td>
+              <code>
+                ehp
+              </code>
+            </td>
+            <td>
+              <span
+                class="driver-contribution driver-contribution--negative"
+              >
+                <span
+                  aria-hidden="true"
+                >
+                  ▼
+                </span>
+                 −1.8%
+              </span>
+              <span
+                aria-hidden="true"
+                class="delta-track driver-track"
+              >
+                <span
+                  class="delta-fill delta-fill--negative"
+                  style="width: 32.142857142857146%;"
+                />
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <section
+      aria-label="Raw engine breakdown"
+      class="tier3-breakdown"
+    >
+      <h3>
+        Raw breakdown (Tier 3)
+      </h3>
+      <pre
+        class="payload-preview"
+      >
+        {
+  "skill": {
+    "name": "Vortex",
+    "source": "main_skill.most_linked_highest_dps"
+  },
+  "offense": {
+    "total_dps": {
+      "equipped": 841200,
+      "candidate": 945500,
+      "delta_pct": 12.4
+    },
+    "stages": [
+      {
+        "name": "base cold damage",
+        "equipped": 1120,
+        "candidate": 1453
+      },
+      {
+        "name": "gem level multiplier",
+        "equipped": 1,
+        "candidate": 1.12
+      },
+      {
+        "name": "increased cold damage",
+        "equipped": 214,
+        "candidate": 252
+      }
+    ]
+  },
+  "defense": {
+    "ehp": {
+      "equipped": 52300,
+      "candidate": 51360,
+      "delta_pct": -1.8
+    },
+    "stages": [
+      {
+        "name": "maximum life",
+        "equipped": 4210,
+        "candidate": 4183
+      }
+    ]
+  },
+  "engine": {
+    "name": "pobcalc",
+    "version": "0.1.0-fixture"
+  }
+}
+      </pre>
+    </section>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loading state 1`] = `
+<div>
+  <section
+    aria-label="Details"
+    class="details-panel"
+  >
+    <h2>
+      Details (diff d-8f2c41a7)
+    </h2>
+    <p
+      role="status"
+    >
+      Loading breakdown…
+    </p>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > Tier-2 drivers view — ranked mods with sign + number + bar (never color alone) 1`] = `
+<div>
+  <section
+    aria-label="Top stat drivers"
+    class="tier2-drivers"
+  >
+    <h3>
+      What drove this
+    </h3>
+    <table>
+      <thead>
+        <tr>
+          <th
+            scope="col"
+          >
+            Mod
+          </th>
+          <th
+            scope="col"
+          >
+            Stat
+          </th>
+          <th
+            scope="col"
+          >
+            Contribution
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            +1 to Level of all Cold Skill Gems
+          </td>
+          <td>
+            <code>
+              total_dps
+            </code>
+          </td>
+          <td>
+            <span
+              class="driver-contribution driver-contribution--positive"
+            >
+              <span
+                aria-hidden="true"
+              >
+                ▲
+              </span>
+               +5.6%
+            </span>
+            <span
+              aria-hidden="true"
+              class="delta-track driver-track"
+            >
+              <span
+                class="delta-fill delta-fill--positive"
+                style="width: 100%;"
+              />
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Adds 24 to 41 Cold Damage to Spells
+          </td>
+          <td>
+            <code>
+              total_dps
+            </code>
+          </td>
+          <td>
+            <span
+              class="driver-contribution driver-contribution--positive"
+            >
+              <span
+                aria-hidden="true"
+              >
+                ▲
+              </span>
+               +4.9%
+            </span>
+            <span
+              aria-hidden="true"
+              class="delta-track driver-track"
+            >
+              <span
+                class="delta-fill delta-fill--positive"
+                style="width: 87.50000000000001%;"
+              />
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            38% increased Cold Damage
+          </td>
+          <td>
+            <code>
+              total_dps
+            </code>
+          </td>
+          <td>
+            <span
+              class="driver-contribution driver-contribution--positive"
+            >
+              <span
+                aria-hidden="true"
+              >
+                ▲
+              </span>
+               +1.9%
+            </span>
+            <span
+              aria-hidden="true"
+              class="delta-track driver-track"
+            >
+              <span
+                class="delta-fill delta-fill--positive"
+                style="width: 33.92857142857143%;"
+              />
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            +62 to maximum Life (equipped has +89)
+          </td>
+          <td>
+            <code>
+              ehp
+            </code>
+          </td>
+          <td>
+            <span
+              class="driver-contribution driver-contribution--negative"
+            >
+              <span
+                aria-hidden="true"
+              >
+                ▼
+              </span>
+               −1.8%
+            </span>
+            <span
+              aria-hidden="true"
+              class="delta-track driver-track"
+            >
+              <span
+                class="delta-fill delta-fill--negative"
+                style="width: 32.142857142857146%;"
+              />
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > Tier-3 raw breakdown view — the engine tree rendered verbatim 1`] = `
+<div>
+  <section
+    aria-label="Raw engine breakdown"
+    class="tier3-breakdown"
+  >
+    <h3>
+      Raw breakdown (Tier 3)
+    </h3>
+    <pre
+      class="payload-preview"
+    >
+      {
+  "skill": {
+    "name": "Vortex",
+    "source": "main_skill.most_linked_highest_dps"
+  },
+  "offense": {
+    "total_dps": {
+      "equipped": 841200,
+      "candidate": 945500,
+      "delta_pct": 12.4
+    },
+    "stages": [
+      {
+        "name": "base cold damage",
+        "equipped": 1120,
+        "candidate": 1453
+      },
+      {
+        "name": "gem level multiplier",
+        "equipped": 1,
+        "candidate": 1.12
+      },
+      {
+        "name": "increased cold damage",
+        "equipped": 214,
+        "candidate": 252
+      }
+    ]
+  },
+  "defense": {
+    "ehp": {
+      "equipped": 52300,
+      "candidate": 51360,
+      "delta_pct": -1.8
+    },
+    "stages": [
+      {
+        "name": "maximum life",
+        "equipped": 4210,
+        "candidate": 4183
+      }
+    ]
+  },
+  "engine": {
+    "name": "pobcalc",
+    "version": "0.1.0-fixture"
+  }
+}
+    </pre>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > absent raw tree — first-class empty state 1`] = `
+<div>
+  <section
+    aria-label="Raw engine breakdown"
+    class="tier3-breakdown"
+  >
+    <h3>
+      Raw breakdown (Tier 3)
+    </h3>
+    <p
+      class="breakdown-empty"
+    >
+      No raw breakdown captured for this diff.
+    </p>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #13 acceptance criteria) > empty drivers — CAN'T EVALUATE renders a first-class empty state (I5) 1`] = `
+<div>
+  <section
+    aria-label="Top stat drivers"
+    class="tier2-drivers"
+  >
+    <h3>
+      What drove this
+    </h3>
+    <p
+      class="drivers-empty"
+    >
+      No drivers — no delta was computed for this verdict.
+    </p>
+  </section>
+</div>
+`;

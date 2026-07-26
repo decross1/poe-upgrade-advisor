@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// TASK-206 fixture mock for POST /diff (+ TASK-207: GET/POST /build) — lets
-// the FE exercise the real HTTP contract (generated client, real port, real
-// error codes) before server/ exists. DELETED when TASK-202 lands (its DoD
-// includes removing this server).
+// TASK-206 fixture mock for POST /diff (+ TASK-207: GET/POST /build, TASK-301:
+// GET /breakdown/{diff_id}) — lets the FE exercise the real HTTP contract
+// (generated client, real port, real error codes) before server/ exists.
+// DELETED when TASK-202 lands (its DoD includes removing this server).
 //
 // Zero runtime dependencies. Fixtures are read from contracts/fixtures/ (and
 // web/mock/fixtures/ for FE-local ones) on every server start — never
@@ -31,6 +31,10 @@ const VALID_PRESETS = ['mapping', 'bossing', 'balanced'];
 // protected path and issue #29 carries no protected-change label — see
 // web/mock/fixtures/README.md for the promotion path.
 export const BUILD_FIXTURE_PATH = path.resolve(HERE, 'fixtures/build_summary.json');
+
+// TASK-301: Tier-2/3 breakdown fixtures are FE-local for the same reason as
+// the build summary (contracts/ is protected) — web/mock/fixtures/README.md.
+export const BREAKDOWN_FIXTURES_DIR = path.resolve(HERE, 'fixtures/breakdown');
 
 /** Load every *.json fixture from dir, keyed by basename without extension. */
 export function loadFixtures(dir = DEFAULT_FIXTURES_DIR) {
@@ -97,6 +101,31 @@ export function loadBuildSummary(file = BUILD_FIXTURE_PATH) {
 }
 
 /**
+ * TASK-301 — pure routing decision for GET /breakdown/{diff_id}. The lookup
+ * key is the diff_id of a golden verdict fixture (contracts/fixtures/, read
+ * from disk). A `#ovr-…` suffix (minted by the /diff override round-trip) is
+ * stripped: fixture-land re-diffs don't recompute drivers, so a post-tap
+ * card resolves to its base fixture's breakdown. The returned body echoes
+ * the REQUESTED diff_id so the panel header matches the card that asked.
+ * Unknown ids are a bare 404 (contract; RULING-20).
+ * @returns {{status: number, breakdown?: object}}
+ */
+export function routeBreakdown(diffId, verdictFixtures, breakdownFixtures) {
+  if (typeof diffId !== 'string' || diffId.trim() === '') return { status: 404 };
+  const baseId = diffId.split('#ovr-')[0];
+  for (const [name, card] of verdictFixtures) {
+    if (card.diff_id === baseId) {
+      const breakdown = breakdownFixtures.get(name);
+      if (!breakdown) return { status: 404 };
+      const body = structuredClone(breakdown);
+      body.diff_id = diffId;
+      return { status: 200, breakdown: body };
+    }
+  }
+  return { status: 404 };
+}
+
+/**
  * TASK-207 — pure routing decision for POST /build. Accepts exactly the
  * contract's oneOf request shape (a non-empty `pob_code`, or a non-empty
  * `account` + `character` pair); anything else is the 422 path. oneOf means
@@ -119,9 +148,10 @@ export function routeBuild(body, summary) {
   return { status: 200, summary: structuredClone(summary) };
 }
 
-export function createMockServer({ fixturesDir = DEFAULT_FIXTURES_DIR, buildFixture = BUILD_FIXTURE_PATH } = {}) {
+export function createMockServer({ fixturesDir = DEFAULT_FIXTURES_DIR, buildFixture = BUILD_FIXTURE_PATH, breakdownFixturesDir = BREAKDOWN_FIXTURES_DIR } = {}) {
   const fixtures = loadFixtures(fixturesDir);
   const buildSummary = loadBuildSummary(buildFixture);
+  const breakdownFixtures = loadFixtures(breakdownFixturesDir);
   // TASK-207: the imported build is stored per server instance. Deliberately
   // NOT coupled to POST /diff's 404 path — /diff stays fixture-routed so the
   // TASK-205/206 harness needs no import step; the real no-build coupling
@@ -165,8 +195,20 @@ export function createMockServer({ fixturesDir = DEFAULT_FIXTURES_DIR, buildFixt
       return;
     }
 
+    const breakdownMatch =
+      req.method === 'GET' && pathname.match(new RegExp(`^${CONTRACT_BASE_PATH}/breakdown/([^/]+)$`));
+    if (breakdownMatch) {
+      const { status, breakdown } = routeBreakdown(decodeURIComponent(breakdownMatch[1]), fixtures, breakdownFixtures);
+      if (status === 200) {
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(breakdown));
+      } else {
+        bare(status);
+      }
+      return;
+    }
+
     if (req.method !== 'POST' || pathname !== `${CONTRACT_BASE_PATH}/diff`) {
-      bare(404); // mock implements only GET/POST /build and POST /diff
+      bare(404); // mock implements only GET/POST /build, POST /diff, GET /breakdown/{id}
       return;
     }
     let raw = '';
@@ -199,8 +241,8 @@ if (isMain) {
   const server = createMockServer();
   server.listen(port, host, () => {
     console.log(
-      `mock POST ${CONTRACT_BASE_PATH}/diff + GET/POST ${CONTRACT_BASE_PATH}/build on http://${host}:${port} ` +
-        `(${loadFixtures().size} verdict fixtures + 1 build fixture loaded)`,
+      `mock POST ${CONTRACT_BASE_PATH}/diff + GET/POST ${CONTRACT_BASE_PATH}/build + GET ${CONTRACT_BASE_PATH}/breakdown/{id} ` +
+        `on http://${host}:${port} (${loadFixtures().size} verdict + 1 build + ${loadFixtures(BREAKDOWN_FIXTURES_DIR).size} breakdown fixtures)`,
     );
   });
 }

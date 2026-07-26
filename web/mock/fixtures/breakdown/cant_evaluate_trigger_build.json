@@ -1,0 +1,14 @@
+{
+  "diff_id": "d-6efc9d24",
+  "drivers": [],
+  "pob_breakdown": {
+    "skill": { "name": null, "source": "main_skill.trigger_ambiguity", "candidates": ["Cremation", "Detonate Dead"] },
+    "detection": {
+      "trigger_setup_detected": true,
+      "skill_confidence": 0.5,
+      "cant_evaluate_below": 0.55,
+      "note": "Ambiguous main skill — no deltas computed (Doctrine I5: honest under uncertainty)."
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}

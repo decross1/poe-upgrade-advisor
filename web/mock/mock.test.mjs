@@ -39,6 +39,12 @@ const validateBuildSummary = ajv.compile({
   ...openapi.components.schemas.BuildSummary,
   components: openapi.components,
 });
+// TASK-301: Breakdown validation, same pattern.
+const validateBreakdown = ajv.compile({
+  $id: 'https://poe-upgrade-advisor/openapi-breakdown',
+  ...openapi.components.schemas.Breakdown,
+  components: openapi.components,
+});
 const buildFixture = JSON.parse(readFileSync(BUILD_FIXTURE_PATH, 'utf8'));
 
 const fixtureNames = readdirSync(DEFAULT_FIXTURES_DIR)
@@ -262,6 +268,40 @@ test('TASK-207: generated client round-trips importBuild/getActiveBuild and surf
   await assert.rejects(
     DefaultService.importBuild({ pob_code: '@error:422' }),
     (err) => err instanceof ApiError && err.status === 422,
+  );
+});
+
+test('TASK-301: GET /breakdown/{diff_id} serves a schema-valid breakdown for every verdict fixture', async () => {
+  for (const name of fixtureNames) {
+    const card = readFixture(name);
+    const res = await fetch(`${BASE_URL}/breakdown/${card.diff_id}`);
+    assert.equal(res.status, 200, `${name}: expected 200`);
+    const breakdown = await res.json();
+    assert.ok(validateBreakdown(breakdown), `${name}: ${JSON.stringify(validateBreakdown.errors)}`);
+    assert.equal(breakdown.diff_id, card.diff_id);
+  }
+});
+
+test('TASK-301: a post-override diff_id (#ovr-…) resolves to the base fixture breakdown, echoing the requested id', async () => {
+  const base = readFixture('upgrade_mapping');
+  const res = await fetch(`${BASE_URL}/breakdown/${encodeURIComponent(`${base.diff_id}#ovr-0123456789ab`)}`);
+  assert.equal(res.status, 200);
+  const breakdown = await res.json();
+  assert.equal(breakdown.diff_id, `${base.diff_id}#ovr-0123456789ab`);
+  assert.deepEqual(breakdown.drivers, JSON.parse(readFileSync(path.join(REPO_ROOT, 'web/mock/fixtures/breakdown/upgrade_mapping.json'), 'utf8')).drivers);
+});
+
+test('TASK-301: unknown diff_id is a bare 404; generated client round-trips and surfaces 404 as ApiError', async () => {
+  const res = await fetch(`${BASE_URL}/breakdown/d-no-such-diff`);
+  assert.equal(res.status, 404);
+  assert.equal(await res.text(), ''); // RULING-20: status-code only
+
+  const card = await DefaultService.diffItem({ item_text: '@fixture:upgrade_mapping' });
+  const breakdown = await DefaultService.getBreakdown(card.diff_id);
+  assert.ok(validateBreakdown(breakdown), JSON.stringify(validateBreakdown.errors));
+  await assert.rejects(
+    DefaultService.getBreakdown('d-no-such-diff'),
+    (err) => err instanceof ApiError && err.status === 404,
   );
 });
 

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { SessionCard } from "../session/SessionCard";
-import { useCardSession } from "../session/useCardSession";
-import { BuildImport } from "../components/BuildImport";
+import { useCardSession, type DiffFn } from "../session/useCardSession";
+import { BuildImport, type BuildImportProps } from "../components/BuildImport";
+import { DetailsPanel, type LoadBreakdown } from "../components/DetailsPanel";
 import { importBuildViaClient } from "./importBuildClient";
+import { loadBreakdownViaClient } from "./detailsClient";
 
 /**
  * Demo harness (npm run mock + npm run dev): every picker entry is a "hotkey
@@ -30,9 +32,20 @@ const DEMO_ITEMS: Record<string, string> = {
   "error: unparseable item (422)": demoItem("???", "@error:422"),
 };
 
-export function App() {
+export interface AppProps {
+  /** Test seam — the demo always uses the generated client's defaults. */
+  diffFn?: DiffFn;
+  loadBreakdown?: LoadBreakdown;
+  onImport?: BuildImportProps["onImport"];
+}
+
+export function App({
+  diffFn,
+  loadBreakdown = loadBreakdownViaClient,
+  onImport = importBuildViaClient,
+}: AppProps = {}) {
   const [itemName, setItemName] = useState<string>(Object.keys(DEMO_ITEMS)[0]);
-  const { state, loadingVisible, evaluate, tapChip } = useCardSession();
+  const { state, loadingVisible, evaluate, tapChip } = useCardSession(diffFn);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Picking an item = one hotkey press = one fresh session (RULING-18).
@@ -54,7 +67,7 @@ export function App() {
 
       {/* TASK-207: build-import surface, wired to POST /build on the TASK-206
           mock (or the real server — same generated client, same base URL). */}
-      <BuildImport onImport={importBuildViaClient} />
+      <BuildImport onImport={onImport} />
       <label className="fixture-picker">
         Hotkey item:{" "}
         <select value={itemName} onChange={(e) => setItemName(e.target.value)}>
@@ -66,42 +79,19 @@ export function App() {
         </select>
       </label>
 
+      {/* The CARD's own details affordance opens Tier 2/3 (I7) — there is
+          exactly one details control on the page, and it is the card's.
+          cant_evaluate_reasons appear ONLY in the panel, never on the card.
+          [RULING-3; PM-REFINEMENT on #25] */}
       <SessionCard
         state={state}
         loadingVisible={loadingVisible}
         onTapChip={tapChip}
         detailsHref="#details"
+        onOpenDetails={() => setDetailsOpen((open) => !open)}
+        detailsOpen={detailsOpen}
       />
-
-      {/* Details affordance → Tier-2 preview. cant_evaluate_reasons appear ONLY
-          here, never on the card. [RULING-3; PM-REFINEMENT on #25] */}
-      {card && (
-        <p>
-          <a
-            href="#details"
-            onClick={(e) => {
-              e.preventDefault();
-              setDetailsOpen((open) => !open);
-            }}
-          >
-            {detailsOpen ? "Hide details" : "Open details (Tier-2 preview)"}
-          </a>
-        </p>
-      )}
-      {card && detailsOpen && (
-        <section className="details-panel" aria-label="Details">
-          <h2>Details (diff {card.diff_id})</h2>
-          {card.cant_evaluate_reasons && card.cant_evaluate_reasons.length > 0 ? (
-            <ul>
-              {card.cant_evaluate_reasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No can't-evaluate reasons for this verdict.</p>
-          )}
-        </section>
-      )}
+      {card && detailsOpen && <DetailsPanel card={card} loadBreakdown={loadBreakdown} />}
 
       <h2>Session</h2>
       <pre className="payload-preview">

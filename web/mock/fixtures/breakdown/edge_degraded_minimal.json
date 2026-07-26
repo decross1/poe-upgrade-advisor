@@ -1,0 +1,12 @@
+{
+  "diff_id": "d-00000000",
+  "drivers": [],
+  "pob_breakdown": {
+    "parse": {
+      "item_class_recognised": false,
+      "mods_recognised": 0,
+      "note": "Unrecognised item class — raw parse only; report this item."
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}

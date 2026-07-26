@@ -1,0 +1,25 @@
+{
+  "diff_id": "d-3b9e77c0",
+  "drivers": [
+    { "mod_text": "12% increased Attack Speed", "contribution_pct": 1.4, "stat": "total_dps" },
+    { "mod_text": "Adds 18 to 33 Physical Damage (vs 21 to 39 equipped)", "contribution_pct": -0.8, "stat": "total_dps" },
+    { "mod_text": "+487 Armour (vs +712 equipped)", "contribution_pct": -0.4, "stat": "ehp" }
+  ],
+  "pob_breakdown": {
+    "skill": { "name": "Boneshatter", "source": "main_skill.user_override" },
+    "offense": {
+      "total_dps": { "equipped": 1204000, "candidate": 1211200, "delta_pct": 0.6 },
+      "stages": [
+        { "name": "attack speed", "equipped": 1.62, "candidate": 1.81 },
+        { "name": "base physical damage", "equipped": 402, "candidate": 388 }
+      ]
+    },
+    "defense": {
+      "ehp": { "equipped": 61800, "candidate": 61550, "delta_pct": -0.4 },
+      "stages": [
+        { "name": "armour", "equipped": 18900, "candidate": 18675 }
+      ]
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}

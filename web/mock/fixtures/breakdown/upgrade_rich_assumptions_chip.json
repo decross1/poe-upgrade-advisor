@@ -1,0 +1,27 @@
+{
+  "diff_id": "d-59d0b8e2",
+  "drivers": [
+    { "mod_text": "49% increased Lightning Damage", "contribution_pct": 4.1, "stat": "total_dps" },
+    { "mod_text": "11% increased Cast Speed", "contribution_pct": 3.6, "stat": "total_dps" },
+    { "mod_text": "Adds 1 to 77 Lightning Damage to Spells", "contribution_pct": 2.1, "stat": "total_dps" },
+    { "mod_text": "+24% to Fire Resistance", "contribution_pct": 0.2, "stat": "ehp" }
+  ],
+  "pob_breakdown": {
+    "skill": { "name": "Arc", "source": "main_skill.most_linked_highest_dps" },
+    "offense": {
+      "total_dps": { "equipped": 986400, "candidate": 1083100, "delta_pct": 9.8 },
+      "stages": [
+        { "name": "increased lightning damage", "equipped": 302, "candidate": 351 },
+        { "name": "cast speed", "equipped": 2.31, "candidate": 2.56 },
+        { "name": "shock effect (config.shock_from_setup)", "equipped": 1.15, "candidate": 1.15 }
+      ]
+    },
+    "defense": {
+      "ehp": { "equipped": 48900, "candidate": 49000, "delta_pct": 0.2 },
+      "stages": [
+        { "name": "fire resistance", "equipped": 76, "candidate": 100 }
+      ]
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}
