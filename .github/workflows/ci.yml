@@ -55,6 +55,23 @@ jobs:
           python -m pytest
           tests/test_server.py::test_worker_reads_subprocess_pipes_without_selector_support
           -q
+  windows-runtime-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+      - name: build and smoke-test pinned Windows x86-64 Lua runtime
+        shell: pwsh
+        run: ./engine/runtime/build-windows.ps1
+      - name: upload pinned Windows x86-64 Lua runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: pobcalc-runtime-windows-x64
+           path: engine/.runtime
+           if-no-files-found: error
+           retention-days: 7
   contracts:
     runs-on: ubuntu-latest
     steps:

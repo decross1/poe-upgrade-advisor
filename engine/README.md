@@ -15,6 +15,17 @@ LuaJIT and lua-utf8 revisions from source into ignored `engine/.runtime/`;
 be selected with `POBCALC_RUNTIME`, or its binary/module can be selected
 individually with `POBCALC_LUA` and `POBCALC_LUA_CPATH`.
 
+The Windows x86-64 runtime is built natively with the Visual Studio MSVC
+toolchain, rather than cross-compiled. From an x64 Developer PowerShell:
+```
+engine/runtime/build-windows.ps1
+```
+This produces `engine/.runtime/bin/{luajit.exe,lua51.dll}` and
+`engine/.runtime/lib/lua/5.1/lua-utf8.dll`. The `windows-runtime-build` CI job
+runs the same script on `windows-latest`, smoke-tests `require("lua-utf8")`,
+and publishes `pobcalc-runtime-windows-x64`. Both platform scripts fetch the
+same exact LuaJIT and lua-utf8 revisions recorded in the runtime manifest.
+
 Never patch vendored PoB code (see backend.md); wrap gaps and document them in
 `GAPS.md`.
 
