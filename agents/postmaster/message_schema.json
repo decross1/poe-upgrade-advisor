@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://poe-upgrade-advisor/message.schema.json",
   "title": "AgentMessage",
-  "description": "The entire email body MUST be exactly one JSON object matching this schema. Subject line format: [POB][TASK-<id>][<intent>] <summary>. Anything else is rejected by the postmaster and dead-lettered.",
+  "description": "Each ledger entry MUST be exactly one JSON object matching this schema. Anything else is rejected before transport or dead-lettered by the postmaster.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "message_id", "idempotency_key", "task_id", "from_role", "to_role", "intent", "hop_count", "max_hops", "refs", "body_markdown"],
