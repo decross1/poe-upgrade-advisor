@@ -1,7 +1,9 @@
 #!/bin/sh
 # PoE Upgrade Advisor — MVP v0 launcher (TASK-208).
-# Double-clickable (run.command on macOS) or `./run.sh`. No dev tooling needed:
-# uses the system python3 and bootstraps its one dependency into a private venv.
+# `./run.sh` on the Linux dev/CI tarball (the tester-facing build is the
+# Windows zip with run.bat; macOS is dropped — issue #75). No dev tooling
+# needed: uses the system python3 and bootstraps its one dependency into a
+# private venv.
 set -eu
 cd "$(dirname "$0")"
 

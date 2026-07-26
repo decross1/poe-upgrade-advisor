@@ -55,9 +55,12 @@ echo "date:             $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # --- 1. Extract exactly like a tester --------------------------------------
 tar -xzf "$TARBALL" -C "$WORK"
 APP="$WORK/poe-upgrade-advisor-v0"
-[ -x "$APP/run.sh" ] && [ -f "$APP/run.bat" ] && [ -x "$APP/run.command" ] \
-  && ok "entrypoints present (run.sh / run.command / run.bat)" \
+[ -x "$APP/run.sh" ] && [ -f "$APP/run.bat" ] \
+  && ok "entrypoints present (run.sh dev/CI / run.bat for the Windows zip)" \
   || bad "entrypoints missing"
+[ ! -e "$APP/run.command" ] \
+  && ok "run.command ABSENT — macOS dropped (issue #75 decision)" \
+  || bad "run.command present (macOS packaging must be gone)"
 
 # --- 2. Provenance: real engine in, fixture path out -----------------------
 [ -x "$APP/engine/.runtime/bin/luajit" ] \

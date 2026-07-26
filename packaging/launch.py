@@ -197,10 +197,11 @@ def main() -> None:
         if isinstance(exc, WorkerUnavailable):
             sys.exit(
                 "error: the calculation engine could not start on this "
-                f"machine ({exc}).\nThe v0 download ships a Linux x86-64 "
-                "engine runtime; on other platforms the engine cannot run "
-                "yet. Please report your OS in #poe — that report decides "
-                "which platform ships next."
+                f"machine ({exc}).\nThis download has no working engine "
+                "runtime for your platform. Windows x86-64 is the shipping "
+                "platform (issue #75): early fast-follow zips ship the "
+                "runtime as a stub on purpose — grab the latest zip. No "
+                "verdict will ever be guessed; please report this in #poe."
             )
         raise
     url = f"http://{HOST}:{public.server_address[1]}/"

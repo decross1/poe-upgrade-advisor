@@ -47,21 +47,28 @@ tasks/BACKLOG.md         Phased backlog with acceptance criteria (TASK-ids)
 scripts/                 CI checks incl. doctrine invariant checker
 ```
 
-## Building the tester distributable (TASK-208)
+## Building the tester distributable (TASK-208/209)
 
-One command produces `dist/poe-upgrade-advisor-v0-<sha>.tar.gz` — the web
-bundle, local API, real PoB engine (vendored PathOfBuilding + prebuilt
-pinned LuaJIT runtime), and the `run.sh` / `run.command` / `run.bat`
-entrypoints:
+The tester-facing artifact is the Windows x86-64 zip (product decision on
+issue #75: Windows-only; macOS dropped) — web bundle, local API, real PoB
+engine (vendored PathOfBuilding + pinned LuaJIT runtime), `run.bat`
+entrypoint:
 
-```sh
-scripts/package_mvp.sh
+```powershell
+scripts/package_mvp_windows.ps1 -RuntimeDir <lane A runtime dir>
 ```
 
-Packaging-machine prerequisites: `npm`, `git`, `cc`+`make` (the Lua runtime
-is compiled once here and shipped prebuilt — testers need none of these).
-Tester prerequisites and install steps live in `packaging/README.txt`
-(ships in the tarball) and `docs/announcements/mvp_launch.md`.
+Without `-RuntimeDir` the zip ships an explicit stub runtime and the
+launcher fails honestly (I5) until lane A's `windows-runtime-build`
+artifact is wired. The Linux `dist/poe-upgrade-advisor-v0-<sha>.tar.gz`
+(`scripts/package_mvp.sh`, `run.sh` entrypoint) remains a dev/CI-only
+artifact.
+
+Packaging-machine prerequisites: `npm`, `git`, plus `cc`+`make` for the
+Linux runtime only (runtimes are compiled once and shipped prebuilt —
+testers need none of these). Tester prerequisites and install steps live
+in `packaging/README.txt` (ships in the bundle) and
+`docs/announcements/mvp_launch.md`.
 
 ## Boot sequence (one-time human setup, ~1 evening)
 

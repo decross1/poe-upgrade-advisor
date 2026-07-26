@@ -13,6 +13,9 @@ Note:  Discord caps messages at 2000 characters. Post each "---"-separated
 Record (PM, 2026-07-26): both release decisions ruled by the operator —
        (a) distribution: public repo, GitHub Release v0.1.0, asset link wired
        below; (b) Windows: fast-follow tracked as #75, stated honestly below.
+Record (operator, 2026-07-26 ~15:55 UTC): product target is WINDOWS-ONLY;
+       macOS is dropped entirely (not deferred) — macOS copy removed below.
+       Linux remains dev/CI-only.
 -->
 
 # The MVP is live: paste an item, get a verdict
@@ -37,12 +40,10 @@ Coming next: the in-game overlay — hover an item, hit `Ctrl+C`, and the card a
    <https://github.com/decross1/poe-upgrade-advisor/releases/download/v0.1.0/poe-upgrade-advisor-v0-8eaa2a4.tar.gz>
 2. **Extract it anywhere:**
    - Linux: `tar -xzf poe-upgrade-advisor-v0-*.tar.gz && cd poe-upgrade-advisor-v0`
-   - macOS / Windows: double-click the archive, then open the
+   - Windows: double-click the archive, then open the
      `poe-upgrade-advisor-v0` folder.
 3. **Run it:**
    - Linux: `./run.sh`
-   - macOS: double-click `run.command` (if Gatekeeper complains: right-click →
-     Open → Open)
    - Windows: double-click `run.bat`
 4. Your browser opens `http://127.0.0.1:47791/` — that page **is** the whole
    app. Paste your Path of Building code into the import box, pick an item,
@@ -56,12 +57,12 @@ one-time data cache. Every launch after that is a few seconds.
 
 **You need:**
 - **Linux x86-64** for this v0 build — the bundled calc engine's runtime is
-  compiled for it. On macOS/Windows the launcher starts but stops with an
+  compiled for it. On Windows the launcher starts but stops with an
   honest "engine cannot start on this machine" message instead of guessing
   (that's deliberate: a wrong verdict is worse than none). v0 is
   Linux-first: **the Windows build is days away** (tracked as issue #75 on
-  the public repo — we'll announce it in #poe). macOS after that; tell us
-  in #poe if you want it.
+  the public repo — we'll announce it in #poe). macOS is not planned —
+  every current and planned user is on Windows.
 - **Python 3.10+** (`python3 --version`; on Windows the python.org
   installer's `py` launcher is what `run.bat` looks for first).
 - **~400 MB free disk** (63 MB download, ~320 MB extracted + first-run
