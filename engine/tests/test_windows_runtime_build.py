@@ -49,6 +49,10 @@ class WindowsRuntimeBuildTest(unittest.TestCase):
         self.assertIn("runs-on: windows-latest", workflow)
         self.assertIn("./engine/runtime/build-windows.ps1", workflow)
         self.assertIn(
+            "packaging\\run.bat --runtime-check-only",
+            workflow,
+        )
+        self.assertIn(
             "name: pobcalc-runtime-windows-x64-"
             "luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-"
             "luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6",

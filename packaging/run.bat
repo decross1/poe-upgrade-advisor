@@ -8,6 +8,15 @@ rem ============================================================
 setlocal
 cd /d "%~dp0"
 
+rem --- bind and smoke-test the bundled Windows x86-64 engine runtime.
+if not defined POBCALC_RUNTIME set "POBCALC_RUNTIME=%CD%\engine\.runtime"
+if not exist "%POBCALC_RUNTIME%\bin\luajit.exe" goto fail_engine
+if not exist "%POBCALC_RUNTIME%\bin\lua51.dll" goto fail_engine
+if not exist "%POBCALC_RUNTIME%\lib\lua\5.1\lua-utf8.dll" goto fail_engine
+"%POBCALC_RUNTIME%\bin\luajit.exe" -e "package.cpath=[[%POBCALC_RUNTIME%\lib\lua\5.1\?.dll]]; require('lua-utf8')"
+if errorlevel 1 goto fail_engine
+if /I "%~1"=="--runtime-check-only" exit /b 0
+
 rem --- find a Python: prefer the py launcher, fall back to python on PATH.
 set "PY="
 where py >nul 2>nul && set "PY=py -3"
@@ -45,4 +54,9 @@ exit /b 1
 
 :fail_pip
 echo error: could not install pyyaml (needs an internet connection, once). 1>&2
+exit /b 1
+
+:fail_engine
+echo error: the Windows calculation engine cannot start; the bundled runtime is missing or incompatible. 1>&2
+echo        No verdict was produced. Re-download the app and report this in #poe if it continues. 1>&2
 exit /b 1

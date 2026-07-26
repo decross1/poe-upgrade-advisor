@@ -65,6 +65,9 @@ jobs:
       - name: build and smoke-test pinned Windows x86-64 Lua runtime
         shell: pwsh
         run: ./engine/runtime/build-windows.ps1
+      - name: exercise run.bat Windows runtime path
+        shell: cmd
+        run: packaging\run.bat --runtime-check-only
       - name: upload pinned Windows x86-64 Lua runtime
         uses: actions/upload-artifact@v4
         with:
