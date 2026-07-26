@@ -3,7 +3,9 @@
 # directory, launched through run.bat exactly like a tester double-click.
 #
 #   run.bat up -> POST /api/v0/build with the golden corpus PoB code
-#   -> assert a REAL build summary from the engine.
+#   -> assert a REAL build summary from the engine -> POST /api/v0/diff
+#   with the golden item text -> assert the REAL verdict (issue #75
+#   acceptance: golden /build + real /diff verdict).
 #
 # Until lane A's pinned Windows runtime artifact is wired into the zip, the
 # bundle ships an explicit stub runtime and the honest "engine cannot start"
@@ -214,6 +216,35 @@ try {
             if ([string]::IsNullOrWhiteSpace($build.build_id)) {
                 Bad "build_id missing from the build summary"
             } else { Ok "build_id present ($($build.build_id))" }
+
+            # --- real /diff: golden clipboard item vs the active build ------
+            # Golden item is host-side only (the app sees a plain HTTP body,
+            # exactly like a tester's Ctrl+C). Expected card pinned from the
+            # pinned runtime: SIDEGRADE, schema-conformant (I2/I3).
+            $itemText = Get-Content -LiteralPath (Join-Path $Root "engine/tests/fixtures/item.txt") -Raw
+            $diffBody = @{ item_text = $itemText } | ConvertTo-Json -Compress
+            $diffResponse = $client.PostAsync(
+                "http://127.0.0.1:$Port/api/v0/diff",
+                (New-Object System.Net.Http.StringContent($diffBody, [System.Text.Encoding]::UTF8, "application/json"))
+            ).Result
+            $diffPayload = $diffResponse.Content.ReadAsStringAsync().Result
+            if ($diffResponse.IsSuccessStatusCode) {
+                Ok "POST /api/v0/diff (golden item vs active build) -> 200"
+            } else { Bad "POST /api/v0/diff -> $($diffResponse.StatusCode): $diffPayload" }
+            Write-Host "   verdict readback: $diffPayload"
+            $card = $diffPayload | ConvertFrom-Json
+            if ($card.verdict -eq "SIDEGRADE") {
+                Ok "real /diff verdict is the engine's golden SIDEGRADE (offense $($card.offense_delta_pct)%, defense $($card.defense_delta_pct)%) — not a fixture"
+            } else { Bad "verdict was '$($card.verdict)', expected the golden 'SIDEGRADE'" }
+            if (-not [string]::IsNullOrWhiteSpace($card.sentence) -and $card.sentence.Length -le 140) {
+                Ok "explanation sentence present within the 140-char schema cap (I2)"
+            } else { Bad "sentence missing or over the 140-char cap" }
+            if (@($card.assumptions).Count -ge 1) {
+                Ok "assumptions chip populated ($(@($card.assumptions).Count) assumptions, I3)"
+            } else { Bad "assumptions chip empty" }
+            if (-not [string]::IsNullOrWhiteSpace($card.diff_id)) {
+                Ok "diff_id present ($($card.diff_id)) — Tier-2 breakdown reachable"
+            } else { Bad "diff_id missing from the VerdictCard" }
         }
         finally {
             $client.Dispose()
