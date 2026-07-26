@@ -3,27 +3,34 @@ set -euo pipefail
 
 usage() {
   echo "usage: pobcalc diff --build BUILD.xml --item ITEM.txt --preset PRESET --json" >&2
+  echo "       pobcalc serve" >&2
   exit 64
 }
 
-[[ ${1:-} == "diff" ]] || usage
+mode=${1:-}
+[[ $mode == "diff" || $mode == "serve" ]] || usage
 shift
 
 build=
 item=
 preset=
 json=false
-while (($#)); do
-  case "$1" in
-    --build) [[ $# -ge 2 ]] || usage; build=$2; shift 2 ;;
-    --item) [[ $# -ge 2 ]] || usage; item=$2; shift 2 ;;
-    --preset) [[ $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
-    --json) json=true; shift ;;
-    *) usage ;;
-  esac
-done
-
-[[ -n $build && -f $build && -n $item && -f $item && -n $preset && $json == true ]] || usage
+if [[ $mode == "diff" ]]; then
+  while (($#)); do
+    case "$1" in
+      --build) [[ $# -ge 2 ]] || usage; build=$2; shift 2 ;;
+      --item) [[ $# -ge 2 ]] || usage; item=$2; shift 2 ;;
+      --preset) [[ $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
+      --json) json=true; shift ;;
+      *) usage ;;
+    esac
+  done
+  [[ -n $build && -f $build && -n $item && -f $item && -n $preset && $json == true ]] || usage
+  build=$(realpath "$build")
+  item=$(realpath "$item")
+else
+  (($# == 0)) || usage
+fi
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 pob_src="$root/engine/vendor/PathOfBuilding/src"
@@ -41,12 +48,14 @@ fi
   exit 69
 }
 
-build=$(realpath "$build")
-item=$(realpath "$item")
 lua_path="$root/engine/vendor/PathOfBuilding/runtime/lua/?.lua;$root/engine/vendor/PathOfBuilding/runtime/lua/?/init.lua;;"
+lua_args=("$build" "$item" "$preset")
+if [[ $mode == "serve" ]]; then
+  lua_args=(--serve)
+fi
 
 (
   cd "$pob_src"
   LUA_PATH="$lua_path" LUA_CPATH="${POBCALC_LUA_CPATH:-;;}" \
-    "$lua_bin" "$root/engine/pobcalc.lua" "$build" "$item" "$preset"
+    "$lua_bin" "$root/engine/pobcalc.lua" "${lua_args[@]}"
 )

@@ -21,6 +21,17 @@ class PobcalcCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 64)
         self.assertIn("usage:", result.stderr)
 
+    def test_serve_rejects_extra_arguments(self):
+        result = subprocess.run(
+            [CLI, "serve", "unexpected"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 64)
+        self.assertIn("pobcalc serve", result.stderr)
+
     def test_output_is_byte_deterministic_when_runtime_is_available(self):
         lua = os.environ.get("POBCALC_LUA")
         cpath = os.environ.get("POBCALC_LUA_CPATH")
