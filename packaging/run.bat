@@ -2,8 +2,8 @@
 rem ============================================================
 rem  PoE Upgrade Advisor - MVP v0 launcher for Windows (TASK-208)
 rem  Double-click run.bat. No dev tooling needed: uses the Python
-rem  launcher (py) or python on PATH, and bootstraps the server's
-rem  one dependency into a private venv (.venv\). Mirrors run.sh.
+rem  launcher (py), python3, or python on PATH, and bootstraps
+rem  the server's one dependency into a private venv (.venv\).
 rem ============================================================
 setlocal
 cd /d "%~dp0"
@@ -17,9 +17,11 @@ if not exist "%POBCALC_RUNTIME%\lib\lua\5.1\lua-utf8.dll" goto fail_engine
 if errorlevel 1 goto fail_engine
 if /I "%~1"=="--runtime-check-only" exit /b 0
 
-rem --- find a Python: prefer the py launcher, fall back to python on PATH.
+rem --- find a Python: prefer the py launcher, then python3, then python on PATH.
 set "PY="
 where py >nul 2>nul && set "PY=py -3"
+if defined PY goto python_found
+where python3 >nul 2>nul && set "PY=python3"
 if defined PY goto python_found
 where python >nul 2>nul && set "PY=python"
 if defined PY goto python_found

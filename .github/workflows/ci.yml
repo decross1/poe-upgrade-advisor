@@ -51,6 +51,76 @@ jobs:
           path: engine/runtime-parity-spot-check.json
           if-no-files-found: error
           retention-days: 7
+
+  windows-package-cleanroom:
+    # TASK-209 lane C (issue #75): build the tester-facing Windows zip and
+    # clean-room it on a real Windows machine. Lane A's pinned runtime
+    # artifact is downloaded CROSS-RUN (by exact pinned name, MAIN-branch
+    # runs only — "when it lands" means merged; pre-merge PR artifacts are
+    # ignored) instead of via `needs:` so this workflow stays valid before
+    # lane A merges. Until the artifact lands on main, the zip ships the
+    # explicit stub runtime and the clean-room asserts the honest 'engine
+    # cannot start' failure (I5) — a hard assertion, never a silent skip.
+    # SEQUENCING: once lane A merges, real-mode assertions activate; lane B
+    # (Windows worker entrypoint) must merge with or before lane A, or this
+    # job goes red by design — the honest alarm that the slice is incomplete.
+    runs-on: windows-latest
+    permissions:
+      actions: read  # cross-run artifact download (lane A runtime)
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: locate lane A pinned Windows runtime artifact
+        id: rt
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $name = "pobcalc-runtime-windows-x64-luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6"
+          $resp = gh api "repos/${{ github.repository }}/actions/artifacts?name=$name&per_page=20" | ConvertFrom-Json
+          $artifact = $resp.artifacts |
+            Where-Object { -not $_.expired -and $_.workflow_run.head_branch -eq "main" } |
+            Sort-Object created_at -Descending | Select-Object -First 1
+          if ($null -ne $artifact) {
+            Write-Host "== lane A runtime artifact #$($artifact.id) (run $($artifact.workflow_run.id), $($artifact.created_at))"
+            "found=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "run_id=$($artifact.workflow_run.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          } else {
+            Write-Host "::warning::lane A runtime artifact has not landed on main yet — zip gets the explicit stub runtime; clean-room asserts the honest failure (I5)"
+            "found=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          }
+      - name: download lane A pinned Windows runtime
+        if: steps.rt.outputs.found == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: pobcalc-runtime-windows-x64-luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6
+          run-id: ${{ steps.rt.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: engine/.runtime
+      - name: package Windows zip
+        shell: pwsh
+        run: |
+          if ("${{ steps.rt.outputs.found }}" -eq "true") {
+            ./scripts/package_mvp_windows.ps1 -RuntimeDir engine/.runtime
+          } else {
+            ./scripts/package_mvp_windows.ps1
+          }
+      - name: clean-room check (fresh extract, run.bat, POST /build golden code)
+        shell: pwsh
+        run: |
+          if ("${{ steps.rt.outputs.found }}" -eq "true") {
+            ./scripts/cleanroom_windows_check.ps1
+          } else {
+            ./scripts/cleanroom_windows_check.ps1 -ExpectStubRuntime
+          }
+      - name: upload Windows zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: poe-upgrade-advisor-v0-${{ github.sha }}-windows-x64
+          path: dist/poe-upgrade-advisor-v0-*-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 7
   windows-worker-pipes:
     # TASK-209 / issue #75: Windows selectors reject anonymous subprocess
     # pipes. Exercise the real JsonRpcWorker ping/response path on Windows so

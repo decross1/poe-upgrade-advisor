@@ -3,9 +3,14 @@
 #
 # ADR-0004 fallback applies: the native shell (Tauri leg) is unproven on the
 # dev box (issue #34), so v0 ships the web bundle + local API + the real PoB
-# calc engine + launcher. Produces dist/poe-upgrade-advisor-v0-<sha>.tar.gz
-# containing everything a tester needs except python3 itself and a supported
-# OS (run.sh bootstraps the rest).
+# calc engine + launcher. Produces dist/poe-upgrade-advisor-v0-<sha>.tar.gz.
+#
+# PLATFORM (issue #75, 2026-07-26): the product is WINDOWS-ONLY — this
+# Linux tarball is a dev/CI-only artifact now; the tester-facing Windows
+# zip is built by scripts/package_mvp_windows.ps1 (run.bat entrypoint).
+# macOS is dropped entirely: no macOS entrypoint or copy anywhere.
+# The tarball contains everything needed except python3 itself (run.sh
+# bootstraps the rest).
 #
 # Packaging-machine prerequisites (NOT tester prerequisites): npm, git,
 # cc + make (only for engine/runtime/build.sh, whose output is shipped
@@ -86,12 +91,13 @@ tar -cf - -C "$VENDOR" \
 # Prebuilt bundle — testers never touch npm.
 cp -r web/dist/. "$STAGE/web/"
 
-# Launcher + tester docs.
+# Launcher + tester docs. Linux dev/CI tarball: run.sh entrypoint (run.bat
+# rides along as documentation of the Windows zip's entrypoint; macOS is
+# dropped — issue #75).
 cp -r packaging "$STAGE/packaging"
 cp packaging/run.sh "$STAGE/run.sh"
-cp packaging/run.sh "$STAGE/run.command"   # macOS double-click
-cp packaging/run.bat "$STAGE/run.bat"      # Windows double-click
-chmod +x "$STAGE/run.sh" "$STAGE/run.command"
+cp packaging/run.bat "$STAGE/run.bat"      # Windows zip entrypoint (see package_mvp_windows.ps1)
+chmod +x "$STAGE/run.sh"
 cp packaging/README.txt "$STAGE/README.txt"
 
 # Never ship caches, a previous bootstrap venv, or repo-side test files.

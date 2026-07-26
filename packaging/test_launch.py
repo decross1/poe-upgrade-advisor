@@ -183,8 +183,11 @@ def test_run_bat_mirrors_run_sh_contract():
     assert '.venv\\Scripts\\python.exe -m pip install --quiet --disable-pip-version-check "pyyaml>=6.0"' in bat
     for dep in ('"pyyaml>=6.0"',):
         assert dep in sh and dep in bat, "run.sh/run.bat dependency spec drift"
-    # Prefers the python.org py launcher; plain python is only the fallback.
+    # Prefers the python.org py launcher, then python3, then plain python
+    # (TASK-209: windows-latest runners resolve python3 before python).
     assert 'set "PY=py -3"' in bat
+    assert 'set "PY=python3"' in bat
+    assert bat.index('set "PY=py -3"') < bat.index('set "PY=python3"') < bat.index('set "PY=python"')
     # Never touches a fixed port or remote host itself; launch.py owns that.
     assert "47791" not in bat and "http" not in bat.lower().replace("https://www.python.org", "")
 
@@ -207,8 +210,10 @@ def test_run_bat_binds_and_smoke_tests_windows_runtime():
 
 def test_package_script_stages_all_launchers():
     script = (ROOT / "scripts" / "package_mvp.sh").read_text(encoding="utf-8")
-    for artifact in ('"$STAGE/run.sh"', '"$STAGE/run.command"', '"$STAGE/run.bat"'):
+    for artifact in ('"$STAGE/run.sh"', '"$STAGE/run.bat"'):
         assert artifact in script, f"package_mvp.sh no longer stages {artifact}"
+    # macOS is dropped (issue #75 decision): no run.command staging anywhere.
+    assert "run.command" not in script, "macOS packaging (run.command) must be gone"
 
 
 def test_package_script_stages_real_engine():
