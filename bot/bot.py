@@ -15,6 +15,11 @@ import discord
 from discord import app_commands
 import requests
 
+try:
+    from bot.digest import collect_digest, digest_due, render_digest, week_marker
+except ModuleNotFoundError:  # Direct execution: python bot/bot.py
+    from digest import collect_digest, digest_due, render_digest, week_marker
+
 GH_API = "https://api.github.com"
 SECRET_PATTERNS = (
     re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
@@ -194,6 +199,10 @@ def open_database(path: str | None = None) -> sqlite3.Connection:
         "issue INTEGER PRIMARY KEY, channel INTEGER, thread INTEGER, "
         "last_relayed_comment INTEGER DEFAULT 0)"
     )
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS weekly_digest ("
+        "week TEXT PRIMARY KEY, posted_at TEXT NOT NULL)"
+    )
     connection.commit()
     return connection
 
@@ -224,6 +233,7 @@ class Bot(discord.Client):
     async def setup_hook(self) -> None:
         await self.tree.sync()
         asyncio.create_task(self.relay_decisions())
+        asyncio.create_task(self.publish_weekly_digests())
 
     async def relay_once(self) -> None:
         rows = list(
@@ -257,6 +267,42 @@ class Bot(discord.Client):
         while not self.is_closed():
             await self.relay_once()
             await asyncio.sleep(300)
+
+    async def publish_digest_once(self) -> bool:
+        """Post one due digest; the durable week marker makes retries harmless."""
+        if not digest_due():
+            return False
+        marker = week_marker()
+        if self.db.execute(
+            "SELECT 1 FROM weekly_digest WHERE week=?", (marker,)
+        ).fetchone():
+            return False
+
+        repo = os.environ["GITHUB_REPO"]
+        message = await asyncio.to_thread(collect_digest, repo)
+        rendered = render_digest(message)
+        if rendered:
+            channel = self.get_channel(int(os.environ["ANNOUNCE_CHANNEL_ID"]))
+            if channel is None:
+                raise RuntimeError("announcement channel is unavailable")
+            await channel.send(rendered)
+
+        self.db.execute(
+            "INSERT INTO weekly_digest (week, posted_at) "
+            "VALUES (?, datetime('now'))",
+            (marker,),
+        )
+        self.db.commit()
+        return bool(rendered)
+
+    async def publish_weekly_digests(self) -> None:
+        await self.wait_until_ready()
+        while not self.is_closed():
+            try:
+                await self.publish_digest_once()
+            except Exception as error:
+                print(f"weekly digest error: {error}")
+            await asyncio.sleep(60)
 
 
 bot = Bot()

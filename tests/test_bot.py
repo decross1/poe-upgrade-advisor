@@ -178,3 +178,25 @@ def test_suggest_channel_gate_makes_no_github_call(tmp_path, monkeypatch):
     )
     interaction.response.defer.assert_not_awaited()
     file_issue_mock.assert_not_called()
+
+
+def test_weekly_digest_is_marked_only_once(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPO", "owner/repo")
+    monkeypatch.setenv("ANNOUNCE_CHANNEL_ID", "123")
+    module = load_bot_module(tmp_path, monkeypatch)
+    channel = SimpleNamespace(send=AsyncMock())
+    module.bot.get_channel = lambda _channel_id: channel
+
+    with (
+        patch.object(module, "digest_due", return_value=True),
+        patch.object(module, "week_marker", return_value="2026-W30"),
+        patch.object(module, "collect_digest", return_value=object()),
+        patch.object(module, "render_digest", return_value="weekly update"),
+    ):
+        assert asyncio.run(module.bot.publish_digest_once())
+        assert not asyncio.run(module.bot.publish_digest_once())
+
+    channel.send.assert_awaited_once_with("weekly update")
+    assert list(module.bot.db.execute("SELECT week FROM weekly_digest")) == [
+        ("2026-W30",)
+    ]
