@@ -47,7 +47,7 @@ invoke() {
       (cd "$dir" && codex exec --dangerously-bypass-approvals-and-sandbox "$prompt") ;;
     frontend)
       eval "$(grep '^export KIMI_API_KEY' ~/.bashrc)"
-      (cd "$dir" && pi --provider moonshot --model kimi-k3 --no-session -p "$prompt") ;;
+      (cd "$dir" && pi --provider moonshot --model kimi-k3 --thinking "${PI_THINKING:-high}" --no-session -p "$prompt") ;;
   esac
 }
 
