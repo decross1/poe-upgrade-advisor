@@ -50,13 +50,44 @@ One-command startup (no dependency on `engine/` or `server/`):
 
 ```bash
 cd web && npm install && npm run mock
-# mock POST /api/v0/diff on http://127.0.0.1:47791 (N fixtures loaded)
+# mock POST /api/v0/diff + GET/POST /api/v0/build on http://127.0.0.1:47791
 ```
 
-It implements exactly one route, `POST /api/v0/diff`, at the exact server URL
-from `contracts/openapi.yaml`. Responses are VerdictCard JSON loaded from disk
-at startup out of `contracts/fixtures/` — fixtures are never inlined in code,
-and the mock never modifies anything under `contracts/`.
+It implements three routes at the exact server URL from
+`contracts/openapi.yaml`: `POST /api/v0/diff` (TASK-206) and
+`GET`/`POST /api/v0/build` (TASK-207). Responses are JSON loaded from disk at
+startup out of `contracts/fixtures/` (golden VerdictCards) and
+`web/mock/fixtures/` (FE-local BuildSummary) — fixtures are never inlined in
+code, and the mock never modifies anything under `contracts/`.
+
+### Build import (TASK-207)
+
+`POST /api/v0/build` accepts exactly the contract's request shape — a
+non-empty `pob_code`, or a non-empty `account` + `character` pair — and
+returns `200` with the BuildSummary fixture served verbatim from
+`web/mock/fixtures/build_summary.json`, which it also stores in memory (per
+server instance). `GET /api/v0/build` returns the stored summary, or a bare
+`404` before any import. Everything else is a bare `422`:
+
+| Request body | Response |
+|---|---|
+| `{ "pob_code": "<any non-empty string>" }` | `200` + BuildSummary fixture, stored |
+| `{ "account": "…", "character": "…" }` (both non-empty) | `200` + BuildSummary fixture, stored |
+| `pob_code` containing `@error:422` | bare `422` (deterministic invalid-code path) |
+| empty/missing/non-string fields, half an account pair | bare `422` |
+| malformed JSON | bare `422` |
+
+Two deliberate choices:
+
+- **The fixture is FE-local.** `contracts/fixtures/` is a protected path and
+  issue #29 carries no `protected-change` label, so the golden-fixture
+  conventions of RFC-0001 can't apply yet. `web/mock/fixtures/README.md`
+  records the promotion path (PM files a `protected-change` task → fixture
+  moves to `contracts/fixtures/`).
+- **`/diff` is NOT coupled to build state.** The real server answers `/diff`
+  with `404` when no build is imported; the mock keeps `/diff` fixture-routed
+  so the verdict harness needs no import step. The coupling lands with
+  `server/` in TASK-202 (which also deletes this mock).
 
 ### Deterministic fixture selection (request-driven rule)
 
@@ -100,5 +131,22 @@ served from disk validates against `contracts/verdict.schema.json`
 (draft 2020-12), all four verdict states are reachable, 404/422 paths behave,
 the overrides round-trip yields a new `diff_id` with applied values, and the
 generated client round-trips (including `ApiError` on 404/422) into a
-renderable card. `mock/renderSmoke.mjs` is a wire-smoke renderer only — the
-product verdict card is TASK-205's.
+renderable card. The TASK-207 block does the same for `/build`: PoB-code and
+account+character imports return a schema-valid BuildSummary served verbatim
+from disk and stored (GET before import is a bare 404, checked on a fresh
+ephemeral-port server so test order can't matter), invalid imports are bare
+422s, and the generated client round-trips `importBuild`/`getActiveBuild`
+with `ApiError` on 422. `mock/renderSmoke.mjs` is a wire-smoke renderer only —
+the product verdict card is TASK-205's.
+
+## Build import UI (TASK-207)
+
+`src/components/BuildImport.tsx` is the paste-a-PoB-code surface the spec's
+ERROR_NO_BUILD state deep-links to. Like every component here it does no
+network I/O: the caller injects `onImport` (`src/demo/importBuildClient.ts`
+adapts the generated client's `importBuild`), one submit = one `POST /build`.
+States: editing (submit disabled on blank paste), submitting (button inert —
+no double POST), invalid (contract 422 — alert, paste preserved), unavailable
+(no local server), success (renders the returned BuildSummary, offers
+re-import). Snapshot coverage in `test/BuildImport.test.tsx`: empty,
+invalid-code (422), success.

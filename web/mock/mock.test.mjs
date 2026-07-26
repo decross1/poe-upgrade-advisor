@@ -7,8 +7,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
+import YAML from 'yaml';
 
 import {
+  BUILD_FIXTURE_PATH,
   CONTRACT_BASE_PATH,
   CONTRACT_HOST,
   CONTRACT_PORT,
@@ -30,6 +32,15 @@ const validateVerdict = ajv.compile(
   JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts/verdict.schema.json'), 'utf8')),
 );
 
+// TASK-207: BuildSummary validation straight from the contract text.
+const openapi = YAML.parse(readFileSync(path.join(REPO_ROOT, 'contracts/openapi.yaml'), 'utf8'));
+const validateBuildSummary = ajv.compile({
+  $id: 'https://poe-upgrade-advisor/openapi-build-summary',
+  ...openapi.components.schemas.BuildSummary,
+  components: openapi.components,
+});
+const buildFixture = JSON.parse(readFileSync(BUILD_FIXTURE_PATH, 'utf8'));
+
 const fixtureNames = readdirSync(DEFAULT_FIXTURES_DIR)
   .filter((f) => f.endsWith('.json'))
   .map((f) => f.slice(0, -'.json'.length));
@@ -44,6 +55,22 @@ async function postDiff(body) {
     headers: { 'content-type': 'application/json' },
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : null };
+}
+
+async function postBuild(body, base = BASE_URL) {
+  const res = await fetch(`${base}/build`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  });
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : null };
+}
+
+async function getBuild(base = BASE_URL) {
+  const res = await fetch(`${base}/build`);
   const text = await res.text();
   return { status: res.status, body: text ? JSON.parse(text) : null };
 }
@@ -166,6 +193,71 @@ test('generated client surfaces 404/422 as ApiError with the contract status', a
   );
   await assert.rejects(
     DefaultService.diffItem({ item_text: '@error:422' }),
+    (err) => err instanceof ApiError && err.status === 422,
+  );
+});
+
+test('TASK-207: POST /build accepts a PoB code, stores and returns a schema-valid summary from disk', async () => {
+  const res = await postBuild({ pob_code: 'eNq1VG1v2zAM/u9XcHruNkmb5khbtkHYsB9i2IYtQIMm046wZUuUk+QODfvvoyjFtUM3IPXhk-QjkeeHvFim' });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, buildFixture, 'summary must be served verbatim from web/mock/fixtures/');
+  assert.ok(validateBuildSummary(res.body), JSON.stringify(validateBuildSummary.errors));
+  // Stored: GET /build now returns the imported summary (contract 200).
+  const got = await getBuild();
+  assert.equal(got.status, 200);
+  assert.deepEqual(got.body, res.body);
+});
+
+test("TASK-207: POST /build accepts the contract's account+character variant", async () => {
+  const res = await postBuild({ account: 'someone#1234', character: 'VortexEnjoyer' });
+  assert.equal(res.status, 200);
+  assert.ok(validateBuildSummary(res.body), JSON.stringify(validateBuildSummary.errors));
+});
+
+test('TASK-207: GET /build before any import is a bare 404 (fresh server, order-independent)', async () => {
+  const fresh = createMockServer();
+  await new Promise((resolve, reject) => {
+    fresh.once('error', reject);
+    fresh.listen(0, CONTRACT_HOST, resolve);
+  });
+  try {
+    const base = `http://${CONTRACT_HOST}:${fresh.address().port}${CONTRACT_BASE_PATH}`;
+    const got = await getBuild(base);
+    assert.equal(got.status, 404);
+    assert.equal(got.body, null, 'RULING-20: bare error body');
+  } finally {
+    await new Promise((resolve) => fresh.close(resolve));
+  }
+});
+
+test('TASK-207: invalid imports are a bare 422 — bad shapes, bad JSON, @error:422 marker', async () => {
+  for (const body of [
+    {},
+    { pob_code: '' },
+    { pob_code: '   \n ' },
+    { pob_code: 42 },
+    { account: 'someone#1234' }, // missing character
+    { character: 'VortexEnjoyer' }, // missing account
+    { account: '', character: 'VortexEnjoyer' },
+    { pob_code: 'eNq1...@error:422' }, // deterministic invalid-code marker
+    [1, 2, 3], // valid JSON, not an object
+    null,
+  ]) {
+    const res = await postBuild(body);
+    assert.equal(res.status, 422, JSON.stringify(body));
+    assert.equal(res.body, null, 'RULING-20: bare error body');
+  }
+  const malformed = await postBuild('{not json');
+  assert.equal(malformed.status, 422);
+});
+
+test('TASK-207: generated client round-trips importBuild/getActiveBuild and surfaces 422 as ApiError', async () => {
+  const summary = await DefaultService.importBuild({ pob_code: 'eNq1VG1v2zAM/u9XcHruNkm' });
+  assert.ok(validateBuildSummary(summary), JSON.stringify(validateBuildSummary.errors));
+  const active = await DefaultService.getActiveBuild();
+  assert.deepEqual(active, summary);
+  await assert.rejects(
+    DefaultService.importBuild({ pob_code: '@error:422' }),
     (err) => err instanceof ApiError && err.status === 422,
   );
 });

@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import type { VerdictCard as VerdictCardData } from "../lib/verdictFormat";
 import type { OverrideEntry } from "../lib/overrides";
 import { VerdictCard } from "../components/VerdictCard";
+import { BuildImport } from "../components/BuildImport";
+import { importBuildViaClient } from "./importBuildClient";
 
 // Fixture-driven harness: the card is built entirely from contracts/fixtures/
 // (read-only, PM-owned) plus FE-local fixtures for cases with no golden
@@ -66,6 +68,10 @@ export function App() {
   return (
     <main className="harness">
       <h1>Verdict card — fixture harness</h1>
+
+      {/* TASK-207: build-import surface, wired to POST /build on the TASK-206
+          mock (or the real server — same generated client, same base URL). */}
+      <BuildImport onImport={importBuildViaClient} />
       <label className="fixture-picker">
         Fixture:{" "}
         <select value={fixtureName} onChange={(e) => selectFixture(e.target.value)}>

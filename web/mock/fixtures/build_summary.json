@@ -1,0 +1,12 @@
+{
+  "build_id": "b-1f9e2c7d",
+  "character_class": "Witch",
+  "ascendancy": "Occultist",
+  "level": 90,
+  "main_skill": {
+    "name": "Vortex",
+    "inferred": true,
+    "confidence": 0.86
+  },
+  "preset_default": "mapping"
+}
