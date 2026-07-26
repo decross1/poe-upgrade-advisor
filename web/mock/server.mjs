@@ -99,7 +99,10 @@ export function loadBuildSummary(file = BUILD_FIXTURE_PATH) {
 /**
  * TASK-207 — pure routing decision for POST /build. Accepts exactly the
  * contract's oneOf request shape (a non-empty `pob_code`, or a non-empty
- * `account` + `character` pair); anything else is the 422 path. The marker
+ * `account` + `character` pair); anything else is the 422 path. oneOf means
+ * exactly one variant may match: a body satisfying BOTH required sets
+ * (pob_code AND account+character) matches both alternatives and is invalid
+ * (contracts/openapi.yaml:31-38; backend review PR #44 round 1). The marker
  * `@error:422` inside pob_code forces the invalid-code path, mirroring the
  * /diff marker table. On success the FE-local fixture is returned verbatim.
  * @returns {{status: number, summary?: object}}
@@ -111,6 +114,7 @@ export function routeBuild(body, summary) {
     typeof body.account === 'string' && body.account.trim() !== '' &&
     typeof body.character === 'string' && body.character.trim() !== '';
   if (!hasCode && !hasAccount) return { status: 422 };
+  if (hasCode && hasAccount) return { status: 422 }; // oneOf: both variants matched → invalid
   if (hasCode && body.pob_code.includes('@error:422')) return { status: 422 };
   return { status: 200, summary: structuredClone(summary) };
 }

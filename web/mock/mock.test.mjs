@@ -239,6 +239,9 @@ test('TASK-207: invalid imports are a bare 422 — bad shapes, bad JSON, @error:
     { account: 'someone#1234' }, // missing character
     { character: 'VortexEnjoyer' }, // missing account
     { account: '', character: 'VortexEnjoyer' },
+    // Matches BOTH oneOf variants (openapi.yaml:31-38) → invalid; regression
+    // from backend review PR #44 round 1 (routeBuild previously returned 200).
+    { pob_code: 'eNq1...', account: 'someone#1234', character: 'VortexEnjoyer' },
     { pob_code: 'eNq1...@error:422' }, // deterministic invalid-code marker
     [1, 2, 3], // valid JSON, not an object
     null,

@@ -75,6 +75,7 @@ server instance). `GET /api/v0/build` returns the stored summary, or a bare
 | `{ "pob_code": "<any non-empty string>" }` | `200` + BuildSummary fixture, stored |
 | `{ "account": "…", "character": "…" }` (both non-empty) | `200` + BuildSummary fixture, stored |
 | `pob_code` containing `@error:422` | bare `422` (deterministic invalid-code path) |
+| both variants at once (`pob_code` **and** `account`+`character`, all non-empty) | bare `422` — contract `oneOf`: exactly one variant may match |
 | empty/missing/non-string fields, half an account pair | bare `422` |
 | malformed JSON | bare `422` |
 
