@@ -16,6 +16,7 @@ from server.assumptions import AssumptionsEvaluator
 from server.calculator import (
     EngineDiff,
     ImportedBuild,
+    ItemParseError,
     decode_pob_code,
     extract_build_facts,
 )
@@ -62,13 +63,19 @@ class StubCalculator:
         self, item_text: str, canonical_config: Mapping[str, Any]
     ) -> EngineDiff:
         self.configurations.append(dict(canonical_config))
+        if item_text in {"", "unparseable"}:
+            raise ItemParseError("test item is unparseable")
         candidates = {
             "upgrade": (110, 110),
+            "bigger-upgrade": (130, 120),
             "sidegrade": (101, 99),
             "downgrade": (90, 90),
             "zero-baseline": (1, 100),
         }
-        candidate_dps, candidate_ehp = candidates[item_text]
+        try:
+            candidate_dps, candidate_ehp = candidates[item_text]
+        except KeyError as error:
+            raise ItemParseError("test item is unparseable") from error
         baseline_dps = 0 if item_text == "zero-baseline" else 100
         return EngineDiff(
             {
@@ -262,6 +269,74 @@ def test_diff_validation_determinism_and_evaluator_config(
     assert calculator.configurations[-1]["flasks_active"] is False
 
 
+def test_scan_ranks_verdicts_by_combined_delta_and_keeps_ties_stable(
+    app: ApiApplication,
+) -> None:
+    import_stub_build(app)
+    status, response = app.dispatch(
+        "POST",
+        f"{BASE_PATH}/scan",
+        {
+            "items": [
+                "downgrade",
+                "upgrade",
+                "sidegrade",
+                "bigger-upgrade",
+                "upgrade",
+                "zero-baseline",
+            ],
+            "preset": "bossing",
+        },
+    )
+    assert status == 200
+    assert response is not None
+    assert [result["index"] for result in response["results"]] == [
+        3,
+        1,
+        4,
+        2,
+        0,
+        5,
+    ]
+    assert all(
+        result["verdict"]["preset"] == "bossing"
+        for result in response["results"]
+    )
+    schema = json.loads((ROOT / "contracts/verdict.schema.json").read_text())
+    for result in response["results"]:
+        jsonschema.validate(result["verdict"], schema)
+
+
+def test_scan_validation_and_empty_stash(app: ApiApplication) -> None:
+    assert app.dispatch(
+        "POST", f"{BASE_PATH}/scan", {"items": ["upgrade"]}
+    ) == (404, None)
+    import_stub_build(app)
+    for body in (
+        None,
+        {},
+        {"items": "upgrade"},
+        {"items": [1]},
+        {"items": ["upgrade"] * 2_001},
+        {"items": ["upgrade"], "preset": "invalid"},
+    ):
+        assert app.dispatch("POST", f"{BASE_PATH}/scan", body) == (422, None)
+    status, response = app.dispatch(
+        "POST",
+        f"{BASE_PATH}/scan",
+        {"items": ["upgrade", "", "unparseable"]},
+    )
+    assert status == 200
+    assert response is not None
+    assert [result["index"] for result in response["results"]] == [0, 1, 2]
+    assert [
+        result["verdict"]["verdict"] for result in response["results"]
+    ] == ["UPGRADE", "CANT_EVALUATE", "CANT_EVALUATE"]
+    assert app.dispatch(
+        "POST", f"{BASE_PATH}/scan", {"items": []}
+    ) == (200, {"results": []})
+
+
 def test_pob_code_decode_and_conservative_fact_extraction() -> None:
     encoded = base64.urlsafe_b64encode(zlib.compress(SIMPLE_XML)).rstrip(b"=")
     assert decode_pob_code(encoded.decode()) == SIMPLE_XML
@@ -299,6 +374,13 @@ def test_http_round_trip_uses_bare_contract_errors(app: ApiApplication) -> None:
         status, raw = post("/diff", {"item_text": "sidegrade"})
         assert status == 200
         assert json.loads(raw)["verdict"] == "SIDEGRADE"
+        status, raw = post(
+            "/scan", {"items": ["downgrade", "upgrade", "sidegrade"]}
+        )
+        assert status == 200
+        assert [
+            result["index"] for result in json.loads(raw)["results"]
+        ] == [1, 2, 0]
     finally:
         server.shutdown()
         server.server_close()

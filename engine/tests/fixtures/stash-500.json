@@ -1,0 +1,6 @@
+{
+  "count": 500,
+  "roll_start": 1,
+  "roll_step": 1,
+  "item_template": "Rarity: RARE\nScan Candidate {roll}\nVaal Spirit Shield\nItem Level: 83\nQuality: 0\nSockets: B-B-B\nLevelReq: 70\nImplicits: 1\n9% increased Spell Damage\n+{roll} to Intelligence\n30% increased Energy Shield\n+100 to maximum Life\n+1 to Level of all Cold Spell Skill Gems\n+11% to all Elemental Resistances\n+43% to Cold Resistance\n"
+}

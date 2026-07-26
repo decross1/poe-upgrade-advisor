@@ -131,6 +131,47 @@ class RealServerAdapterTest(unittest.TestCase):
             bossing_diff.payload["baseline"],
         )
 
+    def test_scan_500_items_under_30_seconds(self):
+        fixture = json.loads(
+            (
+                ROOT
+                / "engine"
+                / "tests"
+                / "fixtures"
+                / "stash-500.json"
+            ).read_text()
+        )
+        items = [
+            fixture["item_template"].format(
+                roll=fixture["roll_start"] + index * fixture["roll_step"]
+            )
+            for index in range(fixture["count"])
+        ]
+        self.assertEqual(len(items), 500)
+        status, _ = self.app.dispatch(
+            "POST",
+            f"{BASE_PATH}/build",
+            {"pob_code": self._build_xml().decode()},
+        )
+        self.assertEqual(status, 200)
+
+        started = time.perf_counter()
+        status, response = self.app.dispatch(
+            "POST",
+            f"{BASE_PATH}/scan",
+            {"items": items, "preset": "mapping"},
+        )
+        elapsed = time.perf_counter() - started
+
+        self.assertEqual(status, 200)
+        self.assertEqual(len(response["results"]), 500)
+        self.assertEqual(
+            sorted(result["index"] for result in response["results"]),
+            list(range(500)),
+        )
+        print(f"SCAN_500_ELAPSED_MS:{elapsed * 1000:.3f}")
+        self.assertLess(elapsed, 30)
+
 
 if __name__ == "__main__":
     unittest.main()
