@@ -3,7 +3,8 @@
 # directory, launched through run.bat exactly like a tester double-click.
 #
 #   run.bat up -> POST /api/v0/build with the golden corpus PoB code
-#   -> assert a REAL build summary from the engine.
+#   -> POST /api/v0/diff with the golden item -> assert a REAL build
+#   summary AND a REAL verdict from the engine (issue #75 acceptance).
 #
 # Until lane A's pinned Windows runtime artifact is wired into the zip, the
 # bundle ships an explicit stub runtime and the honest "engine cannot start"
@@ -22,6 +23,7 @@ param(
     [string] $Zip,
     [switch] $ExpectStubRuntime,
     [string] $GoldenBuild = "engine/corpus/seed/ninja/12-elementalist-ci-cold-snap.json",
+    [string] $GoldenItem = "engine/tests/fixtures/item.txt",
     [int] $Port = 47791,
     [int] $ReadyTimeoutSeconds = 300
 )
@@ -214,6 +216,67 @@ try {
             if ([string]::IsNullOrWhiteSpace($build.build_id)) {
                 Bad "build_id missing from the build summary"
             } else { Ok "build_id present ($($build.build_id))" }
+
+            $itemText = [System.IO.File]::ReadAllText((Join-Path $Root $GoldenItem))
+            $diffBody = @{ item_text = $itemText } | ConvertTo-Json -Compress
+            $diffResponse = $client.PostAsync(
+                "http://127.0.0.1:$Port/api/v0/diff",
+                (New-Object System.Net.Http.StringContent($diffBody, [System.Text.Encoding]::UTF8, "application/json"))
+            ).Result
+            $diffPayload = $diffResponse.Content.ReadAsStringAsync().Result
+            if ($diffResponse.IsSuccessStatusCode) {
+                Ok "POST /api/v0/diff (golden item) -> 200"
+            } else { Bad "POST /api/v0/diff -> $([int] $diffResponse.StatusCode): $diffPayload" }
+            Write-Host "   verdict: $diffPayload"
+            $verdict = $diffPayload | ConvertFrom-Json
+            if (@("UPGRADE", "SIDEGRADE", "DOWNGRADE", "CANT_EVALUATE") -contains $verdict.verdict) {
+                Ok "verdict word is contract-valid ($($verdict.verdict))"
+            } else { Bad "verdict word '$($verdict.verdict)' not in the contract enum" }
+            if (-not ($verdict.verdict -eq "UPGRADE" -and $verdict.offense_delta_pct -eq 12.4 -and $verdict.defense_delta_pct -eq -1.8)) {
+                Ok "NOT the retired fixture signature (+12.4/-1.8 UPGRADE)"
+            } else { Bad "fixture signature verdict — the fixture path answered" }
+            # Independently recorded real-engine E2E on PR #72 for this exact
+            # build+item+preset: SIDEGRADE +15.4 / -11.8, deterministic engine.
+            # Lane A proved the Windows runtime byte-identical to Linux
+            # (runtime-parity-cross-platform), so the same numbers must hold.
+            if ($verdict.verdict -eq "SIDEGRADE" -and $verdict.offense_delta_pct -eq 15.4 -and $verdict.defense_delta_pct -eq -11.8) {
+                Ok "matches the real-engine E2E numbers from PR #72 (SIDEGRADE +15.4/-11.8)"
+            } else { Bad "verdict $($verdict.verdict) +$($verdict.offense_delta_pct)/$($verdict.defense_delta_pct) != real-engine E2E (SIDEGRADE +15.4/-11.8)" }
+            if (@($verdict.assumptions).Count -ge 1) {
+                Ok "assumption chips present (I3)"
+            } else { Bad "no assumption chips on the verdict (I3)" }
+            if ($verdict.sentence.Length -le 140) {
+                Ok "sentence within 140-char cap (I2)"
+            } else { Bad "verdict sentence over the 140-char cap (I2)" }
+
+            $flipBody = @{
+                item_text = $itemText
+                overrides  = @(@{ assumption_id = "config.flasks_up"; value = $false })
+            } | ConvertTo-Json -Compress -Depth 5
+            $flipResponse = $client.PostAsync(
+                "http://127.0.0.1:$Port/api/v0/diff",
+                (New-Object System.Net.Http.StringContent($flipBody, [System.Text.Encoding]::UTF8, "application/json"))
+            ).Result
+            $flipPayload = $flipResponse.Content.ReadAsStringAsync().Result
+            if ($flipResponse.IsSuccessStatusCode) {
+                Ok "I3 override round-trip -> 200"
+            } else { Bad "I3 override round-trip -> $([int] $flipResponse.StatusCode): $flipPayload" }
+            Write-Host "   overridden verdict: $flipPayload"
+            $flipped = $flipPayload | ConvertFrom-Json
+            $chips = @{}
+            foreach ($a in @($flipped.assumptions)) { $chips[$a.id] = $a.value }
+            if ($chips.ContainsKey("config.flasks_up") -and $chips["config.flasks_up"] -eq $false) {
+                Ok "flasks_up chip flipped true->false on override (I3)"
+            } else { Bad "flasks_up chip did not flip on override (I3)" }
+
+            $junkBody = @{ item_text = "Rarity: RARE`nnot a real item`n" } | ConvertTo-Json -Compress
+            $junkResponse = $client.PostAsync(
+                "http://127.0.0.1:$Port/api/v0/diff",
+                (New-Object System.Net.Http.StringContent($junkBody, [System.Text.Encoding]::UTF8, "application/json"))
+            ).Result
+            if ([int] $junkResponse.StatusCode -eq 422) {
+                Ok "unparseable item -> honest 422 (I5)"
+            } else { Bad "unparseable item -> $([int] $junkResponse.StatusCode), expected honest 422 (I5)" }
         }
         finally {
             $client.Dispose()

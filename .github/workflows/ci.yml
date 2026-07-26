@@ -106,7 +106,7 @@ jobs:
           } else {
             ./scripts/package_mvp_windows.ps1
           }
-      - name: clean-room check (fresh extract, run.bat, POST /build golden code)
+      - name: clean-room check (fresh extract, run.bat, golden /build + real /diff)
         shell: pwsh
         run: |
           if ("${{ steps.rt.outputs.found }}" -eq "true") {

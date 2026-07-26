@@ -77,6 +77,26 @@ def test_windows_cleanroom_asserts_real_build_summary():
     assert "contracts" in script
 
 
+def test_windows_cleanroom_asserts_real_diff_verdict():
+    """Issue #75 acceptance + the binding arbitration gate: the Windows
+    clean-room proves a REAL /diff verdict (golden /build plus real /diff),
+    with the same deterministic numbers the Linux clean-room asserts (lane A
+    proved the Windows runtime byte-identical)."""
+    script = CLEANROOM_PS1.read_text(encoding="utf-8")
+    assert "/api/v0/diff" in script
+    assert "item_text" in script
+    assert "engine/tests/fixtures/item.txt" in script
+    # Deterministic real-engine E2E numbers for the golden build+item (PR #72).
+    assert '"SIDEGRADE"' in script
+    assert "15.4" in script
+    assert "-11.8" in script
+    # The retired fixture path's signature must never pass as real.
+    assert "12.4" in script
+    # I3 override round-trip + I5 honest 422, like the Linux lane.
+    assert "config.flasks_up" in script
+    assert "422" in script
+
+
 def test_windows_cleanroom_stub_mode_asserts_honest_failure():
     script = CLEANROOM_PS1.read_text(encoding="utf-8")
     # Pre-lane-A mode is a hard assertion of the honest failure, not a skip.
