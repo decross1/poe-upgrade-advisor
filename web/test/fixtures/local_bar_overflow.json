@@ -1,0 +1,20 @@
+{
+  "diff_id": "d-local-overflow",
+  "verdict": "UPGRADE",
+  "offense_delta_pct": 312,
+  "defense_delta_pct": 0.04,
+  "sentence": "FE-local fixture: exercises bar overflow, near-zero formatting, and a 40-char chip label until golden fixtures land for these cases.",
+  "assumptions": [
+    {
+      "id": "config.long_label_layout_stress",
+      "label": "1234567890123456789012345678901234567890",
+      "value": true,
+      "impactful": true,
+      "reversible": true,
+      "source_rule": "config.long_label_layout_stress"
+    }
+  ],
+  "confidence": 0.9,
+  "preset": "mapping",
+  "compute_ms": 101
+}
