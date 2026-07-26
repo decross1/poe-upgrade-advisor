@@ -34,22 +34,17 @@ the GitHub account, and secret material that must never enter git or the ledger.
    - **Reset Token** → copy the token now (it is shown exactly once). This is
      `DISCORD_TOKEN` — see 1.5 for where it goes.
    - **Public Bot**: turn **OFF** (only you should be able to invite it).
-   - **Privileged Gateway Intents** — leave **all three OFF** (Presence Intent,
-     Server Members Intent, Message Content Intent). The code uses
-     `discord.Intents.default()` (bot.py line 89) and is slash-command-only; it
-     reads no message content and needs **no privileged intents**. Enabling any
-     of them would violate the least-privilege posture in ARCHITECTURE.md.
+   - **Privileged Gateway Intents** — leave Presence Intent and Server Members
+     Intent OFF. Turn **Message Content Intent ON only when
+     `FEEDBACK_CHANNEL_ID` is configured** for TASK-404.
 
 ### 1.2 Required intents
 
-None beyond defaults — see 1.1. If Discord ever prompts you to enable an intent
-for this bot, that is a signal the code changed; check with the backend agent
-before toggling anything.
-
-Known planned exception: TASK-404 (#27, #feedback channel piping) will require
-the privileged **Message Content Intent**. Enabling it is an explicit
-human-only step of that task — its issue names it — not something to turn on
-now. Until that task lands, all three privileged intents stay OFF.
+TASK-404's passive feedback listener requires the privileged **Message Content
+Intent**. A human must enable it in the Discord developer portal before setting
+`FEEDBACK_CHANNEL_ID`; the code requests that intent only when the variable is
+present. Leave it disabled when feedback intake is not configured. Presence
+Intent and Server Members Intent remain OFF.
 
 ### 1.3 Generate the invite URL (exact permission integer)
 
@@ -135,6 +130,7 @@ GITHUB_REPO=decross1/poe-upgrade-advisor
 BOT_DB=/home/decross1/projects/poe-discord-proj/botstate/bot_state.sqlite3
 INTAKE_OUTBOX=/home/decross1/projects/poe-discord-proj/worktrees/backend/.mailroom/outbox
 SUGGEST_CHANNEL_ID=<channel ID of #suggestions>
+FEEDBACK_CHANNEL_ID=<channel ID of #feedback>
 ```
 
 Then: `chmod 600 .../bot/.env`.
