@@ -269,7 +269,7 @@ async def suggest(
     configured_channel = os.environ.get("SUGGEST_CHANNEL_ID")
     if configured_channel and interaction.channel_id != int(configured_channel):
         await interaction.response.send_message(
-            "Please use /suggest in the configured suggestions channel.",
+            "Please use /suggest in the configured #poe channel.",
             ephemeral=True,
         )
         return

@@ -19,7 +19,9 @@ it normalizes, scrubs, fences, quarantines (see SECURITY posture in bot.py).
 - `GITHUB_REPO`: `owner/name` repository containing the intake issues.
 - `BOT_DB`: persistent SQLite path. In deployment this must point at a durable
   volume, not the container filesystem.
-- `SUGGEST_CHANNEL_ID`: Discord channel ID where `/suggest` is accepted.
+- `SUGGEST_CHANNEL_ID`: ID of the single `#poe` channel where `/suggest` is
+  accepted. Set it to the same channel ID as `ANNOUNCE_CHANNEL_ID` in the MVP
+  runtime.
 - `DECISION_AUTHOR_LOGIN`: exact GitHub login allowed to relay `[DECISION]`
   comments as official Discord updates.
 - `LEDGER_SCRIPT`: optional absolute path to `agents/postmaster/ledger.py`;
@@ -40,6 +42,10 @@ After filing, the bot calls `ledger.py send` directly with an untrusted
 `INTAKE_TICKET`; the retired mail outbox is not used. The `intake` label remains
 a durable triage fallback. A GitHub failure is reported to the submitter and
 creates no mapping or Discord thread.
+
+In the MVP's single-channel mode, `/suggest`, welcome and announcement posts all
+live in `#poe`; each suggestion's PM decision is relayed into a public thread
+under that channel.
 
 Deployment and the one-time Discord application/token/channel creation remain
 human-operated. Never print tokens in setup logs or issue comments.
