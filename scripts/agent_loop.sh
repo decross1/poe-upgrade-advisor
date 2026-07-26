@@ -57,7 +57,7 @@ fan_worker() { # $1 = full message_id
   exec 8>"$lockf"
   flock -n 8 || return 0
   local marker=$MAILROOM/locks/running/$ROLE-$id8
-  trap 'rm -f "$marker"' EXIT
+  trap 'rm -f "$marker"' EXIT TERM INT HUP
   echo $$ >"$marker"
   local wt=$FANROOT/$ROLE-$id8
   git -C "$DIR" fetch -q origin
