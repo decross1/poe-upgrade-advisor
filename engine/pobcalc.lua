@@ -196,7 +196,6 @@ local function calculateStats(requestBuildPath)
 	end
 
 	loadBuild(buildXml, requestBuildPath)
-	build.calcsTab:BuildOutput()
 	local savedBuild = { elem = "Build" }
 	build:Save(savedBuild)
 	local stats = { }
