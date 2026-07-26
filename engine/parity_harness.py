@@ -174,17 +174,51 @@ def compare_stats(
         expected_text = expected[name]
         expected_value = Decimal(expected_text)
         actual_raw = actual.get(name)
-        if not isinstance(actual_raw, (int, float)) or not math.isfinite(actual_raw):
+        if actual_raw == "Infinity":
+            actual_value = Decimal("Infinity")
+        elif actual_raw == "-Infinity":
+            actual_value = Decimal("-Infinity")
+        elif isinstance(actual_raw, (int, float)) and math.isfinite(actual_raw):
+            actual_value = Decimal(str(actual_raw))
+        else:
+            actual_value = None
+        expected_report = (
+            float(expected_value)
+            if expected_value.is_finite()
+            else "Infinity"
+            if expected_value > 0
+            else "-Infinity"
+        )
+        actual_report = (
+            float(actual_value)
+            if actual_value is not None and actual_value.is_finite()
+            else str(actual_value)
+            if actual_value is not None
+            else None
+        )
+        if (
+            not expected_value.is_finite()
+            and actual_value is not None
+            and actual_value == expected_value
+        ):
             cell = {
                 "stat": name,
-                "expected": float(expected_value),
-                "actual": None,
+                "expected": expected_report,
+                "actual": actual_report,
+                "absolute_delta": 0.0,
+                "relative_delta": 0.0,
+                "band": "exact",
+            }
+        elif actual_value is None or not actual_value.is_finite():
+            cell = {
+                "stat": name,
+                "expected": expected_report,
+                "actual": actual_report,
                 "absolute_delta": None,
                 "relative_delta": None,
                 "band": "OVER",
             }
         else:
-            actual_value = Decimal(str(actual_raw))
             delta = abs(actual_value - expected_value)
             if delta <= _printed_half_ulp(expected_text):
                 band = "exact"
@@ -202,8 +236,8 @@ def compare_stats(
                     band = "OVER"
             cell = {
                 "stat": name,
-                "expected": float(expected_value),
-                "actual": float(actual_value),
+                "expected": expected_report,
+                "actual": actual_report,
                 "absolute_delta": float(delta),
                 "relative_delta": None if relative is None else float(relative),
                 "band": band,
@@ -417,6 +451,7 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
             "build_count": len(cases),
             "expected_vector": "pathOfBuildingExport/Build/PlayerStat",
             "config_policy": "embedded active ConfigSet loaded verbatim; no product preset",
+            "non_finite_policy": "signed infinity is serialized as a JSON string and compared exactly",
         },
         "self_test": self_test,
         "determinism": {
@@ -438,7 +473,8 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
     )
     return report
 

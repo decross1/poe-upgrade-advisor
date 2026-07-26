@@ -7,7 +7,8 @@
     "snapshot_version": "0621-20260726-56012",
     "build_count": 15,
     "expected_vector": "pathOfBuildingExport/Build/PlayerStat",
-    "config_policy": "embedded active ConfigSet loaded verbatim; no product preset"
+    "config_policy": "embedded active ConfigSet loaded verbatim; no product preset",
+    "non_finite_policy": "signed infinity is serialized as a JSON string and compared exactly"
   },
   "self_test": {
     "corrupted_stat": "passed",
@@ -24,14 +25,14 @@
   "summary": {
     "compared_cells": 1435,
     "band_counts": {
-      "exact": 952,
+      "exact": 1431,
       "<=0.1%": 0,
       "<=1%": 0,
-      "OVER": 483
+      "OVER": 4
     },
-    "imported_builds": 10,
-    "failed_imports": 5,
-    "warm_p95_ms": 563.802802,
+    "imported_builds": 15,
+    "failed_imports": 0,
+    "warm_p95_ms": 762.250871,
     "warm_p95_limit_ms": 150,
     "warm_p95_pass": false,
     "over_band_pass": false
@@ -47,7 +48,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 0.259969,
+      "warm_latency_ms": 0.412048,
       "band_counts": {
         "exact": 93,
         "<=0.1%": 0,
@@ -812,7 +813,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 398.65933,
+      "warm_latency_ms": 580.141056,
       "band_counts": {
         "exact": 97,
         "<=0.1%": 0,
@@ -1609,7 +1610,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 343.861005,
+      "warm_latency_ms": 370.034546,
       "band_counts": {
         "exact": 102,
         "<=0.1%": 0,
@@ -2439,805 +2440,805 @@
     {
       "id": "04-deadeye-kinetic-blast",
       "config_set_sha256": "8efa7e84c5d8fe4c4d897558bbd46e155000b3c1590db72917e68747aa2a6d8b",
-      "import_status": "engine_identity_mismatch",
+      "import_status": "imported",
       "engine_identity": {
-        "base_class": "Scion",
-        "ascendancy": "None",
+        "base_class": "Ranger",
+        "ascendancy": "Deadeye",
         "level": 100
       },
-      "engine_error": "expected {'base_class': 'Ranger', 'ascendancy': 'Deadeye', 'level': 100}, got {'base_class': 'Scion', 'ascendancy': 'None', 'level': 100}",
-      "warm_latency_ms": 290.700105,
+      "engine_error": null,
+      "warm_latency_ms": 445.482576,
       "band_counts": {
-        "exact": 0,
+        "exact": 98,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 98
+        "OVER": 0
       },
       "extra_engine_stats": [],
       "stats": [
         {
           "stat": "AreaOfEffectRadiusMetres",
           "expected": 2.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Armour",
           "expected": 394.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 394.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AttackDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageBurstDamage",
           "expected": 7443.2032877641,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 7443.2032877641,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageDamage",
           "expected": 7443.2032877641,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 7443.2032877641,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosMaximumHitTaken",
           "expected": 2215.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2215.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
           "expected": 23.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 23.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdMaximumHitTaken",
           "expected": 2716.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2716.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResist",
           "expected": 13.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 13.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CombinedDPS",
           "expected": 35404.666770883,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 35404.666770883,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritChance",
           "expected": 56.738688,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 56.738688,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritMultiplier",
           "expected": 4.84,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4.84,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CullingDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Devotion",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Dex",
           "expected": 338.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 338.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveBlockChance",
           "expected": 24.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 24.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveMovementSpeedMod",
           "expected": 1.6704,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1.6704,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellBlockChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellSuppressionChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShield",
           "expected": 533.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 533.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRecoveryCap",
           "expected": 533.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 533.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Evasion",
           "expected": 3562.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3562.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireMaximumHitTaken",
           "expected": 5222.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 5222.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResist",
           "expected": 59.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 59.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyCharges",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "HitChance",
           "expected": 96.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 96.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Int",
           "expected": 204.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 204.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Life",
           "expected": 1535.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1535.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeLeechGainRate",
           "expected": 350.76308604375,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 350.76308604375,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRecoverable",
           "expected": 1535.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1535.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRegenRecovery",
           "expected": 3.1,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.1,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreserved",
           "expected": 1535.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1535.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreservedPercent",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningMaximumHitTaken",
           "expected": 3830.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3830.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResist",
           "expected": 43.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 43.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MainHandAccuracy",
           "expected": 3201.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3201.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Mana",
           "expected": 795.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 795.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaCost",
           "expected": 31.428571428571,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 31.428571428571,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaLeechGainRate",
           "expected": 189.97354515724,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 189.97354515724,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPerSecondCost",
           "expected": 149.49451942857,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 149.49451942857,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaRegenRecovery",
           "expected": 29.6,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 29.6,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreserved",
           "expected": 120.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 120.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreservedPercent",
           "expected": 15.094339622642,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 15.094339622642,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MeleeEvadeChance",
           "expected": 29.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 29.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetEnergyShieldRegen",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetLifeRegen",
           "expected": -79.62,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -79.62,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetManaRegen",
           "expected": 29.6,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 29.6,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalDamageReduction",
           "expected": 4.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalMaximumHitTaken",
           "expected": 2382.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2382.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PreEffectiveCritChance",
           "expected": 59.1028,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 59.1028,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ProjectileEvadeChance",
           "expected": 29.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 29.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqDex",
           "expected": 155.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 155.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqInt",
           "expected": 188.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 188.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqStr",
           "expected": 114.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 114.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReservationDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SoulCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ArmourInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EnergyShieldInc",
           "expected": 15.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 15.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EvasionInc",
           "expected": 39.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 39.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:LifeInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ManaInc",
           "expected": 8.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 8.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Speed",
           "expected": 4.7566438,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4.7566438,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SpellDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Str",
           "expected": 169.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 169.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalBuildDegen",
           "expected": 82.72,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 82.72,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDPS",
           "expected": 35404.666770883,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 35404.666770883,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDot",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalEHP",
           "expected": 4208.362545243,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4208.362545243,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalNetRegen",
           "expected": -50.02,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -50.02,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Ward",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithBleedDPS",
           "expected": 35404.666770883,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 35404.666770883,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithIgniteDPS",
           "expected": 35404.666770883,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 35404.666770883,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithPoisonDPS",
           "expected": 35404.666770883,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 35404.666770883,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         }
       ]
     },
@@ -3251,12 +3252,12 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 425.036972,
+      "warm_latency_ms": 589.542168,
       "band_counts": {
-        "exact": 91,
+        "exact": 92,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 1
+        "OVER": 0
       },
       "extra_engine_stats": [],
       "stats": [
@@ -3294,11 +3295,11 @@
         },
         {
           "stat": "ChaosMaximumHitTaken",
-          "expected": Infinity,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "expected": "Infinity",
+          "actual": "Infinity",
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
@@ -4001,749 +4002,749 @@
     {
       "id": "06-inquisitor-coc-ice-spear",
       "config_set_sha256": "dd33bdf45d33f46fc6c309da92b9c995f6cb6bbc5eb1898f34c21cf2df8452b6",
-      "import_status": "engine_identity_mismatch",
+      "import_status": "imported",
       "engine_identity": {
-        "base_class": "Scion",
-        "ascendancy": "None",
+        "base_class": "Templar",
+        "ascendancy": "Inquisitor",
         "level": 98
       },
-      "engine_error": "expected {'base_class': 'Templar', 'ascendancy': 'Inquisitor', 'level': 98}, got {'base_class': 'Scion', 'ascendancy': 'None', 'level': 98}",
-      "warm_latency_ms": 391.558347,
+      "engine_error": null,
+      "warm_latency_ms": 570.588792,
       "band_counts": {
-        "exact": 0,
+        "exact": 91,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 91
+        "OVER": 0
       },
       "extra_engine_stats": [],
       "stats": [
         {
           "stat": "Armour",
           "expected": 3337.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3337.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AttackDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageBurstDamage",
           "expected": 155363.81834267,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 155363.81834267,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageDamage",
           "expected": 155363.81834267,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 155363.81834267,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosMaximumHitTaken",
           "expected": 5706.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 5706.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
           "expected": -25.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -25.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdMaximumHitTaken",
           "expected": 27690.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 27690.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResistOverCap",
           "expected": 8.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 8.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CombinedDPS",
           "expected": 417603.02877854,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 417603.02877854,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritChance",
           "expected": 93.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 93.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritMultiplier",
           "expected": 3.94,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.94,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CullingDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Devotion",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Dex",
           "expected": 279.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 279.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveBlockChance",
           "expected": 25.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 25.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveMovementSpeedMod",
           "expected": 1.85,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1.85,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellBlockChance",
           "expected": 36.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 36.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellSuppressionChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShield",
           "expected": 6917.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6917.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRecoveryCap",
           "expected": 6917.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6917.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRegenRecovery",
           "expected": 510.3,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 510.3,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Evasion",
           "expected": 13986.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 13986.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireMaximumHitTaken",
           "expected": 27690.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 27690.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "HitChance",
           "expected": 93.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 93.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Int",
           "expected": 934.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 934.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Life",
           "expected": 6666.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6666.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeCost",
           "expected": 20.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 20.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePerSecondCost",
           "expected": 53.75808,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 53.75808,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRecharge",
           "expected": 3244.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3244.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRecoverable",
           "expected": 216.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 216.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreserved",
           "expected": 216.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 216.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreservedPercent",
           "expected": 3.2403240324032,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.2403240324032,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningMaximumHitTaken",
           "expected": 27690.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 27690.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResistOverCap",
           "expected": 24.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 24.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MainHandAccuracy",
           "expected": 2801.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2801.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Mana",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MeleeEvadeChance",
           "expected": 63.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 63.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalDamageReduction",
           "expected": 23.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 23.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalMaximumHitTaken",
           "expected": 7749.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 7749.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PreEffectiveCritChance",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ProjectileEvadeChance",
           "expected": 63.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 63.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqDex",
           "expected": 159.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 159.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqInt",
           "expected": 159.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 159.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqStr",
           "expected": 155.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 155.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReservationDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SoulCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ArmourInc",
           "expected": 43.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 43.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EnergyShieldInc",
           "expected": 126.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 126.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EvasionInc",
           "expected": 116.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 116.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:LifeInc",
           "expected": 141.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 141.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ManaInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Speed",
           "expected": 2.687904,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2.687904,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SpellDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Str",
           "expected": 854.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 854.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDPS",
           "expected": 417603.02877854,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 417603.02877854,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDot",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalEHP",
           "expected": 31913.945176286,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 31913.945176286,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Ward",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithBleedDPS",
           "expected": 417603.02877854,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 417603.02877854,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithIgniteDPS",
           "expected": 417603.02877854,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 417603.02877854,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithPoisonDPS",
           "expected": 417603.02877854,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 417603.02877854,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         }
       ]
     },
@@ -4757,7 +4758,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 418.792821,
+      "warm_latency_ms": 452.35143,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -5562,7 +5563,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 395.364847,
+      "warm_latency_ms": 390.502659,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -6328,829 +6329,829 @@
     {
       "id": "09-slayer-dual-strike",
       "config_set_sha256": "e730a9faf847b7f194f12c6526767c401bcc91a8dc6f82c1a1581580c1b287f3",
-      "import_status": "engine_identity_mismatch",
+      "import_status": "imported",
       "engine_identity": {
-        "base_class": "Scion",
-        "ascendancy": "None",
+        "base_class": "Duelist",
+        "ascendancy": "Slayer",
         "level": 97
       },
-      "engine_error": "expected {'base_class': 'Duelist', 'ascendancy': 'Slayer', 'level': 97}, got {'base_class': 'Scion', 'ascendancy': 'None', 'level': 97}",
-      "warm_latency_ms": 331.84621,
+      "engine_error": null,
+      "warm_latency_ms": 512.872921,
       "band_counts": {
-        "exact": 0,
+        "exact": 101,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 101
+        "OVER": 0
       },
       "extra_engine_stats": [],
       "stats": [
         {
           "stat": "Armour",
           "expected": 16075.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 16075.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AttackDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageBurstDamage",
           "expected": 242866.18706574,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 242866.18706574,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageDamage",
           "expected": 1378374.5081793,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1378374.5081793,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "BleedDPS",
           "expected": 5429.1649581737,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 5429.1649581737,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosMaximumHitTaken",
           "expected": 4445.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4445.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
           "expected": -16.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -16.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdMaximumHitTaken",
           "expected": 24787.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 24787.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResistOverCap",
           "expected": 8.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 8.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CombinedDPS",
           "expected": 12667698.256132,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 12667698.256132,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritChance",
           "expected": 68.91915,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 68.91915,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritMultiplier",
           "expected": 3.81,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.81,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CullingDPS",
           "expected": 2533539.6512263,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2533539.6512263,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Devotion",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Dex",
           "expected": 268.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 268.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveBlockChance",
           "expected": 68.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 68.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveMovementSpeedMod",
           "expected": 2.59,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2.59,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellBlockChance",
           "expected": 65.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 65.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellSuppressionChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceCharges",
           "expected": 6.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceChargesMax",
           "expected": 6.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShield",
           "expected": 94.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 94.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRecoveryCap",
           "expected": 94.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 94.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Evasion",
           "expected": 3591.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3591.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireMaximumHitTaken",
           "expected": 24787.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 24787.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResistOverCap",
           "expected": 24.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 24.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyCharges",
           "expected": 6.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyChargesMax",
           "expected": 6.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "HitChance",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "IgniteDPS",
           "expected": 1536.2534523113,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1536.2534523113,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Int",
           "expected": 83.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 83.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Life",
           "expected": 4446.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4446.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeLeechGainRate",
           "expected": 6418.086424006,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6418.086424006,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRecoverable",
           "expected": 4073.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4073.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreserved",
           "expected": 4073.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4073.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreservedPercent",
           "expected": 91.610436347278,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 91.610436347278,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningMaximumHitTaken",
           "expected": 24787.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 24787.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResistOverCap",
           "expected": 12.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 12.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MainHandAccuracy",
           "expected": 4304.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4304.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Mana",
           "expected": 657.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 657.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaCost",
           "expected": 41.269841269841,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 41.269841269841,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaLeechGainRate",
           "expected": 131.4,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 131.4,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPerSecondCost",
           "expected": 75.804444444444,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.804444444444,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaRegenRecovery",
           "expected": 11.5,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 11.5,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreserved",
           "expected": 328.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 328.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreservedPercent",
           "expected": 49.923896499239,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 49.923896499239,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MeleeEvadeChance",
           "expected": 26.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 26.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetEnergyShieldRegen",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetLifeRegen",
           "expected": -138.016,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -138.016,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetManaRegen",
           "expected": 11.5,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 11.5,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "OffHandAccuracy",
           "expected": 4304.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4304.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalDamageReduction",
           "expected": 84.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 84.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalMaximumHitTaken",
           "expected": 10595.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10595.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PreEffectiveCritChance",
           "expected": 68.91915,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 68.91915,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ProjectileEvadeChance",
           "expected": 26.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 26.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Rage",
           "expected": 46.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 46.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqDex",
           "expected": 212.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 212.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqInt",
           "expected": 82.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 82.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqStr",
           "expected": 191.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 191.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReservationDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SoulCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ArmourInc",
           "expected": 138.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 138.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EnergyShieldInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EvasionInc",
           "expected": 162.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 162.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:LifeInc",
           "expected": 76.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 76.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ManaInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Speed",
           "expected": 7.3472,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 7.3472,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SpellDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Str",
           "expected": 267.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 267.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalBuildDegen",
           "expected": 138.016,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 138.016,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDPS",
           "expected": 10127193.186495,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10127193.186495,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDot",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDotDPS",
           "expected": 6965.418410485,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 6965.418410485,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalEHP",
           "expected": 61962.548955167,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 61962.548955167,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalNetRegen",
           "expected": -126.516,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -126.516,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Ward",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithBleedDPS",
           "expected": 10132622.351453,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10132622.351453,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithIgniteDPS",
           "expected": 10128729.439947,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10128729.439947,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithPoisonDPS",
           "expected": 10127193.186495,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10127193.186495,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         }
       ]
     },
@@ -7164,7 +7165,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 563.802802,
+      "warm_latency_ms": 762.250871,
       "band_counts": {
         "exact": 97,
         "<=0.1%": 0,
@@ -7954,821 +7955,821 @@
     {
       "id": "11-guardian-dominating-blow",
       "config_set_sha256": "e214989d59cafaa472d754fa53a960748b9f0f1fa1d635afb035588e8a54c951",
-      "import_status": "engine_identity_mismatch",
+      "import_status": "imported",
       "engine_identity": {
-        "base_class": "Scion",
-        "ascendancy": "None",
+        "base_class": "Templar",
+        "ascendancy": "Guardian",
         "level": 97
       },
-      "engine_error": "expected {'base_class': 'Templar', 'ascendancy': 'Guardian', 'level': 97}, got {'base_class': 'Scion', 'ascendancy': 'None', 'level': 97}",
-      "warm_latency_ms": 305.5878,
+      "engine_error": null,
+      "warm_latency_ms": 465.194161,
       "band_counts": {
-        "exact": 0,
+        "exact": 98,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 100
+        "OVER": 2
       },
       "extra_engine_stats": [],
       "stats": [
         {
           "stat": "ActiveMinionLimit",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Armour",
           "expected": 20428.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 20428.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AttackDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageBurstDamage",
           "expected": 340464.1226275,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 340464.1226275,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageDamage",
           "expected": 340464.1226275,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 340464.1226275,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosMaximumHitTaken",
           "expected": 19860.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 19860.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
           "expected": 61.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 61.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdMaximumHitTaken",
           "expected": 28976.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 28976.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResist",
           "expected": 76.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 76.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResistOverCap",
           "expected": 84.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 84.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CombinedDPS",
           "expected": 1820863.5870952,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1820863.5870952,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritChance",
           "expected": 37.8525,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 37.8525,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritMultiplier",
           "expected": 1.88,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1.88,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CullingDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Devotion",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Dex",
           "expected": 176.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 176.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveBlockChance",
           "expected": 68.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 68.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveMovementSpeedMod",
           "expected": 1.82,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1.82,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellBlockChance",
           "expected": 66.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 66.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellSuppressionChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShield",
           "expected": 50.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 50.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRecoveryCap",
           "expected": 50.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 50.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Evasion",
           "expected": 16.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 16.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireMaximumHitTaken",
           "expected": 30090.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 30090.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResist",
           "expected": 77.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 77.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResistOverCap",
           "expected": 138.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 138.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyChargesMax",
           "expected": 4.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "HitChance",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "IgniteDPS",
           "expected": 28932.816882124,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 28932.816882124,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Int",
           "expected": 162.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 162.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Life",
           "expected": 4957.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4957.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeCost",
           "expected": 2.8571428571429,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2.8571428571429,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeLeechGainRate",
           "expected": 991.4,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 991.4,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePerSecondCost",
           "expected": 5.0125714285714,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 5.0125714285714,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRecoverable",
           "expected": 4957.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4957.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRegenRecovery",
           "expected": 178.5,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 178.5,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreserved",
           "expected": 4957.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4957.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreservedPercent",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningMaximumHitTaken",
           "expected": 28976.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 28976.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResist",
           "expected": 76.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 76.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResistOverCap",
           "expected": 53.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 53.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MainHandAccuracy",
           "expected": 712.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 712.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Mana",
           "expected": 751.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 751.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaCost",
           "expected": 8.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
+          "actual": 10.0,
+          "absolute_delta": 2.0,
+          "relative_delta": 0.25,
           "band": "OVER"
         },
         {
           "stat": "ManaLeechGainRate",
           "expected": 150.2,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 150.2,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPerSecondCost",
           "expected": 14.0352,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
+          "actual": 17.544,
+          "absolute_delta": 3.5088,
+          "relative_delta": 0.25,
           "band": "OVER"
         },
         {
           "stat": "ManaPercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaRegenRecovery",
           "expected": 13.1,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 13.1,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreserved",
           "expected": 107.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 107.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreservedPercent",
           "expected": 14.247669773635,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 14.247669773635,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MeleeEvadeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetEnergyShieldRegen",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetLifeRegen",
           "expected": -21.78,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -21.78,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "NetManaRegen",
           "expected": 13.1,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 13.1,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalDamageReduction",
           "expected": 64.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 64.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalMaximumHitTaken",
           "expected": 10786.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10786.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerChargesMax",
           "expected": 4.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 4.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PreEffectiveCritChance",
           "expected": 37.8525,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 37.8525,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ProjectileEvadeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Rage",
           "expected": 40.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 40.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqDex",
           "expected": 142.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 142.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqInt",
           "expected": 155.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 155.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReqStr",
           "expected": 180.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 180.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReservationDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SoulCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ArmourInc",
           "expected": 130.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 130.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EnergyShieldInc",
           "expected": 40.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 40.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EvasionInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:LifeInc",
           "expected": 151.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 151.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ManaInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Speed",
           "expected": 5.2632,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 5.2632,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SpellDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Str",
           "expected": 286.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 286.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalBuildDegen",
           "expected": 200.28,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 200.28,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDPS",
           "expected": 1791930.7702131,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1791930.7702131,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDot",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDotDPS",
           "expected": 28932.816882124,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 28932.816882124,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalEHP",
           "expected": 77869.311807216,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 77869.311807216,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalNetRegen",
           "expected": -8.68,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": -8.68,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Ward",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithBleedDPS",
           "expected": 1791930.7702131,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1791930.7702131,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithIgniteDPS",
           "expected": 1820863.5870952,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1820863.5870952,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithPoisonDPS",
           "expected": 1791930.7702131,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1791930.7702131,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         }
       ]
     },
@@ -8782,12 +8783,12 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 485.177526,
+      "warm_latency_ms": 463.449632,
       "band_counts": {
-        "exact": 93,
+        "exact": 94,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 1
+        "OVER": 0
       },
       "extra_engine_stats": [],
       "stats": [
@@ -8833,11 +8834,11 @@
         },
         {
           "stat": "ChaosMaximumHitTaken",
-          "expected": Infinity,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "expected": "Infinity",
+          "actual": "Infinity",
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
@@ -9555,7 +9556,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 486.553336,
+      "warm_latency_ms": 501.673855,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -10328,7 +10329,7 @@
         "level": 96
       },
       "engine_error": null,
-      "warm_latency_ms": 460.170575,
+      "warm_latency_ms": 492.399064,
       "band_counts": {
         "exact": 93,
         "<=0.1%": 0,
@@ -11086,749 +11087,749 @@
     {
       "id": "15-guardian-absolution",
       "config_set_sha256": "5714f3cf62cdc2cb6f91e542722475e469903af9766fb67beb2e8e5887708456",
-      "import_status": "engine_identity_mismatch",
+      "import_status": "imported",
       "engine_identity": {
-        "base_class": "Scion",
-        "ascendancy": "None",
+        "base_class": "Templar",
+        "ascendancy": "Guardian",
         "level": 96
       },
-      "engine_error": "expected {'base_class': 'Templar', 'ascendancy': 'Guardian', 'level': 96}, got {'base_class': 'Scion', 'ascendancy': 'None', 'level': 96}",
-      "warm_latency_ms": 497.419522,
+      "engine_error": null,
+      "warm_latency_ms": 614.868669,
       "band_counts": {
-        "exact": 0,
+        "exact": 89,
         "<=0.1%": 0,
         "<=1%": 0,
-        "OVER": 91
+        "OVER": 2
       },
       "extra_engine_stats": [],
       "stats": [
         {
           "stat": "ActiveMinionLimit",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AreaOfEffectRadiusMetres",
           "expected": 3.5,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.5,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Armour",
           "expected": 23471.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 23471.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AttackDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageBurstDamage",
           "expected": 72559.866668937,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 72559.866668937,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "AverageHit",
           "expected": 36279.933334469,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 36279.933334469,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosMaximumHitTaken",
           "expected": 12306.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 12306.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResist",
           "expected": 60.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 60.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ChaosResistOverCap",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdMaximumHitTaken",
           "expected": 25291.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 25291.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ColdResistOverCap",
           "expected": 27.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 27.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CombinedDPS",
           "expected": 116297.23775642,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 116297.23775642,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritChance",
           "expected": 21.09,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 21.09,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CritMultiplier",
           "expected": 2.2,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2.2,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "CullingDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Devotion",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Dex",
           "expected": 47.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 47.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ESPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveBlockChance",
           "expected": 45.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 45.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveMovementSpeedMod",
           "expected": 1.63,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1.63,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellBlockChance",
           "expected": 65.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 65.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EffectiveSpellSuppressionChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceCharges",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnduranceChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShield",
           "expected": 1045.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1045.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRecoveryCap",
           "expected": 1045.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 1045.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "EnergyShieldRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Evasion",
           "expected": 497.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 497.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireMaximumHitTaken",
           "expected": 25279.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 25279.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FireResistOverCap",
           "expected": 23.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 23.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FrenzyChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "FullDotDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "HitChance",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "IgniteDPS",
           "expected": 2992.215188774,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2992.215188774,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Int",
           "expected": 225.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 225.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Life",
           "expected": 3938.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3938.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifePercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRecoverable",
           "expected": 3938.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3938.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeRegenRecovery",
           "expected": 323.7,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 323.7,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreserved",
           "expected": 3938.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3938.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LifeUnreservedPercent",
           "expected": 100.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 100.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningMaximumHitTaken",
           "expected": 25290.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 25290.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResist",
           "expected": 75.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 75.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "LightningResistOverCap",
           "expected": 88.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 88.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Mana",
           "expected": 943.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 943.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaCost",
           "expected": 46.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
+          "actual": 48.8,
+          "absolute_delta": 2.8,
+          "relative_delta": 0.06086956521739131,
           "band": "OVER"
         },
         {
           "stat": "ManaLeechGainRate",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPerSecondCost",
           "expected": 71.830769230769,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
+          "actual": 76.203076923077,
+          "absolute_delta": 4.372307692308,
+          "relative_delta": 0.06086956521739578,
           "band": "OVER"
         },
         {
           "stat": "ManaPercentCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaPercentPerSecondCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaRegenRecovery",
           "expected": 127.74285714286,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 127.74285714286,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreserved",
           "expected": 101.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 101.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ManaUnreservedPercent",
           "expected": 10.710498409332,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 10.710498409332,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "MeleeEvadeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalDamageReduction",
           "expected": 84.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 84.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PhysicalMaximumHitTaken",
           "expected": 12411.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 12411.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerCharges",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PowerChargesMax",
           "expected": 3.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "PreEffectiveCritChance",
           "expected": 21.09,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 21.09,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ProjectileEvadeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "RageRegenRecovery",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "ReservationDPS",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SoulCost",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ArmourInc",
           "expected": 232.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 232.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EnergyShieldInc",
           "expected": 50.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 50.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:EvasionInc",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:LifeInc",
           "expected": 99.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 99.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Spec:ManaInc",
           "expected": 25.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 25.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Speed",
           "expected": 3.1230769230769,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 3.1230769230769,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "SpellDodgeChance",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Str",
           "expected": 161.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 161.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDPS",
           "expected": 113305.02256765,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 113305.02256765,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDot",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalDotDPS",
           "expected": 2992.215188774,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 2992.215188774,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "TotalEHP",
           "expected": 56329.812819169,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 56329.812819169,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "Ward",
           "expected": 0.0,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithBleedDPS",
           "expected": 113305.02256765,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 113305.02256765,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithIgniteDPS",
           "expected": 116297.23775642,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 116297.23775642,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         },
         {
           "stat": "WithPoisonDPS",
           "expected": 113305.02256765,
-          "actual": null,
-          "absolute_delta": null,
-          "relative_delta": null,
-          "band": "OVER"
+          "actual": 113305.02256765,
+          "absolute_delta": 0.0,
+          "relative_delta": 0.0,
+          "band": "exact"
         }
       ]
     }

@@ -19,6 +19,34 @@ parity.
 
 ## Closed
 
+- **our-bug — case 04, Deadeye Kinetic Blast:** its `Items/Item`
+  contains Lethal Pride, which exposed the upstream headless host's stubbed
+  file-search/inflate surface. The build aborted during timeless-jewel LUT
+  loading and the adapter silently serialized an empty Scion build. The
+  wrapper now prepares the pinned lookup data outside the vendored submodule,
+  exposes it through the headless file-search surface, and rejects any PoB
+  load prompt. The all-corpus identity regression covers this case.
+- **our-bug — case 06, Inquisitor Cast-on-Crit Ice Spear:** its
+  `Items/Item` contains Brutal Restraint and hit the same missing headless
+  timeless-jewel data surface. The cache/host fix and all-corpus identity
+  regression cover this case.
+- **our-bug — case 09, Slayer Dual Strike:** its `Items/Item` contains
+  Lethal Pride and hit the same missing headless timeless-jewel data surface.
+  The cache/host fix and all-corpus identity regression cover this case.
+- **our-bug — case 11, Guardian Dominating Blow:** its `Items/Item`
+  contains Brutal Restraint and hit the same missing headless timeless-jewel
+  data surface. The cache/host fix and all-corpus identity regression cover
+  this case.
+- **our-bug — case 15, Guardian Absolution:** its `Items/Item` contains
+  Elegant Hubris and hit the same missing headless timeless-jewel data
+  surface. The cache/host fix and all-corpus identity regression cover this
+  case.
+- **our-bug — CI infinity sentinel representation:** cases 05 and 12 emit
+  positive infinity for `ChaosMaximumHitTaken`. The adapter previously
+  collapsed non-finite stats to JSON `null`, while the report converted the
+  oracle value to a non-standard bare `Infinity` token. Player-stat infinity
+  is now a signed string sentinel compared exactly by the harness, and report
+  serialization rejects all non-standard JSON constants.
 - The adapter calls upstream `calcs.getMiscCalculator`; it does not copy or
   modify PoB calculation logic.
 - Linux and CI build LuaJIT `a471ab78c7b670b4f92dae111fc3c96fb824c768`

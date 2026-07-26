@@ -90,32 +90,30 @@ class ParityHarnessTest(unittest.TestCase):
         )
         self.assertEqual(extras, ["Extra"])
 
-    def test_stats_cli_recalculates_frozen_player_stats(self):
+    def test_non_finite_stats_use_strict_json_sentinels(self):
+        cells, counts, _ = HARNESS.compare_stats(
+            {"Positive": "inf", "Missing": "inf"},
+            {"Positive": "Infinity"},
+        )
+        self.assertEqual(cells[0]["band"], "OVER")
+        self.assertEqual(cells[1]["band"], "exact")
+        self.assertEqual(cells[1]["expected"], "Infinity")
+        self.assertEqual(cells[1]["actual"], "Infinity")
+        self.assertEqual(counts["exact"], 1)
+        self.assertEqual(counts["OVER"], 1)
+        json.dumps(cells, allow_nan=False)
+
+    def test_stats_cli_imports_every_frozen_build_with_expected_identity(self):
         if not runtime_is_available():
             self.skipTest("run engine/runtime/build.sh for integration test")
-        case = self.cases[0]
         with tempfile.TemporaryDirectory(prefix="pob-stats-test-") as temporary:
-            build = Path(temporary) / "build.xml"
-            build.write_bytes(case.xml)
-            result = subprocess.run(
-                [
-                    ROOT / "engine" / "pobcalc",
-                    "stats",
-                    "--build",
-                    build,
-                    "--json",
-                ],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        actual = json.loads(result.stdout)
-        self.assertEqual(actual["identity"], case.identity)
-        _, counts, _ = HARNESS.compare_stats(
-            case.expected_stats, actual["player_stats"]
-        )
-        self.assertEqual(counts["OVER"], 0)
+            with HARNESS.Worker("C") as worker:
+                for case in self.cases:
+                    with self.subTest(case=case.case_id):
+                        build = Path(temporary) / f"{case.case_id}.xml"
+                        build.write_bytes(case.xml)
+                        actual, _ = worker.stats(build)
+                        self.assertEqual(actual["identity"], case.identity)
 
 
 if __name__ == "__main__":

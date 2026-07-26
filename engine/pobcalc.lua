@@ -4,6 +4,34 @@ local buildPath, itemPath, preset, presetConfigJson = arg[1], arg[2], arg[3], ar
 print = function() end
 dofile("HeadlessWrapper.lua")
 local json = require("dkjson")
+local dataRoot = os.getenv("POBCALC_DATA_ROOT")
+if not dataRoot or dataRoot == "" then
+	error("POBCALC_DATA_ROOT is required")
+end
+
+local fileSearch = { }
+fileSearch.__index = fileSearch
+function fileSearch:GetFileName()
+	return self.path:match("[^/\\]+$") or self.path
+end
+function fileSearch:GetFileModifiedTime()
+	return 1
+end
+function fileSearch:NextFile()
+	return false
+end
+function NewFileSearch(path)
+	local file = io.open(path, "rb")
+	if not file then
+		return nil
+	end
+	file:close()
+	return setmetatable({ path = path }, fileSearch)
+end
+function GetScriptPath()
+	return dataRoot
+end
+
 local presetDocument, _, presetDecodeError = json.decode(presetConfigJson, 1, nil)
 if presetDecodeError or type(presetDocument) ~= "table"
 		or type(presetDocument.presets) ~= "table" then
@@ -74,7 +102,16 @@ end
 local function playerStatsJson(value)
 	local parts = { }
 	for _, key in ipairs(sortedKeys(value)) do
-		table.insert(parts, jsonString(key) .. ":" .. jsonNumber(value[key]))
+		local stat = value[key]
+		local encoded
+		if stat == math.huge then
+			encoded = jsonString("Infinity")
+		elseif stat == -math.huge then
+			encoded = jsonString("-Infinity")
+		else
+			encoded = jsonNumber(stat)
+		end
+		table.insert(parts, jsonString(key) .. ":" .. encoded)
 	end
 	return "{" .. table.concat(parts, ",") .. "}"
 end
@@ -94,6 +131,13 @@ local cachedStatsBuildPath
 local cachedStatsBuildXml
 local cachedStatsJson
 
+local function loadBuild(buildXml, requestBuildPath)
+	loadBuildFromXML(buildXml, requestBuildPath)
+	if launch.promptMsg then
+		error("Path of Building failed to load the build: " .. launch.promptMsg)
+	end
+end
+
 local function prepareCalculation(requestBuildPath, requestPreset)
 	local buildXml = readAll(requestBuildPath)
 	if requestBuildPath == cachedBuildPath
@@ -102,7 +146,7 @@ local function prepareCalculation(requestBuildPath, requestPreset)
 		return cachedCalculate, cachedBaselineOutput
 	end
 
-	loadBuildFromXML(buildXml, requestBuildPath)
+	loadBuild(buildXml, requestBuildPath)
 	applyPreset(requestPreset)
 	build.calcsTab:BuildOutput()
 	local calculate, baselineOutput = build.calcsTab:GetMiscCalculator()
@@ -151,7 +195,7 @@ local function calculateStats(requestBuildPath)
 		return cachedStatsJson
 	end
 
-	loadBuildFromXML(buildXml, requestBuildPath)
+	loadBuild(buildXml, requestBuildPath)
 	build.calcsTab:BuildOutput()
 	local savedBuild = { elem = "Build" }
 	build:Save(savedBuild)

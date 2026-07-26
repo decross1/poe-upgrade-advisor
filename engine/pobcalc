@@ -65,6 +65,9 @@ if [[ -z $lua_cpath && -f "$runtime_root/lib/lua/5.1/lua-utf8.so" ]]; then
 fi
 lua_cpath=${lua_cpath:-;;}
 preset_config=$(python3 "$root/engine/preset_config.py")
+timeless_data_root=$(python3 "$root/engine/timeless_cache.py" \
+  --source "$pob_src/Data/TimelessJewelData" \
+  --cache "$runtime_root")
 lua_args=("$build" "$item" "$preset" "$preset_config")
 if [[ $mode == "serve" ]]; then
   lua_args=(--serve "" "" "$preset_config")
@@ -75,5 +78,6 @@ fi
 (
   cd "$pob_src"
   LUA_PATH="$lua_path" LUA_CPATH="$lua_cpath" \
+    POBCALC_DATA_ROOT="$timeless_data_root" \
     "$lua_bin" "$root/engine/pobcalc.lua" "${lua_args[@]}"
 )
