@@ -57,8 +57,8 @@ fan_worker() { # $1 = full message_id
   exec 8>"$lockf"
   flock -n 8 || return 0
   local marker=$MAILROOM/locks/running/$ROLE-$id8
-  echo $$ >"$marker"
   trap 'rm -f "$marker"' EXIT
+  echo $$ >"$marker"
   local wt=$FANROOT/$ROLE-$id8
   git -C "$DIR" fetch -q origin
   git -C "$DIR" worktree add --detach "$wt" origin/main >/dev/null 2>&1 || {
@@ -87,6 +87,9 @@ while true; do
         | python3 -c 'import json,sys; [print(m["message_id"]) for m in json.load(sys.stdin)]' 2>/dev/null)
   n=$((n + 1))
   if [ -n "$ids" ]; then
+    for m in "$MAILROOM/locks/running/$ROLE-"*; do  # prune markers of SIGKILLed workers
+      [ -f "$m" ] && ! kill -0 "$(cat "$m" 2>/dev/null)" 2>/dev/null && rm -f "$m"
+    done
     for id in $ids; do
       running=$(ls "$MAILROOM/locks/running/" 2>/dev/null | grep -c "^$ROLE-" || true)
       [ "$running" -ge "$MAX_PARALLEL" ] && { echo "[$(date -Is)] at cap ($running/$MAX_PARALLEL)" >>"$LOG"; break; }
