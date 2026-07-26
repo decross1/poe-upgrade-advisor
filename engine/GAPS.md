@@ -6,9 +6,10 @@ parity.
 
 ## Open
 
-- **Preset application is not implemented.** The CLI validates the three
-  doctrine-approved preset names, but currently evaluates the configuration
-  embedded in the build XML. Seed expectations must record that configuration.
+- **Preset conflict observations are not yet persisted.** Translation v1's
+  max-wins rule is implemented, but no current preset writes the same PoB key
+  twice. If a future preset does, the observed winning source key must be added
+  here.
 - **Linux runtime is not hermetic.** Upstream vendors Windows LuaJIT and native
   modules. The wrapper currently requires a host LuaJIT plus a compatible
   `lua-utf8` module. Packaging those dependencies is required before release.
@@ -26,5 +27,7 @@ parity.
 
 - The adapter calls upstream `calcs.getMiscCalculator`; it does not copy or
   modify PoB calculation logic.
+- Scenario presets are compiled mechanically through
+  `assumptions/pob_translation.yaml` v1 and applied after each build load.
 - JSON field order and number formatting are fixed, so successful identical
   invocations are byte deterministic.

@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import pathlib
@@ -7,9 +8,37 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CLI = ROOT / "engine" / "pobcalc"
+SPEC = importlib.util.spec_from_file_location(
+    "preset_config", ROOT / "engine" / "preset_config.py"
+)
+PRESET_CONFIG = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader
+SPEC.loader.exec_module(PRESET_CONFIG)
 
 
 class PobcalcCliTest(unittest.TestCase):
+    def test_compiles_versioned_pob_translation(self):
+        presets = PRESET_CONFIG.compile_presets(ROOT)
+        self.assertEqual(
+            presets["bossing"],
+            {
+                "conditionKilledRecently": False,
+                "enemyIsBoss": "Pinnacle",
+                "enemyLevel": 85,
+                "multiplierNearbyEnemies": 1,
+            },
+        )
+        self.assertEqual(
+            presets["mapping"],
+            {
+                "buffOnslaught": False,
+                "conditionKilledRecently": True,
+                "enemyIsBoss": "None",
+                "enemyLevel": 84,
+                "multiplierNearbyEnemies": 8,
+            },
+        )
+
     def test_usage_rejects_incomplete_invocation(self):
         result = subprocess.run(
             [CLI, "diff", "--json"],

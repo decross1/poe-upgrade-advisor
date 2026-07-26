@@ -1,8 +1,26 @@
-local buildPath, itemPath, preset = arg[1], arg[2], arg[3]
+local buildPath, itemPath, preset, presetConfigJson = arg[1], arg[2], arg[3], arg[4]
 -- Thin, unmodified-PoB adapter for the TASK-101 spike. Upstream startup logs
 -- use stdout, which is the CLI's JSON channel, so silence them during boot.
 print = function() end
 dofile("HeadlessWrapper.lua")
+local json = require("dkjson")
+local presetDocument, _, presetDecodeError = json.decode(presetConfigJson, 1, nil)
+if presetDecodeError or type(presetDocument) ~= "table"
+		or type(presetDocument.presets) ~= "table" then
+	error("invalid compiled preset configuration: " .. tostring(presetDecodeError))
+end
+
+local function applyPreset(name)
+	local config = presetDocument.presets[name]
+	if type(config) ~= "table" then
+		error("unsupported preset: " .. tostring(name))
+	end
+	local input = build.configTab.configSets[build.configTab.activeConfigSetId].input
+	for key, value in pairs(config) do
+		input[key] = value
+	end
+	build.configTab.input = input
+end
 
 local function readAll(path)
 	local file, err = io.open(path, "rb")
@@ -45,11 +63,8 @@ local function metricsJson(value)
 end
 
 local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
-	if requestPreset ~= "mapping" and requestPreset ~= "bossing" and requestPreset ~= "balanced" then
-		error("unsupported preset: " .. tostring(requestPreset))
-	end
-
 	loadBuildFromXML(readAll(requestBuildPath), requestBuildPath)
+	applyPreset(requestPreset)
 	build.calcsTab:BuildOutput()
 
 	local candidateItem = new("Item", readAll(requestItemPath))
@@ -91,7 +106,6 @@ local function oneShot()
 end
 
 local function serve()
-	local json = require("dkjson")
 	for line in io.lines() do
 		local request, _, decodeError = json.decode(line, 1, nil)
 		local id = type(request) == "table" and request.id or nil
