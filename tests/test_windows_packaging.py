@@ -77,6 +77,24 @@ def test_windows_cleanroom_asserts_real_build_summary():
     assert "contracts" in script
 
 
+def test_windows_cleanroom_asserts_real_diff_verdict():
+    """Issue #75 acceptance: the clean-room proves a REAL /diff verdict."""
+    script = CLEANROOM_PS1.read_text(encoding="utf-8")
+    assert "/api/v0/diff" in script
+    assert "item_text" in script
+    # Golden clipboard item is host-side only, read from the repo checkout.
+    assert "engine/tests/fixtures/item.txt" in script
+    # The pinned runtime's deterministic golden card for item.txt vs the CI
+    # Cold Snap build is SIDEGRADE (verified locally + cross-platform parity
+    # is byte-identical in CI) — asserting the exact word proves the verdict
+    # came from the real engine, never a fixture.
+    assert 'SIDEGRADE' in script
+    # Schema surface of the VerdictCard is asserted, not just HTTP 200 (I2/I3).
+    assert "diff_id" in script
+    assert "assumptions" in script
+    assert "140" in script  # explanation-sentence cap
+
+
 def test_windows_cleanroom_stub_mode_asserts_honest_failure():
     script = CLEANROOM_PS1.read_text(encoding="utf-8")
     # Pre-lane-A mode is a hard assertion of the honest failure, not a skip.
