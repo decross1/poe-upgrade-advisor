@@ -1,0 +1,179 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`LOADING + error panels (§8.1/8.2, snapshot row 10) > 404 → 'No build imported.' with the single import affordance 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card card-status card-status--no_build"
+>
+  <p
+    class="card-status-line"
+  >
+    No build imported.
+  </p>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/build/import"
+    >
+      Import a build ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`LOADING + error panels (§8.1/8.2, snapshot row 10) > 422 → exact unparseable text, no affordance 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card card-status card-status--unparseable"
+>
+  <p
+    class="card-status-line"
+  >
+    Couldn't read that item — copy it in game with Ctrl+C.
+  </p>
+</section>
+`;
+
+exports[`LOADING + error panels (§8.1/8.2, snapshot row 10) > network failure / 5xx / initial-diff timeout → 'Advisor engine isn't running.' 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card card-status card-status--unavailable"
+>
+  <p
+    class="card-status-line"
+  >
+    Advisor engine isn't running.
+  </p>
+</section>
+`;
+
+exports[`LOADING + error panels (§8.1/8.2, snapshot row 10) > renders nothing for the first 120 ms, then the exact LOADING line 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card card-status card-status--loading"
+>
+  <p
+    class="card-status-line"
+  >
+    Evaluating…
+  </p>
+</section>
+`;
+
+exports[`REDIFFING (§8.3, snapshot row 11) > tapped chip spins, ALL chips go non-interactive, double-tap cannot fan out (S2) 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--upgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--upgrade"
+    >
+      UPGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 49.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +12.4%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 7.2%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −1.8%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    +1 to cold gems and higher flat cold beat the small life loss; clear DPS rises 12.4%.
+    "
+  </p>
+  <div
+    aria-busy="true"
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      aria-disabled="true"
+      class="chip"
+    >
+      skill: Vortex
+    </span>
+    <button
+      aria-busy="true"
+      aria-label="crit recently"
+      class="chip chip--pending"
+      disabled=""
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="chip-spinner"
+      />
+    </button>
+    <button
+      class="chip chip--dimmed"
+      disabled=""
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-8f2c41a7"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;

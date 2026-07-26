@@ -1,75 +1,58 @@
-import { useMemo, useState } from "react";
-import type { VerdictCard as VerdictCardData } from "../lib/verdictFormat";
-import type { OverrideEntry } from "../lib/overrides";
-import { VerdictCard } from "../components/VerdictCard";
+import { useEffect, useState } from "react";
+import { SessionCard } from "../session/SessionCard";
+import { useCardSession } from "../session/useCardSession";
 
-// Fixture-driven harness: the card is built entirely from contracts/fixtures/
-// (read-only, PM-owned) plus FE-local fixtures for cases with no golden
-// fixture yet (docs/specs/verdict_card.md §9 gap note).
-import upgradeMappingJson from "../../../contracts/fixtures/upgrade_mapping.json";
-import sidegradeBossingJson from "../../../contracts/fixtures/sidegrade_bossing.json";
-import downgradeMappingJson from "../../../contracts/fixtures/downgrade_mapping.json";
-import cantEvaluateTriggerJson from "../../../contracts/fixtures/cant_evaluate_trigger_build.json";
-import upgradeRichChipJson from "../../../contracts/fixtures/upgrade_rich_assumptions_chip.json";
-import sidegradeBalancedJson from "../../../contracts/fixtures/sidegrade_balanced_low_confidence.json";
-import edgeDegradedJson from "../../../contracts/fixtures/edge_degraded_minimal.json";
-import localBarOverflowJson from "../../test/fixtures/local_bar_overflow.json";
+/**
+ * Demo harness (npm run mock + npm run dev): every picker entry is a "hotkey
+ * press" whose item text routes the TASK-206 fixture mock (web/mock/server.mjs)
+ * via its marker convention. The card is whatever the mock returns over real
+ * HTTP through the generated client — nothing is inlined.
+ *
+ *   @fixture:<name>  → contracts/fixtures/<name>.json
+ *   @error:404/422   → bare status codes (RULING-20)
+ */
 
-// JSON imports widen to string/boolean; the suite proves schema conformance
-// (web/test/fixtures.test.ts), so bind to the generated contract types here.
-const upgradeMapping = upgradeMappingJson as VerdictCardData;
-const sidegradeBossing = sidegradeBossingJson as VerdictCardData;
-const downgradeMapping = downgradeMappingJson as VerdictCardData;
-const cantEvaluateTrigger = cantEvaluateTriggerJson as VerdictCardData;
-const upgradeRichChip = upgradeRichChipJson as VerdictCardData;
-const sidegradeBalanced = sidegradeBalancedJson as VerdictCardData;
-const edgeDegraded = edgeDegradedJson as VerdictCardData;
-const localBarOverflow = localBarOverflowJson as VerdictCardData;
+function demoItem(label: string, marker: string): string {
+  return `Rarity: RARE\n${label}\n--------\n(demo item text; the mock routes on the marker below)\n${marker}`;
+}
 
-const FIXTURES: Record<string, VerdictCardData> = {
-  "upgrade_mapping (UPGRADE)": upgradeMapping,
-  "sidegrade_bossing (SIDEGRADE)": sidegradeBossing,
-  "downgrade_mapping (DOWNGRADE)": downgradeMapping,
-  "cant_evaluate_trigger_build (CAN'T EVALUATE)": cantEvaluateTrigger,
-  "upgrade_rich_assumptions_chip (badge + 6 chips)": upgradeRichChip,
-  "sidegrade_balanced_low_confidence (balanced + badge)": sidegradeBalanced,
-  "edge_degraded_minimal (degraded)": edgeDegraded,
-  "local_bar_overflow (local: >25pp + 40-char label)": localBarOverflow,
+const DEMO_ITEMS: Record<string, string> = {
+  "upgrade_mapping (UPGRADE)": demoItem("Doom Wrap", "@fixture:upgrade_mapping"),
+  "sidegrade_bossing (SIDEGRADE)": demoItem("Foe Grip", "@fixture:sidegrade_bossing"),
+  "downgrade_mapping (DOWNGRADE)": demoItem("Grief Loop", "@fixture:downgrade_mapping"),
+  "cant_evaluate_trigger_build (CAN'T EVALUATE)": demoItem("Storm Coil", "@fixture:cant_evaluate_trigger_build"),
+  "upgrade_rich_assumptions_chip (badge + 6 chips)": demoItem("Rich Band", "@fixture:upgrade_rich_assumptions_chip"),
+  "sidegrade_balanced_low_confidence (balanced + badge)": demoItem("Even Clasp", "@fixture:sidegrade_balanced_low_confidence"),
+  "edge_degraded_minimal (degraded)": demoItem("Bare Sash", "@fixture:edge_degraded_minimal"),
+  "error: no active build (404)": demoItem("Doom Wrap", "@error:404"),
+  "error: unparseable item (422)": demoItem("???", "@error:422"),
 };
 
 export function App() {
-  const [fixtureName, setFixtureName] = useState<string>(Object.keys(FIXTURES)[0]);
-  const card = FIXTURES[fixtureName];
-  // One "hotkey press = one session": overrides accumulate per item and are
-  // cleared when the fixture (item) changes. [RULING-17/18]
-  const [appliedOverrides, setAppliedOverrides] = useState<ReadonlyMap<string, unknown>>(new Map());
-  const [lastPayload, setLastPayload] = useState<OverrideEntry[] | null>(null);
+  const [itemName, setItemName] = useState<string>(Object.keys(DEMO_ITEMS)[0]);
+  const { state, loadingVisible, evaluate, tapChip } = useCardSession();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const selectFixture = (name: string) => {
-    setFixtureName(name);
-    setAppliedOverrides(new Map());
-    setLastPayload(null);
+  // Picking an item = one hotkey press = one fresh session (RULING-18).
+  useEffect(() => {
+    evaluate(DEMO_ITEMS[itemName]);
     setDetailsOpen(false);
-  };
+  }, [itemName, evaluate]);
 
-  const payloadPreview = useMemo(
-    () =>
-      JSON.stringify(
-        { item_text: "<clipboard item text>", overrides: lastPayload ?? [] },
-        null,
-        2,
-      ),
-    [lastPayload],
-  );
+  const card = state.card;
 
   return (
     <main className="harness">
-      <h1>Verdict card — fixture harness</h1>
+      <h1>Verdict card — live session harness</h1>
+      <p className="harness-note">
+        Talks to the fixture mock at <code>http://127.0.0.1:47791/api/v0</code> (start it with{" "}
+        <code>npm run mock</code>). Tapping a boolean chip issues one real <code>POST /diff</code>{" "}
+        with the accumulated overrides (I3; spec §7).
+      </p>
       <label className="fixture-picker">
-        Fixture:{" "}
-        <select value={fixtureName} onChange={(e) => selectFixture(e.target.value)}>
-          {Object.keys(FIXTURES).map((name) => (
+        Hotkey item:{" "}
+        <select value={itemName} onChange={(e) => setItemName(e.target.value)}>
+          {Object.keys(DEMO_ITEMS).map((name) => (
             <option key={name} value={name}>
               {name}
             </option>
@@ -77,32 +60,29 @@ export function App() {
         </select>
       </label>
 
-      <VerdictCard
-        card={card}
-        appliedOverrides={appliedOverrides}
-        onOverride={(payload) => {
-          // TASK-206 wires this to POST /api/v0/diff; for now we hold the
-          // payload and show exactly what would be sent (one tap = one request).
-          setLastPayload(payload);
-          setAppliedOverrides(new Map(payload.map((o) => [o.assumption_id, o.value])));
-        }}
+      <SessionCard
+        state={state}
+        loadingVisible={loadingVisible}
+        onTapChip={tapChip}
         detailsHref="#details"
       />
 
       {/* Details affordance → Tier-2 preview. cant_evaluate_reasons appear ONLY
           here, never on the card. [RULING-3; PM-REFINEMENT on #25] */}
-      <p>
-        <a
-          href="#details"
-          onClick={(e) => {
-            e.preventDefault();
-            setDetailsOpen((open) => !open);
-          }}
-        >
-          {detailsOpen ? "Hide details" : "Open details (Tier-2 preview)"}
-        </a>
-      </p>
-      {detailsOpen && (
+      {card && (
+        <p>
+          <a
+            href="#details"
+            onClick={(e) => {
+              e.preventDefault();
+              setDetailsOpen((open) => !open);
+            }}
+          >
+            {detailsOpen ? "Hide details" : "Open details (Tier-2 preview)"}
+          </a>
+        </p>
+      )}
+      {card && detailsOpen && (
         <section className="details-panel" aria-label="Details">
           <h2>Details (diff {card.diff_id})</h2>
           {card.cant_evaluate_reasons && card.cant_evaluate_reasons.length > 0 ? (
@@ -117,8 +97,18 @@ export function App() {
         </section>
       )}
 
-      <h2>Last override payload (would be POSTed to /api/v0/diff)</h2>
-      <pre className="payload-preview">{payloadPreview}</pre>
+      <h2>Session</h2>
+      <pre className="payload-preview">
+        {JSON.stringify(
+          {
+            phase: state.phase,
+            preset_echo: state.preset ?? null,
+            applied_overrides: Object.fromEntries(state.appliedOverrides),
+          },
+          null,
+          2,
+        )}
+      </pre>
     </main>
   );
 }

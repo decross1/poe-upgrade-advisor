@@ -185,6 +185,50 @@ button.chip:hover {
   border-color: var(--accent);
 }
 
+/* §8.3 REDIFFING: every chip non-interactive; the tapped one spins. */
+button.chip:disabled {
+  cursor: default;
+}
+
+button.chip:disabled:hover {
+  border-color: var(--track);
+}
+
+button.chip.chip--overridden:disabled:hover {
+  border-color: var(--accent);
+}
+
+.chip--pending {
+  border-color: var(--accent);
+}
+
+.chip-spinner {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid var(--muted);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: chip-spin 0.7s linear infinite;
+}
+
+@keyframes chip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* §8.3 [RULING-21]: transient failure message reuses the sentence slot. */
+.verdict-sentence--transient {
+  color: var(--amber);
+}
+
+/* §8.1/8.2: LOADING/ERROR panels — one short line in the same card frame. */
+.card-status-line {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 /* 5. Open details — smallest interactive element, bottom-right. */
 .details-row {
   display: flex;

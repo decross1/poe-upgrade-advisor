@@ -1,4 +1,4 @@
-import type { OverrideEntry } from "../lib/overrides";
+import type { Assumption, OverrideEntry } from "../lib/overrides";
 import type { VerdictCard as VerdictCardData } from "../lib/verdictFormat";
 import { showLowConfidenceBadge, verdictDisplayText } from "../lib/verdictFormat";
 import { AssumptionsChip } from "./AssumptionsChip";
@@ -8,8 +8,14 @@ export interface VerdictCardProps {
   card: VerdictCardData;
   /** Session overrides for chip styling/toggling. [RULING-17] */
   appliedOverrides?: ReadonlyMap<string, unknown>;
-  /** Receives the /diff overrides payload on chip tap (wiring: TASK-206). */
-  onOverride?: (overrides: OverrideEntry[]) => void;
+  /** Receives the /diff overrides payload + tapped chip on chip tap. */
+  onOverride?: (overrides: OverrideEntry[], assumption: Assumption) => void;
+  /** §8.3 REDIFFING: every chip non-interactive until resolution (S2). */
+  chipsDisabled?: boolean;
+  /** §8.3 REDIFFING: this chip shows the inline spinner. */
+  pendingChipId?: string;
+  /** §8.3 [RULING-21]: transient replacement for the sentence slot. */
+  transientMessage?: string | null;
   /** Tier-2 deep link target; defaults to /breakdown/{diff_id}. */
   detailsHref?: string;
 }
@@ -21,7 +27,7 @@ export interface VerdictCardProps {
  * else: no preset, no confidence number, no compute_ms, no diff_id, no
  * cant_evaluate_reasons. [RULING-1/2/3/4]
  */
-export function VerdictCard({ card, appliedOverrides, onOverride, detailsHref }: VerdictCardProps) {
+export function VerdictCard({ card, appliedOverrides, onOverride, chipsDisabled, pendingChipId, transientMessage, detailsHref }: VerdictCardProps) {
   const cantEvaluate = card.verdict === "CANT_EVALUATE";
   const verdictKey = card.verdict.toLowerCase();
   return (
@@ -38,11 +44,23 @@ export function VerdictCard({ card, appliedOverrides, onOverride, detailsHref }:
         <DeltaBar label="Defense" delta={card.defense_delta_pct} suppressed={cantEvaluate} />
       </div>
 
-      {/* 3. One explanation sentence, verbatim plain text. */}
-      <p className="verdict-sentence">"{card.sentence}"</p>
+      {/* 3. One explanation sentence, verbatim plain text. The re-diff
+          failure message REUSES this slot, keeping I2's element count
+          intact (§8.3, RULING-21). */}
+      {transientMessage ? (
+        <p className="verdict-sentence verdict-sentence--transient">{transientMessage}</p>
+      ) : (
+        <p className="verdict-sentence">"{card.sentence}"</p>
+      )}
 
       {/* 4. The assumptions chip. */}
-      <AssumptionsChip assumptions={card.assumptions} appliedOverrides={appliedOverrides} onOverride={onOverride} />
+      <AssumptionsChip
+        assumptions={card.assumptions}
+        appliedOverrides={appliedOverrides}
+        onOverride={onOverride}
+        disabled={chipsDisabled}
+        pendingChipId={pendingChipId}
+      />
 
       {/* 5. One "open details" affordance — emphasized under CAN'T EVALUATE (I5). */}
       <footer className="details-row">

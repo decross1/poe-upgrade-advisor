@@ -19,10 +19,11 @@ shell TASK-201 picks. `npm install && npm test` runs the suite with no server;
 
 ## Layout
 
-- `src/lib/` — generated API types + pure presentation/override rules (every rule cites its spec ruling).
-- `src/components/` — `VerdictCard`, `DeltaBar`, `AssumptionsChip`. Props in, payload callbacks out; no network, no engine/server imports (enforced by `test/sourceHygiene.test.ts`).
-- `src/demo/` — fixture-driven harness (`npm run dev`) with a fixture picker, override-payload preview, and the details affordance's Tier-2 preview (the only place `cant_evaluate_reasons` render).
-- `test/` — snapshot matrix (docs/specs/verdict_card.md §9 rows 1–9), chip interaction, fixture schema validation, format units, source hygiene (I1 banned filenames per PM-REFINEMENT on #25).
+- `src/lib/` — generated API types + pure presentation/override/session rules (every rule cites its spec ruling). `session.ts` is the TASK-204 card-session state machine (spec §7/§8): pure, no React, no network.
+- `src/components/` — `VerdictCard`, `DeltaBar`, `AssumptionsChip`, `CardStatus` (§8.1/8.2 LOADING/ERROR panels). Props in, payload callbacks out; no network, no engine/server imports (enforced by `test/sourceHygiene.test.ts`).
+- `src/session/` — TASK-204 wiring: `useCardSession` (the ONE hand-written place that touches the network, via the generated client only) + `SessionCard` (state-machine → component switch, §8.4).
+- `src/demo/` — live session harness (`npm run mock` + `npm run dev`): each picker entry is a "hotkey press" whose item text routes the fixture mock (`@fixture:`/`@error:` markers); chip taps issue real `POST /diff`s. Includes the details affordance's Tier-2 preview (the only place `cant_evaluate_reasons` render).
+- `test/` — snapshot matrix (docs/specs/verdict_card.md §9 rows 1–11: card states in `VerdictCard.test.tsx`, LOADING/ERROR/REDIFFING + the real-HTTP override round-trip in `rediffInteraction.test.tsx` / `overrideRoundTrip.test.tsx`), chip interaction, session machine units, fixture schema validation, format units, source hygiene (I1 banned filenames per PM-REFINEMENT on #25).
 - `test/fixtures/` — FE-local fixtures ONLY for §9 gap cases (no golden fixture yet): bar overflow >25pp, near-zero, 40-char label.
 
 ## API client (generated, never hand-rolled)
