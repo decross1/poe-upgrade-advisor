@@ -32,6 +32,6 @@ parity.
   invocations are byte deterministic.
 - The persistent worker caches the upstream calculator for byte-identical
   build XML plus preset. On the current aarch64 runner, 100 warm Lightning
-  Arrow mapping diffs measured 4.155 ms p95 against the 150 ms budget
+  Arrow mapping diffs measured 4.301 ms p95 against the 150 ms budget
   (`engine/bench/benchmark_worker.py`, 5 warmups). Release promotion must
   repeat the benchmark on designated reference hardware.
