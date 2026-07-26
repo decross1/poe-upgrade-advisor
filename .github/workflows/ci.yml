@@ -67,7 +67,9 @@ jobs:
         run: ./engine/runtime/build-windows.ps1
       - name: exercise run.bat Windows runtime path
         shell: cmd
-        run: packaging\run.bat --runtime-check-only
+        run: |
+          copy /Y packaging\run.bat run.bat
+          call run.bat --runtime-check-only
       - name: upload pinned Windows x86-64 Lua runtime
         uses: actions/upload-artifact@v4
         with:

@@ -49,7 +49,11 @@ class WindowsRuntimeBuildTest(unittest.TestCase):
         self.assertIn("runs-on: windows-latest", workflow)
         self.assertIn("./engine/runtime/build-windows.ps1", workflow)
         self.assertIn(
-            "packaging\\run.bat --runtime-check-only",
+            "copy /Y packaging\\run.bat run.bat",
+            workflow,
+        )
+        self.assertIn(
+            "call run.bat --runtime-check-only",
             workflow,
         )
         self.assertIn(
