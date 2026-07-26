@@ -14,7 +14,12 @@ const SRC_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".rs", ".vue", ".s
 const BANNED_FILENAME_SUBSTRINGS = ["settings", "preferences", "configpanel", "optionsmenu"];
 
 // Components must stay portable into the overlay shell: no engine/server
-// imports, no network calls in source (fixtures only; wiring is TASK-206).
+// imports, no network calls in source (fixtures only).
+// TASK-206 wiring: `src/generated/` is the generated contract client and is
+// the ONE place network calls may live (it is the network boundary). It is
+// machine-generated from contracts/openapi.yaml, never hand-edited, so it is
+// exempt from the network/import scan below — hand-written src/ stays clean.
+const GENERATED_DIR = join("generated", "/");
 const FORBIDDEN_IMPORT = /from\s+["'][^"']*(\.\.\/)*(engine|server)\//;
 const NETWORK_CALL = [/\bfetch\s*\(/, /XMLHttpRequest/, /\baxios\b/, /new\s+WebSocket/];
 
@@ -28,6 +33,11 @@ function* walk(dir: string): Generator<string> {
 
 const sourceFiles = [...walk(SRC_DIR)].filter((f) =>
   SRC_EXTENSIONS.has(f.slice(f.lastIndexOf("."))),
+);
+
+// Hand-written source only: generated client excluded (see note above).
+const handWrittenFiles = sourceFiles.filter(
+  (f) => !relative(SRC_DIR, f).startsWith(GENERATED_DIR),
 );
 
 describe("Doctrine I1 — no settings surface (banned filenames, plain-test version)", () => {
@@ -45,13 +55,13 @@ describe("Doctrine I1 — no settings surface (banned filenames, plain-test vers
 });
 
 describe("portability contract (issue #25: zero engine/server imports, zero network)", () => {
-  it("no source file imports from engine/ or server/", () => {
-    const offenders = sourceFiles.filter((f) => FORBIDDEN_IMPORT.test(readFileSync(f, "utf8")));
+  it("no hand-written source file imports from engine/ or server/", () => {
+    const offenders = handWrittenFiles.filter((f) => FORBIDDEN_IMPORT.test(readFileSync(f, "utf8")));
     expect(offenders.map((f) => relative(SRC_DIR, f))).toEqual([]);
   });
 
-  it("no source file makes network calls", () => {
-    const offenders = sourceFiles.filter((f) => {
+  it("no hand-written source file makes network calls", () => {
+    const offenders = handWrittenFiles.filter((f) => {
       const text = readFileSync(f, "utf8");
       return NETWORK_CALL.some((pattern) => pattern.test(text));
     });
