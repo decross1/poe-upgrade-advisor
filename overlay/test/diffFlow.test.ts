@@ -9,6 +9,8 @@
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
+import type { Assumption } from "../../web/src/lib/overrides";
+import { RECOMPUTE_FAILED_MESSAGE } from "../../web/src/lib/session";
 import type { VerdictCard } from "../../web/src/lib/verdictFormat";
 import { bindGeneratedDiff } from "../src/diffRequest";
 import { createDiffFlow } from "../src/diffFlow";
@@ -18,6 +20,17 @@ import upgradeMappingJson from "../../contracts/fixtures/upgrade_mapping.json";
 import sidegradeBossingJson from "../../contracts/fixtures/sidegrade_bossing.json";
 
 const SAMPLE_ITEM_TEXT = "Item Class: Wands\r\nRarity: Rare\r\n...";
+
+const upgradeMapping = upgradeMappingJson as VerdictCard;
+
+/** A chip exactly as the card rendered it (the tap payload, §7). */
+function chip(card: VerdictCard, id: string): Assumption {
+  const found = card.assumptions.find((a) => a.id === id);
+  if (!found) throw new Error(`fixture ${card.diff_id} has no chip ${id}`);
+  return found;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface RecordedRequest {
   body: unknown;
@@ -92,7 +105,12 @@ describe("diffFlow — hotkey → clipboard → generated-client /diff", () => {
 
     expect(states).toEqual([
       { kind: "LOADING" },
-      { kind: "VERDICT", card: upgradeMappingJson as VerdictCard },
+      {
+        kind: "VERDICT",
+        card: upgradeMapping,
+        appliedOverrides: [],
+        transientMessage: null,
+      },
     ]);
     // Spec §10: the overlay omits `preset` (build default) and sends no
     // overrides on the first diff of a session. Exactly one key.
@@ -193,7 +211,245 @@ describe("diffFlow — hotkey → clipboard → generated-client /diff", () => {
     expect(states).toEqual([
       { kind: "LOADING" },
       { kind: "LOADING" },
-      { kind: "VERDICT", card: upgradeMappingJson as VerdictCard },
+      {
+        kind: "VERDICT",
+        card: upgradeMapping,
+        appliedOverrides: [],
+        transientMessage: null,
+      },
     ]);
+  });
+});
+
+describe("diffFlow — chip tap → one re-diff (I3/§7, issue #64)", () => {
+  it("one boolean tap = exactly one POST with the full overrides payload + echoed preset", async () => {
+    const server = await stub(() => ({ status: 200, json: upgradeMappingJson }));
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    await flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+
+    expect(server.requests).toHaveLength(2); // hotkey + tap — never more (S2)
+    expect(server.requests[1].body).toEqual({
+      item_text: SAMPLE_ITEM_TEXT, // session item text, unchanged (§7)
+      preset: "mapping", // echo of the last response's preset (§7)
+      overrides: [{ assumption_id: "config.elemental_overload", value: false }],
+    });
+    expect(states).toEqual([
+      { kind: "LOADING" },
+      { kind: "VERDICT", card: upgradeMapping, appliedOverrides: [], transientMessage: null },
+      {
+        kind: "REDIFFING",
+        card: upgradeMapping,
+        appliedOverrides: [],
+        pendingChipId: "config.elemental_overload",
+      },
+      {
+        kind: "VERDICT",
+        card: upgradeMapping,
+        appliedOverrides: [{ assumption_id: "config.elemental_overload", value: false }],
+        transientMessage: null,
+      },
+    ]);
+  });
+
+  it("RULING-17: overrides accumulate across taps (full set resent every re-diff)", async () => {
+    const server = await stub(() => ({ status: 200, json: upgradeMappingJson }));
+    const { onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    await flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+    await flow.onChipTap(chip(upgradeMapping, "config.flasks_up"));
+
+    expect(server.requests).toHaveLength(3);
+    expect(server.requests[2].body).toEqual({
+      item_text: SAMPLE_ITEM_TEXT,
+      preset: "mapping",
+      overrides: [
+        { assumption_id: "config.elemental_overload", value: false },
+        { assumption_id: "config.flasks_up", value: false },
+      ],
+    });
+  });
+
+  it("re-tapping an overridden chip restores inference (override removed from the full set)", async () => {
+    const server = await stub(() => ({ status: 200, json: upgradeMappingJson }));
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    await flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+
+    expect(server.requests).toHaveLength(3);
+    expect(server.requests[2].body).toEqual({
+      item_text: SAMPLE_ITEM_TEXT,
+      preset: "mapping",
+      overrides: [],
+    });
+    expect(states.at(-1)).toEqual({
+      kind: "VERDICT",
+      card: upgradeMapping,
+      appliedOverrides: [],
+      transientMessage: null,
+    });
+  });
+
+  it("RULING-18: a new hotkey press clears overrides — next diff is item_text only", async () => {
+    const server = await stub(() => ({ status: 200, json: upgradeMappingJson }));
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    await flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+    await flow.onHotkey(); // new item = new session
+
+    expect(server.requests).toHaveLength(3);
+    expect(server.requests[2].body).toEqual({ item_text: SAMPLE_ITEM_TEXT });
+    expect(states.at(-1)).toEqual({
+      kind: "VERDICT",
+      card: upgradeMapping,
+      appliedOverrides: [],
+      transientMessage: null,
+    });
+  });
+
+  it("RULING-14: a display-only (non-boolean) chip tap is a no-op — NO request", async () => {
+    const server = await stub(() => ({ status: 200, json: upgradeMappingJson }));
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    await flow.onHotkey();
+    const before = states.length;
+    await flow.onChipTap(chip(upgradeMapping, "main_skill.most_linked_highest_dps")); // string value
+
+    expect(server.requests).toHaveLength(1);
+    expect(states).toHaveLength(before); // no state churn either
+  });
+
+  it("a tap while the initial diff is in flight is a no-op — NO request (S2)", async () => {
+    const server = await stub(async () => {
+      await sleep(50);
+      return { status: 200, json: upgradeMappingJson };
+    });
+    const { onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    const hotkey = flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload")); // LOADING phase
+    await hotkey;
+
+    expect(server.requests).toHaveLength(1);
+  });
+
+  it("RULING-21: a failed re-diff reverts and shows the transient sentence message, then restores", async () => {
+    let calls = 0;
+    const server = await stub(() => (++calls === 1 ? { status: 200, json: upgradeMappingJson } : { status: 500 }));
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+      transientMs: 20, // injected; production default is TRANSIENT_MESSAGE_MS (3000)
+    });
+    await flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+
+    expect(server.requests).toHaveLength(2);
+    expect(states.at(-1)).toEqual({
+      kind: "VERDICT",
+      card: upgradeMapping, // untouched card
+      appliedOverrides: [], // mutation dropped
+      transientMessage: RECOMPUTE_FAILED_MESSAGE,
+    });
+
+    await sleep(60); // transient window elapses → original sentence restored
+    expect(states.at(-1)).toEqual({
+      kind: "VERDICT",
+      card: upgradeMapping,
+      appliedOverrides: [],
+      transientMessage: null,
+    });
+  });
+
+  it("a re-diff timing out counts as failure (RULING-19/21): revert + transient message", async () => {
+    let calls = 0;
+    const server = await stub(() => {
+      calls += 1;
+      return calls === 1
+        ? { status: 200, json: upgradeMappingJson }
+        : (new Promise(() => {}) as Promise<never>); // re-diff never responds
+    });
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+      timeoutMs: 50,
+      transientMs: 20,
+    });
+    await flow.onHotkey();
+    await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+
+    expect(states.at(-1)).toEqual({
+      kind: "VERDICT",
+      card: upgradeMapping,
+      appliedOverrides: [],
+      transientMessage: RECOMPUTE_FAILED_MESSAGE,
+    });
+  });
+
+  it("§8.4: a hotkey during REDIFFING supersedes it — the late re-diff response is dropped", async () => {
+    const server = await stub(async (body) => {
+      if (Array.isArray(body.overrides) && body.overrides.length > 0) {
+        await sleep(80); // slow re-diff
+        return { status: 200, json: sidegradeBossingJson };
+      }
+      return { status: 200, json: upgradeMappingJson };
+    });
+    const { states, onState } = collectStates();
+    const flow = createDiffFlow({
+      readClipboard: () => SAMPLE_ITEM_TEXT,
+      postDiff: bindGeneratedDiff(server.url),
+      onState,
+    });
+    await flow.onHotkey();
+    const rediff = flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+    await flow.onHotkey(); // supersedes the in-flight re-diff
+    await rediff;
+
+    expect(server.requests).toHaveLength(3);
+    expect(states).toEqual([
+      { kind: "LOADING" },
+      { kind: "VERDICT", card: upgradeMapping, appliedOverrides: [], transientMessage: null },
+      {
+        kind: "REDIFFING",
+        card: upgradeMapping,
+        appliedOverrides: [],
+        pendingChipId: "config.elemental_overload",
+      },
+      { kind: "LOADING" },
+      { kind: "VERDICT", card: upgradeMapping, appliedOverrides: [], transientMessage: null },
+    ]); // the slow sidegrade re-diff never paints
   });
 });

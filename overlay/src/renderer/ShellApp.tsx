@@ -35,5 +35,10 @@ export function ShellApp() {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
-  return <OverlayCard state={state} />;
+  return (
+    <OverlayCard
+      state={state}
+      onChipTap={(assumption) => window.poeOverlay?.tapChip(assumption)}
+    />
+  );
 }
