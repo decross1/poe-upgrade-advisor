@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:40.095335Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=d4FnUmaVX0-7611&name=Konfetkathree&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:40 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=wmG0zsJ4qzZXeccf3NuUX%2FmEzUksaHjbmudta4q5N4UmkA39MNJoezHioTJDtYLTsoTqrgE8Oczjr7SCPI6PCakWlmx%2BZmY5Ha5o7LweQOoorgV6rIRP2zbHOn6UQlCGlA%2FScmiZ3w%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:40 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a2118468fa48efbd-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 149110,
+    "sha256": "345e8317624df06f5ac893ac7c06d076a39b94f8c38607935065f51937de7951"
+  },
+  "selection": {
+    "account": "d4FnUmaVX0-7611",
+    "character": "Konfetkathree",
+    "archetype": "mine"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:45.897704Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=Jak_sn-3120&name=Allflame_Jaksn&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:46 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=XmR0yvrPKZlBPF8T%2Bl%2BWotbeYv0OI5wnP%2Ffkam1IB5jtEJoGS5Rrbzt90Sq8Kj%2BkyUz9Av8XkygFWj7sVW5DCLPEPmFxznXEykfwK0p3bHKgicLp9v%2B9JqTglwKeL%2F7%2FkiEkEY0nKw%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:46 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a211848d29931698-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 194314,
+    "sha256": "06fe7c0c230ea102cab8e50fb3a2eec7f55eed172be7f6b66124fc2af0bd0d0c"
+  },
+  "selection": {
+    "account": "Jak_sn-3120",
+    "character": "Allflame_Jaksn",
+    "archetype": "absolution-minion"
+  }
+}

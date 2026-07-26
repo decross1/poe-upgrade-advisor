@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:19.954552Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=iDei-1549&name=CreatinyAfterlightBad&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:20 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=C%2Fx0TuuEu6S6VOSO1ECyhaCs6Znc1mb0W%2BOZoiWDMJOQnH7IiDgce7QlW4WEVd1rovHH7cwqcnRxR2FcDWLEk5gppqqHo67Tu5Ia2Ug4O9nCjen4Az7BAsG1%2B9DNbc4aaZLVynBosA%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:20 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21183eb1dde1574-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 178561,
+    "sha256": "d6deacbdc4e0fdd91f52ad1ff1e4c9fec910ceaaafa8758979656f8ed3e2a98a"
+  },
+  "selection": {
+    "account": "iDei-1549",
+    "character": "CreatinyAfterlightBad",
+    "archetype": "trigger-cast-on-crit"
+  }
+}
