@@ -109,7 +109,7 @@ grep -q "listening on http://127.0.0.1:$PORT/" "$WORK/server.log" \
   || bad "listening line missing from server log"
 
 # --- 4. Exercise the full slice over HTTP (host = tester's browser) --------
-export CLEANROOM_PORT="$PORT" GOLDEN_BUILD GOLDEN_ITEM
+export CLEANROOM_PORT="$PORT" GOLDEN_BUILD GOLDEN_ITEM CLEANROOM_COUNTS="$WORK/http-counts"
 python3 - <<'PY'
 import json, os, re, sys, urllib.error, urllib.request
 
@@ -135,7 +135,10 @@ def post(path, payload, timeout=30):
         raw = e.read()
         return e.code, json.loads(raw) if raw else None
 
+counts = [0, 0]
+
 def check(name, cond):
+    counts[cond == 0] += 1
     print(("PASS: " if cond else "FAIL: ") + name)
     return cond
 
@@ -195,6 +198,8 @@ if status == 200:
 status, _ = post("/api/v0/diff", {"item_text": "Rarity: RARE\nnot a real item\n"})
 ok &= check("unparseable item -> honest 422 (I5)", status == 422)
 
+with open(os.environ["CLEANROOM_COUNTS"], "w") as fh:
+    fh.write(f"{counts[0]} {counts[1]}")
 sys.exit(0 if ok else 1)
 PY
 HTTP_RESULT=$?
@@ -208,5 +213,7 @@ python3 -c "import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0
   && bad "port $PORT still bound after stop" \
   || ok "server stopped, port $PORT released"
 
-echo "== clean-room result: $PASS passed, $FAIL failed"
+HTTP_PASS=0; HTTP_FAIL=1
+[ -f "$WORK/http-counts" ] && read -r HTTP_PASS HTTP_FAIL <"$WORK/http-counts"
+echo "== clean-room result: $((PASS+HTTP_PASS)) passed, $((FAIL+HTTP_FAIL)) failed"
 [ "$FAIL" -eq 0 ] && [ "$HTTP_RESULT" -eq 0 ]
