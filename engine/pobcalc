@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "usage: pobcalc diff --build BUILD.xml --item ITEM.txt --preset PRESET --json" >&2
+  exit 64
+}
+
+[[ ${1:-} == "diff" ]] || usage
+shift
+
+build=
+item=
+preset=
+json=false
+while (($#)); do
+  case "$1" in
+    --build) [[ $# -ge 2 ]] || usage; build=$2; shift 2 ;;
+    --item) [[ $# -ge 2 ]] || usage; item=$2; shift 2 ;;
+    --preset) [[ $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
+    --json) json=true; shift ;;
+    *) usage ;;
+  esac
+done
+
+[[ -n $build && -f $build && -n $item && -f $item && -n $preset && $json == true ]] || usage
+
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+pob_src="$root/engine/vendor/PathOfBuilding/src"
+[[ -f "$pob_src/HeadlessWrapper.lua" ]] || {
+  echo "pobcalc: initialize vendor/PathOfBuilding first (git submodule update --init)" >&2
+  exit 69
+}
+
+lua_bin=${POBCALC_LUA:-}
+if [[ -z $lua_bin ]]; then
+  lua_bin=$(command -v luajit || true)
+fi
+[[ -n $lua_bin ]] || {
+  echo "pobcalc: LuaJIT is required (or set POBCALC_LUA)" >&2
+  exit 69
+}
+
+build=$(realpath "$build")
+item=$(realpath "$item")
+lua_path="$root/engine/vendor/PathOfBuilding/runtime/lua/?.lua;$root/engine/vendor/PathOfBuilding/runtime/lua/?/init.lua;;"
+
+(
+  cd "$pob_src"
+  LUA_PATH="$lua_path" LUA_CPATH="${POBCALC_LUA_CPATH:-;;}" \
+    "$lua_bin" "$root/engine/pobcalc.lua" "$build" "$item" "$preset"
+)
