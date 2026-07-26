@@ -118,3 +118,36 @@ def test_ci_has_windows_package_cleanroom_job():
     assert "./scripts/package_mvp_windows.ps1" in workflow
     assert "./scripts/cleanroom_windows_check.ps1" in workflow
     assert "actions/upload-artifact@v4" in workflow
+
+
+def test_worker_startup_io_failure_surfaces_as_worker_unavailable(
+    monkeypatch, tmp_path
+):
+    """Windows runs select() on sockets only: the pobcalc response-pipe
+    selector dies there with WinError 10038 (found on a real runner by the
+    windows-package-cleanroom job, run 30210831928). That startup I/O
+    failure must surface as WorkerUnavailable — launch.py keys the honest
+    "engine could not start" dead stop (I5) off it; a raw OSError escaping
+    is misreported as a port-bind failure. Reproduced here by simulating
+    the Windows register() failure against a live worker process.
+    """
+    import sys
+
+    import pytest
+
+    import server.calculator as calculator
+
+    class NotASocketSelector:
+        def register(self, *_args, **_kwargs):
+            raise OSError(
+                10038,
+                "An operation was attempted on something that is not a socket",
+            )
+
+    monkeypatch.setattr(
+        calculator.selectors, "DefaultSelector", lambda: NotASocketSelector()
+    )
+    with pytest.raises(calculator.WorkerUnavailable, match="startup ping failed"):
+        calculator.JsonRpcWorker(
+            [sys.executable, "-c", "import sys; sys.stdin.read()"], tmp_path
+        )
