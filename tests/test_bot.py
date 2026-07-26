@@ -172,5 +172,9 @@ def test_suggest_channel_gate_makes_no_github_call(tmp_path, monkeypatch):
         asyncio.run(module.suggest.callback(interaction, "title", "problem", ""))
 
     interaction.response.send_message.assert_awaited_once()
+    assert (
+        interaction.response.send_message.await_args.args[0]
+        == "Please use /suggest in the configured #poe channel."
+    )
     interaction.response.defer.assert_not_awaited()
     file_issue_mock.assert_not_called()
