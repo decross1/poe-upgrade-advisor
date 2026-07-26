@@ -41,6 +41,7 @@ cp -r web/dist/. "$STAGE/web/"
 cp -r packaging "$STAGE/packaging"
 cp packaging/run.sh "$STAGE/run.sh"
 cp packaging/run.sh "$STAGE/run.command"   # macOS double-click
+cp packaging/run.bat "$STAGE/run.bat"      # Windows double-click
 chmod +x "$STAGE/run.sh" "$STAGE/run.command"
 cp packaging/README.txt "$STAGE/README.txt"
 

@@ -9,15 +9,17 @@ WHAT THIS IS
 
 REQUIREMENTS
   - Python 3.10 or newer: https://www.python.org/downloads/
-    (macOS: the system python3 works; Windows support is coming)
+    (macOS: the system python3 works; Windows: the python.org
+    installer's "py" launcher is what run.bat looks for first)
   - An internet connection ONCE, on first run only, to fetch one small
     Python dependency into a private folder (.venv/). No other tooling,
     no npm, no dev environment.
 
 RUN
-  macOS:  double-click "run.command"
-          (if Gatekeeper blocks it: right-click -> Open -> Open)
-  Linux:  ./run.sh
+  Windows: double-click "run.bat"
+  macOS:   double-click "run.command"
+           (if Gatekeeper blocks it: right-click -> Open -> Open)
+  Linux:   ./run.sh
 
   Your browser opens http://127.0.0.1:47791/ — that's the whole app.
   Stop it with Ctrl+C in the terminal window.

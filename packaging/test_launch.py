@@ -125,3 +125,37 @@ def test_api_404_propagates_through_proxy(stack):
     # No build imported on a fresh app: GET /build is a bare 404 (RULING-20).
     status, _, _ = _get(f"{stack}/api/v0/build")
     assert status == 404
+
+
+# --- Windows launcher (run.bat) static contract ---------------------------
+# run.bat is AUTHORED BLIND: this dev box has no Windows lane, so cmd.exe
+# semantics (label/goto parsing, errorlevel flow) are verified here only
+# statically. First real execution is the non-dev-box install test on
+# issue #54 — do not check that box without it.
+
+
+def test_run_bat_is_crlf_only():
+    bat = (ROOT / "packaging" / "run.bat").read_bytes()
+    assert bat, "run.bat missing"
+    # cmd.exe misparses LF-only batch files that use labels/goto.
+    assert b"\n" not in bat.replace(b"\r\n", b""), "run.bat must be CRLF-only"
+
+
+def test_run_bat_mirrors_run_sh_contract():
+    bat = (ROOT / "packaging" / "run.bat").read_text(encoding="ascii")
+    sh = (ROOT / "packaging" / "run.sh").read_text(encoding="utf-8")
+    # Same entrypoint, same --open passthrough, same one dependency spec.
+    assert "packaging\\launch.py --open %*" in bat
+    assert '.venv\\Scripts\\python.exe -m pip install --quiet --disable-pip-version-check "pyyaml>=6.0"' in bat
+    for dep in ('"pyyaml>=6.0"',):
+        assert dep in sh and dep in bat, "run.sh/run.bat dependency spec drift"
+    # Prefers the python.org py launcher; plain python is only the fallback.
+    assert 'set "PY=py -3"' in bat
+    # Never touches a fixed port or remote host itself; launch.py owns that.
+    assert "47791" not in bat and "http" not in bat.lower().replace("https://www.python.org", "")
+
+
+def test_package_script_stages_all_launchers():
+    script = (ROOT / "scripts" / "package_mvp.sh").read_text(encoding="utf-8")
+    for artifact in ('"$STAGE/run.sh"', '"$STAGE/run.command"', '"$STAGE/run.bat"'):
+        assert artifact in script, f"package_mvp.sh no longer stages {artifact}"

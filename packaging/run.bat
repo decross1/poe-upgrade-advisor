@@ -1,0 +1,48 @@
+@echo off
+rem ============================================================
+rem  PoE Upgrade Advisor - MVP v0 launcher for Windows (TASK-208)
+rem  Double-click run.bat. No dev tooling needed: uses the Python
+rem  launcher (py) or python on PATH, and bootstraps the server's
+rem  one dependency into a private venv (.venv\). Mirrors run.sh.
+rem ============================================================
+setlocal
+cd /d "%~dp0"
+
+rem --- find a Python: prefer the py launcher, fall back to python on PATH.
+set "PY="
+where py >nul 2>nul && set "PY=py -3"
+if defined PY goto python_found
+where python >nul 2>nul && set "PY=python"
+if defined PY goto python_found
+echo error: Python 3.10+ not found. Install it from https://www.python.org/downloads/ 1>&2
+echo        (the python.org installer provides the "py" launcher this script prefers) 1>&2
+exit /b 1
+
+:python_found
+rem --- fast path: pyyaml already importable - run straight off it.
+%PY% -c "import yaml" >nul 2>nul
+if not errorlevel 1 goto run_system
+
+rem --- slow path (first run only): private venv + the server's one dep.
+if exist .venv\Scripts\python.exe goto run_venv
+echo first run: creating a private Python environment (.venv\)...
+%PY% -m venv .venv
+if errorlevel 1 goto fail_venv
+.venv\Scripts\python.exe -m pip install --quiet --disable-pip-version-check "pyyaml>=6.0"
+if errorlevel 1 goto fail_pip
+
+:run_venv
+.venv\Scripts\python.exe packaging\launch.py --open %*
+exit /b %errorlevel%
+
+:run_system
+%PY% packaging\launch.py --open %*
+exit /b %errorlevel%
+
+:fail_venv
+echo error: could not create the private Python environment (.venv). 1>&2
+exit /b 1
+
+:fail_pip
+echo error: could not install pyyaml (needs an internet connection, once). 1>&2
+exit /b 1

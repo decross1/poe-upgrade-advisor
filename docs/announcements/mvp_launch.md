@@ -40,6 +40,7 @@ That's the whole card. No settings screen, no config wizard, nothing to fill in 
    **(LINK TBD until the release task attaches the build)**.
 2. **Extract it anywhere** (double-click the archive).
 3. **Run it:**
+   - Windows: double-click `run.bat`.
    - macOS: double-click `run.command` (if Gatekeeper complains: right-click →
      Open → Open).
    - Linux: open a terminal in the folder and run `./run.sh`.
@@ -49,7 +50,8 @@ That's the whole card. No settings screen, no config wizard, nothing to fill in 
 5. Stop it with `Ctrl+C` in the terminal window.
 
 **You need:** Python 3.10+ (macOS already has it; Linux almost certainly does;
-Windows build is coming). First run uses the internet once to fetch one small
+on Windows grab it from python.org — the installer's `py` launcher is what
+`run.bat` looks for first). First run uses the internet once to fetch one small
 Python dependency into a private folder — no npm, no dev tools, nothing
 installed system-wide. Everything runs on `127.0.0.1`; nothing leaves your
 machine.
