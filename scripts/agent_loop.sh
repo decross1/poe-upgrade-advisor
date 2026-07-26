@@ -44,7 +44,8 @@ invoke() {
     backend)
       # bwrap userns sandboxing fails headless on this box (RTM_NEWADDR EPERM),
       # so run unsandboxed; poll cadence + HALT + MAX_PARALLEL are the containment.
-      (cd "$dir" && codex exec --dangerously-bypass-approvals-and-sandbox "$prompt") ;;
+      (cd "$dir" && codex exec --dangerously-bypass-approvals-and-sandbox \
+        -c model_reasoning_effort="${CODEX_EFFORT:-high}" "$prompt") ;;
     frontend)
       eval "$(grep '^export KIMI_API_KEY' ~/.bashrc)"
       (cd "$dir" && pi --provider moonshot --model kimi-k3 --thinking "${PI_THINKING:-high}" --no-session -p "$prompt") ;;
