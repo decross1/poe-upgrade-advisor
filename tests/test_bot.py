@@ -4,11 +4,50 @@ import importlib.util
 import sqlite3
 import sys
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 
+def install_discord_stub():
+    if "discord" in sys.modules:
+        return
+    if importlib.util.find_spec("discord") is not None:
+        return
+
+    discord = ModuleType("discord")
+    app_commands = ModuleType("discord.app_commands")
+
+    class Command:
+        def __init__(self, callback):
+            self.callback = callback
+
+    class CommandTree:
+        def __init__(self, _client):
+            pass
+
+        def command(self, **_kwargs):
+            return lambda callback: Command(callback)
+
+        async def sync(self):
+            pass
+
+    class Client:
+        def __init__(self, **_kwargs):
+            pass
+
+    app_commands.CommandTree = CommandTree
+    app_commands.describe = lambda **_kwargs: (lambda callback: callback)
+    discord.app_commands = app_commands
+    discord.Client = Client
+    discord.Intents = SimpleNamespace(default=lambda: object())
+    discord.TextChannel = type("TextChannel", (), {})
+    discord.ChannelType = SimpleNamespace(public_thread=object())
+    sys.modules["discord"] = discord
+    sys.modules["discord.app_commands"] = app_commands
+
+
 def load_bot_module(tmp_path, monkeypatch):
+    install_discord_stub()
     monkeypatch.setenv("BOT_DB", str(tmp_path / "bot.sqlite3"))
     spec = importlib.util.spec_from_file_location(
         "intake_bot", Path(__file__).parents[1] / "bot" / "bot.py"
