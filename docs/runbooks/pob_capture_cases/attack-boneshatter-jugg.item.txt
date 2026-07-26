@@ -1,0 +1,12 @@
+Rarity: RARE
+Capture Cleaver
+Tomahawk
+Item Level: 85
+Quality: 20
+Sockets: G-R
+LevelReq: 39
+Implicits: 0
+180% increased Physical Damage
+Adds 25 to 45 Physical Damage
+20% increased Attack Speed
+20% increased Critical Strike Chance

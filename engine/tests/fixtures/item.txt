@@ -1,0 +1,15 @@
+Rarity: RARE
+Spike Candidate
+Vaal Spirit Shield
+Item Level: 83
+Quality: 0
+Sockets: B-B-B
+LevelReq: 70
+Implicits: 1
+9% increased Spell Damage
++60 to Intelligence
+30% increased Energy Shield
++100 to maximum Life
++1 to Level of all Cold Spell Skill Gems
++11% to all Elemental Resistances
++43% to Cold Resistance
