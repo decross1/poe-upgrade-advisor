@@ -25,7 +25,11 @@
  * - RULING-20: errors are keyed off the HTTP status code ONLY; error bodies
  *   are never parsed or rendered.
  * - RULING-21: a failed re-diff reverts the override and shows the transient
- *   sentence-slot message for TRANSIENT_MESSAGE_MS, then restores it.
+ *   sentence-slot message for TRANSIENT_MESSAGE_MS, then restores it. At most
+ *   ONE transient timer is ever live: a later tap or hotkey supersedes an
+ *   earlier failure's message, so the earlier timer is cancelled and can
+ *   never clear the newer message early (same ownership rule as the web
+ *   app's useCardSession resetFlight).
  */
 import { ApiError } from "../../web/src/generated/core/ApiError";
 import type { Assumption, OverrideEntry } from "../../web/src/lib/overrides";
@@ -126,6 +130,20 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
   // ──hotkey──▶ LOADING). Chip taps do NOT bump it — they belong to the
   // current session — but they capture it to detect their own supersession.
   let generation = 0;
+  // RULING-21: the single live transient-message timer (if any). The flow's
+  // generation counter only guards against supersession by a HOTKEY; two
+  // failed re-diffs within one session share a generation, so without this
+  // the first failure's stale timer would clear the second failure's message
+  // before its full TRANSIENT_MESSAGE_MS (PR #84 review round 1).
+  let transientTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Invalidate any pending transient timer; the newest action owns the card. */
+  function cancelTransientTimer(): void {
+    if (transientTimer !== undefined) {
+      clearTimeout(transientTimer);
+      transientTimer = undefined;
+    }
+  }
 
   function emit(): void {
     deps.onState(toShellState(session));
@@ -150,6 +168,7 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
 
   async function onHotkey(): Promise<void> {
     const gen = ++generation;
+    cancelTransientTimer(); // the fresh session owns the card (RULING-18)
     session = startSession(deps.readClipboard());
     emit(); // LOADING
 
@@ -171,6 +190,7 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
     const begun = beginRediff(session, assumption);
     if (begun === null) return; // no state change, NO request (S2)
     const gen = generation; // taps join the current session; hotkeys supersede
+    cancelTransientTimer(); // the new tap supersedes any earlier failure's message
     session = begun.state;
     emit(); // REDIFFING (pending chip, strip disabled)
 
@@ -184,7 +204,9 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
       if (gen !== generation) return;
       session = rejectRediff(session);
       emit(); // VERDICT — reverted, transient retry message in sentence slot
-      setTimeout(() => {
+      cancelTransientTimer(); // this failure now owns the sentence slot
+      transientTimer = setTimeout(() => {
+        transientTimer = undefined;
         if (gen !== generation) return; // a newer session owns the card now
         session = clearTransient(session);
         emit(); // VERDICT — original sentence restored
