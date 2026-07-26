@@ -1,0 +1,45 @@
+{
+  "compute_ms": 0,
+  "plan_id": "p-708d62386ac3",
+  "preset": "bossing",
+  "suggestions": [
+    {
+      "combined_score": 2.78,
+      "defense_delta_pct": 0.7,
+      "node_id": 5456,
+      "node_name": "Might",
+      "offense_delta_pct": 3.3,
+      "path_cost": 1,
+      "path_node_ids": [
+        5456
+      ],
+      "step": 1
+    },
+    {
+      "combined_score": 2.32,
+      "defense_delta_pct": 0,
+      "node_id": 65574,
+      "node_name": "Disorienting Display",
+      "offense_delta_pct": 2.9,
+      "path_cost": 1,
+      "path_node_ids": [
+        65574
+      ],
+      "step": 2
+    },
+    {
+      "combined_score": 2.053,
+      "defense_delta_pct": 13.2,
+      "node_id": 6770,
+      "node_name": "Arcane Guarding",
+      "offense_delta_pct": 4.4,
+      "path_cost": 3,
+      "path_node_ids": [
+        12246,
+        22577,
+        6770
+      ],
+      "step": 3
+    }
+  ]
+}

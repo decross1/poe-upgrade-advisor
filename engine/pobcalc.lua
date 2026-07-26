@@ -115,6 +115,23 @@ local function metricsJson(value)
 		.. ',"ehp":' .. jsonNumber(value.ehp) .. '}'
 end
 
+local function round(value, digits)
+	local scale = 10 ^ digits
+	if value < 0 then
+		return math.ceil(value * scale - 0.5) / scale
+	end
+	return math.floor(value * scale + 0.5) / scale
+end
+
+local function jsonDecimal(value, digits)
+	local encoded = string.format("%." .. tostring(digits) .. "f", value)
+	encoded = encoded:gsub("(%..-)0+$", "%1"):gsub("%.$", "")
+	if encoded == "-0" then
+		return "0"
+	end
+	return encoded
+end
+
 local function sortedKeys(value)
 	local keys = { }
 	for key in pairs(value) do
@@ -220,6 +237,183 @@ local function calculateDiff(
 		.. '}'
 end
 
+local function percentageDelta(baseline, candidate)
+	if baseline == 0 then
+		if candidate == 0 then
+			return 0
+		end
+		return nil
+	end
+	return (candidate - baseline) / math.abs(baseline) * 100
+end
+
+local function restoreCalculation(
+		requestBuildPath,
+		requestConfig,
+		requestConfigKey
+	)
+	local buildXml = readAll(requestBuildPath)
+	loadBuild(buildXml, requestBuildPath)
+	if applyConfig(requestConfig) then
+		build.calcsTab:BuildOutput()
+	end
+	local calculate, baselineOutput = build.calcsTab:GetMiscCalculator()
+	cachedBuildPath = requestBuildPath
+	cachedBuildXml = buildXml
+	cachedConfigKey = requestConfigKey
+	cachedCalculate = calculate
+	cachedBaselineOutput = baselineOutput
+	return calculate, baselineOutput
+end
+
+local function treeSuggestionJson(suggestion)
+	local pathParts = { }
+	for _, nodeId in ipairs(suggestion.path_node_ids) do
+		table.insert(pathParts, jsonNumber(nodeId))
+	end
+	return '{"step":' .. jsonNumber(suggestion.step)
+		.. ',"node_id":' .. jsonNumber(suggestion.node_id)
+		.. ',"node_name":' .. jsonString(suggestion.node_name)
+		.. ',"offense_delta_pct":'
+		.. jsonDecimal(suggestion.offense_delta_pct, 1)
+		.. ',"defense_delta_pct":'
+		.. jsonDecimal(suggestion.defense_delta_pct, 1)
+		.. ',"combined_score":'
+		.. jsonDecimal(suggestion.combined_score, 3)
+		.. ',"path_cost":' .. jsonNumber(suggestion.path_cost)
+		.. ',"path_node_ids":[' .. table.concat(pathParts, ",") .. ']}'
+end
+
+local function calculateTreeSuggestions(
+		requestBuildPath,
+		requestConfig,
+		requestConfigKey,
+		points
+	)
+	if type(points) ~= "number"
+			or points % 1 ~= 0
+			or points < 1
+			or points > 10 then
+		error("points must be an integer from 1 to 10")
+	end
+
+	prepareCalculation(requestBuildPath, requestConfig, requestConfigKey)
+	local ok, result = xpcall(function()
+		local suggestions = { }
+		local spent = 0
+		while spent < points do
+			local calculate, currentOutput = build.calcsTab:GetMiscCalculator()
+			local currentMetrics = metrics(currentOutput)
+			local remaining = points - spent
+			local best
+
+			for nodeId, node in pairs(build.spec.nodes) do
+				if not node.alloc
+						and not build.calcsTab.mainEnv.grantedPassives[nodeId]
+						and not node.ascendancyName
+						and node.modKey ~= ""
+						and (node.type == "Normal"
+							or node.type == "Notable"
+							or node.type == "Keystone")
+						and node.path
+						and #node.path >= 1
+						and #node.path <= remaining then
+					local addNodes = { }
+					for _, pathNode in ipairs(node.path) do
+						addNodes[pathNode] = true
+					end
+					local candidateOutput = calculate(
+						{ addNodes = addNodes },
+						true
+					)
+					local candidateMetrics = metrics(candidateOutput)
+					local offense = percentageDelta(
+						currentMetrics.total_dps,
+						candidateMetrics.total_dps
+					)
+					local defence = percentageDelta(
+						currentMetrics.ehp,
+						candidateMetrics.ehp
+					)
+					if offense ~= nil and defence ~= nil then
+						offense = round(offense, 1)
+						defence = round(defence, 1)
+						local score = round(
+							(0.8 * offense + 0.2 * defence) / #node.path,
+							3
+						)
+						if not best
+								or score > best.combined_score
+								or (score == best.combined_score
+									and #node.path < best.path_cost)
+								or (score == best.combined_score
+									and #node.path == best.path_cost
+									and nodeId < best.node_id) then
+							local pathNodeIds = { }
+							local pathNodes = { }
+							for index = #node.path, 1, -1 do
+								table.insert(pathNodeIds, node.path[index].id)
+							end
+							for index, pathNode in ipairs(node.path) do
+								pathNodes[index] = pathNode
+							end
+							best = {
+								node = node,
+								node_id = nodeId,
+								node_name = node.dn or node.name or tostring(nodeId),
+								offense_delta_pct = offense,
+								defense_delta_pct = defence,
+								combined_score = score,
+								path_cost = #pathNodes,
+								path_node_ids = pathNodeIds,
+								path_nodes = pathNodes,
+							}
+						end
+					end
+				end
+			end
+
+			if not best then
+				break
+			end
+			build.spec:AllocNode(best.node, best.path_nodes)
+			build.calcsTab:BuildOutput()
+			spent = spent + best.path_cost
+			table.insert(suggestions, {
+				step = #suggestions + 1,
+				node_id = best.node_id,
+				node_name = best.node_name,
+				offense_delta_pct = best.offense_delta_pct,
+				defense_delta_pct = best.defense_delta_pct,
+				combined_score = best.combined_score,
+				path_cost = best.path_cost,
+				path_node_ids = best.path_node_ids,
+			})
+		end
+
+		local parts = { }
+		for index, suggestion in ipairs(suggestions) do
+			parts[index] = treeSuggestionJson(suggestion)
+		end
+		return '{"suggestions":[' .. table.concat(parts, ",") .. ']}'
+	end, debug.traceback)
+
+	local restored, restoreError = xpcall(function()
+		restoreCalculation(
+			requestBuildPath,
+			requestConfig,
+			requestConfigKey
+		)
+	end, debug.traceback)
+	if not restored then
+		error("failed to restore active build after tree plan: " .. restoreError)
+	end
+	if not ok then
+		error(result)
+	end
+	return result
+end
+
 local function loadSession(requestBuildPath, requestConfig, requestConfigKey)
 	prepareCalculation(requestBuildPath, requestConfig, requestConfigKey)
 	local identity = {
@@ -304,7 +498,8 @@ local function serve()
 				or (request.method ~= "diff"
 					and request.method ~= "load"
 					and request.method ~= "ping"
-					and request.method ~= "stats")
+					and request.method ~= "stats"
+					and request.method ~= "tree_suggestions")
 				or type(request.params) ~= "table" then
 			response = '{"jsonrpc":"2.0","id":' .. idJson
 				.. ',"error":{"code":-32600,"message":"Invalid Request"}}'
@@ -329,6 +524,14 @@ local function serve()
 						request.params.build,
 						requestConfig,
 						requestConfigKey
+					)
+				end
+				if request.method == "tree_suggestions" then
+					return calculateTreeSuggestions(
+						request.params.build,
+						requestConfig,
+						requestConfigKey,
+						request.params.points
 					)
 				end
 				return calculateDiff(

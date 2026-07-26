@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from .assumptions import AssumptionsEvaluator, Evaluation
 from .calculator import (
@@ -50,14 +50,20 @@ class ApiApplication:
     def dispatch(
         self, method: str, path: str, body: Any = None
     ) -> tuple[int, dict[str, Any] | None]:
-        if path == f"{BASE_PATH}/build" and method == "GET":
+        target = urlsplit(path)
+        route = target.path
+        if route == f"{BASE_PATH}/build" and method == "GET":
             return (200, self.store.active) if self.store.active else (404, None)
-        if path == f"{BASE_PATH}/build" and method == "POST":
+        if route == f"{BASE_PATH}/build" and method == "POST":
             return self._import_build(body)
-        if path == f"{BASE_PATH}/diff" and method == "POST":
+        if route == f"{BASE_PATH}/diff" and method == "POST":
             return self._diff(body)
-        if path == f"{BASE_PATH}/scan" and method == "POST":
+        if route == f"{BASE_PATH}/scan" and method == "POST":
             return self._scan(body)
+        if route == f"{BASE_PATH}/tree/suggestions" and method == "GET":
+            return self._tree_suggestions(
+                parse_qs(target.query, keep_blank_values=True)
+            )
         return 404, None
 
     def _import_build(self, body: Any) -> tuple[int, dict[str, Any] | None]:
@@ -184,6 +190,43 @@ class ApiApplication:
             results.append({"index": index, "verdict": verdict})
         results.sort(key=self._scan_rank)
         return 200, {"results": results}
+
+    def _tree_suggestions(
+        self, query: Mapping[str, list[str]]
+    ) -> tuple[int, dict[str, Any] | None]:
+        point_values = query.get("points", ["5"])
+        preset_values = query.get("preset", [])
+        if len(point_values) != 1 or len(preset_values) > 1:
+            return 422, None
+        try:
+            points = int(point_values[0])
+        except (TypeError, ValueError):
+            return 422, None
+        if str(points) != point_values[0] or not 1 <= points <= 10:
+            return 422, None
+        preset = preset_values[0] if preset_values else None
+        if preset is not None and preset not in VALID_PRESETS:
+            return 422, None
+        if self.store.active is None or self.store.facts is None:
+            return 404, None
+
+        selected_preset = preset or self.store.active["preset_default"]
+        evaluation = self.evaluator.evaluate(
+            self.store.facts, selected_preset
+        )
+        plan = self.calculator.tree_suggestions(
+            points, evaluation.pob_config
+        )
+        suggestions = [dict(item) for item in plan.suggestions]
+        response = {
+            "plan_id": self._plan_id(
+                selected_preset, points, suggestions
+            ),
+            "preset": selected_preset,
+            "suggestions": suggestions,
+            "compute_ms": max(0, round(plan.compute_ms)),
+        }
+        return 200, response
 
     def _evaluate_item(
         self,
@@ -340,6 +383,26 @@ class ApiApplication:
         ).encode()
         return f"d-{hashlib.sha256(encoded).hexdigest()[:12]}"
 
+    def _plan_id(
+        self,
+        preset: str,
+        points: int,
+        suggestions: list[Mapping[str, Any]],
+    ) -> str:
+        assert self.store.active is not None
+        encoded = json.dumps(
+            {
+                "build_id": self.store.active["build_id"],
+                "translation_version": 1,
+                "preset": preset,
+                "points": points,
+                "suggestions": suggestions,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        return f"p-{hashlib.sha256(encoded).hexdigest()[:12]}"
+
     @staticmethod
     def _ordered_assumptions(
         assumptions: tuple[Mapping[str, Any], ...],
@@ -400,7 +463,7 @@ def create_server(
 
         def _handle(self, body: Any) -> None:
             status, response = app.dispatch(
-                self.command, urlsplit(self.path).path, body
+                self.command, self.path, body
             )
             self.send_response(status)
             if response is not None:

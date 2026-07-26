@@ -25,6 +25,7 @@ from engine.preset_config import compile_config
 MAX_BUILD_BYTES = 10_000_000
 IMPORT_BUDGET_SECONDS = 2.0
 WORKER_START_SECONDS = 30.0
+TREE_PLAN_BUDGET_SECONDS = 30.0
 
 
 class CalculatorError(RuntimeError):
@@ -55,6 +56,12 @@ class EngineDiff:
     compute_ms: float
 
 
+@dataclass(frozen=True)
+class EngineTreePlan:
+    suggestions: tuple[Mapping[str, Any], ...]
+    compute_ms: float
+
+
 class Calculator(Protocol):
     def import_build(self, pob_code: str) -> ImportedBuild: ...
 
@@ -65,6 +72,10 @@ class Calculator(Protocol):
     def diff(
         self, item_text: str, canonical_config: Mapping[str, Any]
     ) -> EngineDiff: ...
+
+    def tree_suggestions(
+        self, points: int, canonical_config: Mapping[str, Any]
+    ) -> EngineTreePlan: ...
 
     def close(self) -> None: ...
 
@@ -291,6 +302,41 @@ class PobCalculator:
             compute_ms = (time.perf_counter() - started) * 1000
             _validate_engine_diff(payload)
             return EngineDiff(payload=payload, compute_ms=compute_ms)
+
+    def tree_suggestions(
+        self, points: int, canonical_config: Mapping[str, Any]
+    ) -> EngineTreePlan:
+        if (
+            not isinstance(points, int)
+            or isinstance(points, bool)
+            or not 1 <= points <= 10
+        ):
+            raise CalculatorError("tree plan points must be an integer from 1 to 10")
+        with self._lock:
+            self._require_active()
+            config, config_key = self._compile_config(canonical_config)
+            self._materialize_build(config, config_key)
+            started = time.perf_counter()
+            payload = self.worker.call(
+                "tree_suggestions",
+                {
+                    "build": str(self._build_path),
+                    "config": config,
+                    "config_key": config_key,
+                    "points": points,
+                },
+                TREE_PLAN_BUDGET_SECONDS,
+            )
+            compute_ms = (time.perf_counter() - started) * 1000
+            suggestions = _validate_tree_suggestions(payload)
+            if sum(item["path_cost"] for item in suggestions) > points:
+                raise CalculatorError(
+                    "Path of Building tree plan exceeded the requested point budget"
+                )
+            return EngineTreePlan(
+                suggestions=tuple(suggestions),
+                compute_ms=compute_ms,
+            )
 
     def _compile_config(
         self, canonical_config: Mapping[str, Any]
@@ -522,3 +568,55 @@ def _validate_engine_diff(payload: Mapping[str, Any]) -> None:
                 )
     if not isinstance(payload.get("slot"), str):
         raise ItemParseError("Path of Building omitted the comparison slot")
+
+
+def _validate_tree_suggestions(
+    payload: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
+    suggestions = payload.get("suggestions")
+    if not isinstance(suggestions, list):
+        raise CalculatorError("Path of Building omitted tree suggestions")
+    validated: list[Mapping[str, Any]] = []
+    expected_step = 1
+    for suggestion in suggestions:
+        if not isinstance(suggestion, Mapping):
+            raise CalculatorError("Path of Building returned an invalid suggestion")
+        if suggestion.get("step") != expected_step:
+            raise CalculatorError(
+                "Path of Building returned non-sequential suggestion steps"
+            )
+        if not isinstance(suggestion.get("node_id"), int) or isinstance(
+            suggestion.get("node_id"), bool
+        ):
+            raise CalculatorError("Path of Building returned an invalid node id")
+        if not isinstance(suggestion.get("node_name"), str):
+            raise CalculatorError("Path of Building returned an invalid node name")
+        for field in (
+            "offense_delta_pct",
+            "defense_delta_pct",
+            "combined_score",
+        ):
+            if not isinstance(suggestion.get(field), (int, float)) or isinstance(
+                suggestion.get(field), bool
+            ):
+                raise CalculatorError(
+                    f"Path of Building returned a non-numeric {field}"
+                )
+        path_cost = suggestion.get("path_cost")
+        path_node_ids = suggestion.get("path_node_ids")
+        if (
+            not isinstance(path_cost, int)
+            or isinstance(path_cost, bool)
+            or path_cost < 1
+            or not isinstance(path_node_ids, list)
+            or len(path_node_ids) != path_cost
+            or any(
+                not isinstance(node_id, int) or isinstance(node_id, bool)
+                for node_id in path_node_ids
+            )
+            or path_node_ids[-1] != suggestion["node_id"]
+        ):
+            raise CalculatorError("Path of Building returned an invalid node path")
+        validated.append(dict(suggestion))
+        expected_step += 1
+    return validated

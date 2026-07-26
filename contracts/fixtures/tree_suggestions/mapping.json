@@ -1,0 +1,23 @@
+{
+  "compute_ms": 0,
+  "plan_id": "p-9f96439316f0",
+  "preset": "mapping",
+  "suggestions": [
+    {
+      "combined_score": 2.576,
+      "defense_delta_pct": 0,
+      "node_id": 4177,
+      "node_name": "Spiritual Aid",
+      "offense_delta_pct": 16.1,
+      "path_cost": 5,
+      "path_node_ids": [
+        25332,
+        29106,
+        15046,
+        38989,
+        4177
+      ],
+      "step": 1
+    }
+  ]
+}

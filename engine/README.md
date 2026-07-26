@@ -50,6 +50,28 @@ python3 engine/bench/benchmark_worker.py \
 ```
 The command exits nonzero when p95 is not below the 150 ms TASK-101 budget.
 
+## Passive tree planner
+
+The warm worker method `tree_suggestions` wraps PoB's own passive graph,
+allocation, and miscellaneous-calculator surfaces. It greedily selects each
+target against the tree state containing all earlier selections, then restores
+the imported build before returning. Paths are reported in connected-first
+allocation order and include the target node.
+
+For `pob_translation.yaml` version 1, each candidate's marginal offense and
+defense use the same `total_dps`/`ehp` percentage-delta semantics as `/diff`.
+The stable ranking scalar is:
+
+```
+combined_score = (0.8 * offense_delta_pct + 0.2 * defense_delta_pct) / path_cost
+```
+
+Deltas are rounded to one decimal before scoring; the score is rounded to
+three decimals. Exact ties prefer lower path cost, then lower numeric node ID.
+The planner considers non-ascendancy Normal, Notable, and Keystone targets;
+travel nodes of any allocatable type are included in the path cost. Masteries
+are not targets because the v0 contract has no mastery-effect identifier.
+
 ADR-0005 parity work uses the preset-free stats surface, which loads the
 export's active ConfigSet verbatim and returns the recalculated PlayerStat
 vector:

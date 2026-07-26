@@ -42,13 +42,13 @@ class RealServerAdapterTest(unittest.TestCase):
         self.calculator.close()
 
     @staticmethod
-    def _build_xml():
+    def _case_xml(case_id):
         _, cases = load_cases()
-        return next(
-            case.xml
-            for case in cases
-            if case.case_id == "12-elementalist-ci-cold-snap"
-        )
+        return next(case.xml for case in cases if case.case_id == case_id)
+
+    @classmethod
+    def _build_xml(cls):
+        return cls._case_xml("12-elementalist-ci-cold-snap")
 
     def test_contract_card_comes_from_real_warm_engine(self):
         build_xml = self._build_xml().decode()
@@ -171,6 +171,58 @@ class RealServerAdapterTest(unittest.TestCase):
         )
         print(f"SCAN_500_ELAPSED_MS:{elapsed * 1000:.3f}")
         self.assertLess(elapsed, 30)
+
+    def test_tree_plans_match_two_corpus_goldens_and_restore_session(self):
+        cases = (
+            (
+                "12-elementalist-ci-cold-snap",
+                "mapping",
+                ROOT
+                / "contracts"
+                / "fixtures"
+                / "tree_suggestions"
+                / "mapping.json",
+            ),
+            (
+                "14-inquisitor-penance-brand",
+                "bossing",
+                ROOT
+                / "contracts"
+                / "fixtures"
+                / "tree_suggestions"
+                / "bossing.json",
+            ),
+        )
+
+        for case_id, preset, fixture_path in cases:
+            status, _ = self.app.dispatch(
+                "POST",
+                f"{BASE_PATH}/build",
+                {"pob_code": self._case_xml(case_id).decode()},
+            )
+            self.assertEqual(status, 200)
+            responses = []
+            samples = []
+            for _ in range(5):
+                started = time.perf_counter()
+                status, response = self.app.dispatch(
+                    "GET",
+                    (
+                        f"{BASE_PATH}/tree/suggestions"
+                        f"?points=5&preset={preset}"
+                    ),
+                )
+                samples.append((time.perf_counter() - started) * 1000)
+                self.assertEqual(status, 200)
+                stable = dict(response)
+                stable["compute_ms"] = 0
+                responses.append(stable)
+
+            expected = json.loads(fixture_path.read_text())
+            self.assertEqual(responses, [expected] * len(responses))
+            p95_ms = sorted(samples)[math.ceil(len(samples) * 0.95) - 1]
+            self.assertLess(p95_ms, 30_000)
+            print(f"TREE_PLAN_{case_id.upper()}_P95_MS:{p95_ms:.3f}")
 
 
 if __name__ == "__main__":

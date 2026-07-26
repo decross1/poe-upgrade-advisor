@@ -6,6 +6,12 @@ exactly this shape. Every fixture MUST validate against `contracts/verdict.schem
 (the Doctrine-I2 enforcement schema, `additionalProperties: false`) and the
 `Assumption` item shape in `contracts/openapi.yaml`.
 
+The `tree_suggestions/` subdirectory contains complete golden
+`GET /api/v0/tree/suggestions?points=5` responses for the RFC-0002 mapping and
+bossing corpus cases. Their `compute_ms` is normalized to `0`; every other
+field byte-matches the real pinned PoB runtime and validates against the
+OpenAPI `TreePlan` schema.
+
 ## Validation
 
 Run from the repo root (CI-suitable; exits non-zero on any failure):
