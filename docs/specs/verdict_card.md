@@ -193,8 +193,11 @@ a third (no "total"/"score" row; that would violate I2).
 "The assumptions chip" (I2, singular) is implemented as **one card element: a
 strip of up to 6 small chips**. All chips are always visible — no overflow
 menu, no "+2 more", no collapse (I3: "No hidden assumptions"). The schema's
-`maxItems: 6` with `label ≤ 40` chars bounds worst-case size; allow the strip
-to wrap to at most 2 rows.
+`maxItems: 6` with `label ≤ 40` chars bounds worst-case size. The strip wraps
+to as many rows as the schema worst case requires — 2 rows is the design
+target for typical cards, but **clipping or hiding a chip is never acceptable**
+(I3 outranks layout aesthetics); the card grows vertically within its
+max-height budget instead. `[RULING-23, resolves issue #65]`
 
 ### 6.1 Rendering
 
