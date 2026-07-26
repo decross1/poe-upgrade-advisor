@@ -27,6 +27,18 @@ request per line:
 ```
 The worker emits one response per line and flushes it immediately. Keeping the
 worker alive excludes PoB initialization from per-diff latency measurements.
+When consecutive requests have byte-identical build XML and the same preset,
+the worker reuses the prepared upstream calculator and baseline. It still
+reads and compares the build bytes on every request, so changing a file in
+place invalidates the cache.
+
+Measure warm latency with a real build/item pair:
+```
+python3 engine/bench/benchmark_worker.py \
+  --build build.xml --item item.txt --preset bossing \
+  --samples 100 --warmup 5
+```
+The command exits nonzero when p95 is not below the 150 ms TASK-101 budget.
 
 ## corpus/ — the differential oracle
 ~100 builds × swaps, including adversarial ones (mines, triggers, minion hybrids,

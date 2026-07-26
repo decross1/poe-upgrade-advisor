@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "desktop_release": "v2.66.2",
+  "desktop_calculation_commit": "e0cc037d8b268304473454ab8b5296350f5b0d2b",
+  "captures": [
+    {
+      "case_id": "attack-lightning-arrow-deadeye",
+      "scenario": "mapping",
+      "equipment_slot": "Weapon 1",
+      "desktop_version_string": null,
+      "version_screenshot_attachment": null,
+      "calculation_field_used": null,
+      "baseline": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "candidate": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "operator_notes": "none"
+    },
+    {
+      "case_id": "spell-forbidden-rite",
+      "scenario": "bossing",
+      "equipment_slot": "Weapon 1",
+      "desktop_version_string": null,
+      "version_screenshot_attachment": null,
+      "calculation_field_used": null,
+      "baseline": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "candidate": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "operator_notes": "none"
+    },
+    {
+      "case_id": "attack-boneshatter-jugg",
+      "scenario": "mapping",
+      "equipment_slot": "Weapon 1",
+      "desktop_version_string": null,
+      "version_screenshot_attachment": null,
+      "calculation_field_used": null,
+      "baseline": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "candidate": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "operator_notes": "none"
+    },
+    {
+      "case_id": "trigger-coc-forbidden-rite",
+      "scenario": "bossing",
+      "equipment_slot": "Weapon 1",
+      "desktop_version_string": null,
+      "version_screenshot_attachment": null,
+      "calculation_field_used": null,
+      "baseline": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "candidate": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "operator_notes": "none"
+    },
+    {
+      "case_id": "defense-max-res-doryani",
+      "scenario": "bossing",
+      "equipment_slot": "Body Armour",
+      "desktop_version_string": null,
+      "version_screenshot_attachment": null,
+      "calculation_field_used": null,
+      "baseline": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "candidate": {
+        "calculation_value": null,
+        "TotalEHP": null,
+        "calcs_screenshot_attachment": null
+      },
+      "operator_notes": "none"
+    }
+  ]
+}

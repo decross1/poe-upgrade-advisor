@@ -1,0 +1,13 @@
+Rarity: RARE
+Capture Chant
+Prophecy Wand
+Item Level: 85
+Quality: 20
+Sockets: B-B-B
+LevelReq: 68
+Implicits: 1
+40% increased Spell Damage
+100% increased Spell Damage
++1 to Level of all Chaos Spell Skill Gems
+90% increased Spell Critical Strike Chance
++35% to Global Critical Strike Multiplier

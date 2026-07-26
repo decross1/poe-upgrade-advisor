@@ -62,11 +62,37 @@ local function metricsJson(value)
 		.. ',"ehp":' .. jsonNumber(value.ehp) .. '}'
 end
 
-local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
-	loadBuildFromXML(readAll(requestBuildPath), requestBuildPath)
+local cachedBuildPath
+local cachedBuildXml
+local cachedPreset
+local cachedCalculate
+local cachedBaselineOutput
+
+local function prepareCalculation(requestBuildPath, requestPreset)
+	local buildXml = readAll(requestBuildPath)
+	if requestBuildPath == cachedBuildPath
+			and buildXml == cachedBuildXml
+			and requestPreset == cachedPreset then
+		return cachedCalculate, cachedBaselineOutput
+	end
+
+	loadBuildFromXML(buildXml, requestBuildPath)
 	applyPreset(requestPreset)
 	build.calcsTab:BuildOutput()
+	local calculate, baselineOutput = build.calcsTab:GetMiscCalculator()
+	cachedBuildPath = requestBuildPath
+	cachedBuildXml = buildXml
+	cachedPreset = requestPreset
+	cachedCalculate = calculate
+	cachedBaselineOutput = baselineOutput
+	return calculate, baselineOutput
+end
 
+local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
+	local calculate, baselineOutput = prepareCalculation(
+		requestBuildPath,
+		requestPreset
+	)
 	local candidateItem = new("Item", readAll(requestItemPath))
 	if not candidateItem.base then
 		error("candidate item has an unknown or invalid base")
@@ -76,7 +102,6 @@ local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
 		error("candidate item has no valid comparison slot")
 	end
 
-	local calculate, baselineOutput = build.calcsTab:GetMiscCalculator()
 	local candidateOutput = calculate({ repSlotName = slot, repItem = candidateItem }, true)
 	local baseline = metrics(baselineOutput)
 	local candidate = metrics(candidateOutput)

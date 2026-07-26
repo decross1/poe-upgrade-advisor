@@ -94,3 +94,55 @@ class PobcalcCliTest(unittest.TestCase):
             list(payload),
             ["baseline", "candidate", "deltas", "slot", "breakdown_ref"],
         )
+
+    def test_warm_worker_reuses_build_without_changing_result(self):
+        lua = os.environ.get("POBCALC_LUA")
+        cpath = os.environ.get("POBCALC_LUA_CPATH")
+        if not lua or not cpath:
+            self.skipTest("set POBCALC_LUA and POBCALC_LUA_CPATH for integration test")
+
+        fixture = ROOT / "engine" / "tests" / "fixtures"
+        request = {
+            "jsonrpc": "2.0",
+            "id": "same-input",
+            "method": "diff",
+            "params": {
+                "build": str(
+                    ROOT
+                    / "engine"
+                    / "vendor"
+                    / "PathOfBuilding"
+                    / "spec"
+                    / "TestBuilds"
+                    / "3.13"
+                    / "OccVortex.xml"
+                ),
+                "item": str(fixture / "item.txt"),
+                "preset": "bossing",
+            },
+        }
+        worker = subprocess.Popen(
+            [CLI, "serve"],
+            cwd=ROOT,
+            text=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            self.assertIsNotNone(worker.stdin)
+            self.assertIsNotNone(worker.stdout)
+            responses = []
+            for _ in range(2):
+                worker.stdin.write(json.dumps(request, separators=(",", ":")) + "\n")
+                worker.stdin.flush()
+                responses.append(json.loads(worker.stdout.readline()))
+            self.assertEqual(responses[0]["result"], responses[1]["result"])
+        finally:
+            if worker.stdin:
+                worker.stdin.close()
+            worker.wait(timeout=10)
+            if worker.stdout:
+                worker.stdout.close()
+            if worker.stderr:
+                worker.stderr.close()

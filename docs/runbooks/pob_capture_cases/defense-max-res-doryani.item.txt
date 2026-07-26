@@ -1,0 +1,12 @@
+Rarity: RARE
+Capture Shell
+Saint's Hauberk
+Item Level: 85
+Quality: 20
+Sockets: R-R-R-R-R-R
+LevelReq: 67
+Implicits: 1
++1% to all maximum Resistances
+180% increased Armour and Energy Shield
++100 to maximum Life
++40% to Lightning Resistance

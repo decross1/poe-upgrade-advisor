@@ -1,0 +1,14 @@
+Rarity: RARE
+Capture Tempest
+Thicket Bow
+Item Level: 85
+Quality: 20
+Sockets: G-G-G-G-G-G
+LevelReq: 56
+Implicits: 0
+Adds 155 to 265 Fire Damage
+Adds 135 to 235 Cold Damage
+Adds 30 to 425 Lightning Damage
+12% increased Attack Speed
+25% increased Critical Strike Chance
++30% to Global Critical Strike Multiplier
