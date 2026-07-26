@@ -132,18 +132,17 @@ def run_spot_check(runtime_root: Path) -> dict[str, object]:
     if not module_pattern.is_file():
         raise RuntimeParityError(f"lua-utf8 module is missing: {module_pattern}")
 
-    try:
-        data_root = prepare(
-            POB_SOURCE / "Data" / "TimelessJewelData",
-            runtime_root,
-        )
-    except CacheError as exc:
-        raise RuntimeParityError(str(exc)) from exc
-
     preset_config = _preset_config()
     results = []
     with tempfile.TemporaryDirectory(prefix="pob-runtime-parity-") as temporary:
         temporary_root = Path(temporary)
+        try:
+            data_root = prepare(
+                POB_SOURCE / "Data" / "TimelessJewelData",
+                temporary_root / "cache",
+            )
+        except CacheError as exc:
+            raise RuntimeParityError(str(exc)) from exc
         for case in _selected_cases():
             build_path = temporary_root / f"{case.case_id}.xml"
             build_path.write_bytes(case.xml)
