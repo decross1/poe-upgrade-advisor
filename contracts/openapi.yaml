@@ -105,6 +105,27 @@ paths:
                       properties:
                         index: { type: integer }
                         verdict: { $ref: '#/components/schemas/VerdictCard' }
+  /tree/suggestions:
+    get:
+      operationId: getTreeSuggestions
+      summary: Greedily plan the strongest next passive allocations (Tier 2+)
+      parameters:
+        - name: points
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 10, default: 5 }
+        - name: preset
+          in: query
+          required: false
+          schema: { type: string, enum: [mapping, bossing, balanced] }
+      responses:
+        '200':
+          description: Deterministic greedy-sequential passive plan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TreePlan' }
+        '404': { description: No active build }
+        '422': { description: Invalid points or preset }
   /breakdown/{diff_id}:
     get:
       operationId: getBreakdown
@@ -165,6 +186,49 @@ components:
           items: { type: string }
         preset: { type: string, enum: [mapping, bossing, balanced] }
         compute_ms: { type: integer, description: Engine time; I6 telemetry }
+    TreePlan:
+      type: object
+      additionalProperties: false
+      required: [plan_id, preset, suggestions, compute_ms]
+      properties:
+        plan_id: { type: string }
+        preset: { type: string, enum: [mapping, bossing, balanced] }
+        suggestions:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/TreeSuggestion' }
+        compute_ms: { type: integer, minimum: 0 }
+    TreeSuggestion:
+      type: object
+      additionalProperties: false
+      required:
+        - step
+        - node_id
+        - node_name
+        - offense_delta_pct
+        - defense_delta_pct
+        - combined_score
+        - path_cost
+        - path_node_ids
+      properties:
+        step: { type: integer, minimum: 1, maximum: 10 }
+        node_id: { type: integer }
+        node_name: { type: string }
+        offense_delta_pct:
+          type: number
+          description: Marginal /diff-style percentage delta at this step
+        defense_delta_pct:
+          type: number
+          description: Marginal /diff-style percentage delta at this step
+        combined_score:
+          type: number
+          description: Stable translation-version ranking scalar per spent point
+        path_cost: { type: integer, minimum: 1, maximum: 10 }
+        path_node_ids:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: integer }
     Breakdown:
       type: object
       required: [diff_id, drivers]

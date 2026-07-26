@@ -33,3 +33,9 @@ descending, with original input order breaking exact ties. The CI integration
 suite exercises a 500-item fixture against the real warm engine and requires
 the complete request to finish in under 30 seconds. An item that PoB cannot
 parse remains in the result as `CANT_EVALUATE` instead of aborting the batch.
+
+`GET /api/v0/tree/suggestions?points=5&preset=mapping` plans up to the
+requested point budget against the active build. Each returned step includes
+its connected-first allocation path, marginal `/diff`-style deltas, and the
+versioned engine ranking score. The planner is Tier 2+ and does not add fields
+to the verdict card.

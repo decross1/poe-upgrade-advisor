@@ -10,11 +10,13 @@ from urllib.request import Request, urlopen
 
 import jsonschema
 import pytest
+import yaml
 
 from server.app import BASE_PATH, ApiApplication, BuildStore, create_server
 from server.assumptions import AssumptionsEvaluator
 from server.calculator import (
     EngineDiff,
+    EngineTreePlan,
     ImportedBuild,
     ItemParseError,
     decode_pob_code,
@@ -92,6 +94,31 @@ class StubCalculator:
                 "breakdown_ref": "pob://calcs/Weapon 1",
             },
             4.3,
+        )
+
+    def tree_suggestions(
+        self, points: int, canonical_config: Mapping[str, Any]
+    ) -> EngineTreePlan:
+        self.configurations.append(dict(canonical_config))
+        bossing = canonical_config.get("enemyIsBoss") == "PINNACLE"
+        node_id = 54321 if bossing else 26725
+        offense = 2.4 if bossing else 1.8
+        return EngineTreePlan(
+            suggestions=(
+                {
+                    "step": 1,
+                    "node_id": node_id,
+                    "node_name": (
+                        "Bossing Power" if bossing else "Mapping Power"
+                    ),
+                    "offense_delta_pct": offense,
+                    "defense_delta_pct": 0.0,
+                    "combined_score": round(0.8 * offense, 3),
+                    "path_cost": 1,
+                    "path_node_ids": [node_id],
+                },
+            ),
+            compute_ms=12.4,
         )
 
     def close(self) -> None:
@@ -337,6 +364,62 @@ def test_scan_validation_and_empty_stash(app: ApiApplication) -> None:
     ) == (200, {"results": []})
 
 
+def test_tree_suggestions_validation_determinism_and_contract(
+    app: ApiApplication, calculator: StubCalculator
+) -> None:
+    endpoint = f"{BASE_PATH}/tree/suggestions"
+    assert app.dispatch("GET", endpoint) == (404, None)
+    for query in (
+        "?points=",
+        "?points=0",
+        "?points=11",
+        "?points=1.0",
+        "?points=01",
+        "?points=1&points=2",
+        "?preset=invalid",
+        "?preset=mapping&preset=bossing",
+    ):
+        assert app.dispatch("GET", endpoint + query) == (422, None)
+
+    import_stub_build(app)
+    first = app.dispatch("GET", endpoint)
+    second = app.dispatch("GET", endpoint + "?points=5&preset=mapping")
+    assert first == second
+    status, mapping = first
+    assert status == 200
+    assert mapping is not None
+    assert mapping["preset"] == "mapping"
+    assert mapping["suggestions"][0]["node_id"] == 26725
+    assert mapping["compute_ms"] == 12
+    assert mapping["plan_id"].startswith("p-")
+
+    status, bossing = app.dispatch(
+        "GET", endpoint + "?points=3&preset=bossing"
+    )
+    assert status == 200
+    assert bossing is not None
+    assert bossing["preset"] == "bossing"
+    assert bossing["suggestions"][0]["node_id"] == 54321
+    assert calculator.configurations[-1]["enemyIsBoss"] == "PINNACLE"
+
+    contract = yaml.safe_load(
+        (ROOT / "contracts/openapi.yaml").read_text()
+    )
+    schema = {
+        "$ref": "#/components/schemas/TreePlan",
+        "components": contract["components"],
+    }
+    jsonschema.validate(mapping, schema)
+    jsonschema.validate(bossing, schema)
+    for fixture_path in sorted(
+        (ROOT / "contracts/fixtures/tree_suggestions").glob("*.json")
+    ):
+        jsonschema.validate(
+            json.loads(fixture_path.read_text()),
+            schema,
+        )
+
+
 def test_pob_code_decode_and_conservative_fact_extraction() -> None:
     encoded = base64.urlsafe_b64encode(zlib.compress(SIMPLE_XML)).rstrip(b"=")
     assert decode_pob_code(encoded.decode()) == SIMPLE_XML
@@ -366,8 +449,16 @@ def test_http_round_trip_uses_bare_contract_errors(app: ApiApplication) -> None:
         except HTTPError as error:
             return error.code, error.read()
 
+    def get(path: str) -> tuple[int, bytes]:
+        try:
+            with urlopen(base + path) as response:
+                return response.status, response.read()
+        except HTTPError as error:
+            return error.code, error.read()
+
     try:
         assert post("/diff", {"item_text": "upgrade"}) == (404, b"")
+        assert get("/tree/suggestions") == (404, b"")
         status, raw = post("/build", {"pob_code": "stub"})
         assert status == 200
         assert json.loads(raw)["main_skill"]["name"] == "Arc"
@@ -381,6 +472,9 @@ def test_http_round_trip_uses_bare_contract_errors(app: ApiApplication) -> None:
         assert [
             result["index"] for result in json.loads(raw)["results"]
         ] == [1, 2, 0]
+        status, raw = get("/tree/suggestions?points=3&preset=bossing")
+        assert status == 200
+        assert json.loads(raw)["preset"] == "bossing"
     finally:
         server.shutdown()
         server.server_close()
