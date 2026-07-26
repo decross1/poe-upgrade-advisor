@@ -1,83 +1,207 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env python3
+"""Launch the pinned Path of Building headless worker."""
 
-usage() {
-  echo "usage: pobcalc diff --build BUILD.xml --item ITEM.txt --preset PRESET --json" >&2
-  echo "       pobcalc stats --build BUILD.xml --json" >&2
-  echo "       pobcalc serve" >&2
-  exit 64
-}
+from __future__ import annotations
 
-mode=${1:-}
-[[ $mode == "diff" || $mode == "stats" || $mode == "serve" ]] || usage
-shift
+import os
+import shutil
+import subprocess
+import sys
+from collections.abc import Sequence
+from pathlib import Path
 
-build=
-item=
-preset=
-json=false
-if [[ $mode == "diff" || $mode == "stats" ]]; then
-  while (($#)); do
-    case "$1" in
-      --build) [[ $# -ge 2 ]] || usage; build=$2; shift 2 ;;
-      --item) [[ $mode == "diff" && $# -ge 2 ]] || usage; item=$2; shift 2 ;;
-      --preset) [[ $mode == "diff" && $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
-      --json) json=true; shift ;;
-      *) usage ;;
-    esac
-  done
-  [[ -n $build && -f $build && $json == true ]] || usage
-  if [[ $mode == "diff" ]]; then
-    [[ -n $item && -f $item && -n $preset ]] || usage
-  fi
-  build=$(realpath "$build")
-  if [[ -n $item ]]; then
-    item=$(realpath "$item")
-  fi
-else
-  (($# == 0)) || usage
-fi
+EX_USAGE = 64
+EX_UNAVAILABLE = 69
 
-root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-pob_src="$root/engine/vendor/PathOfBuilding/src"
-[[ -f "$pob_src/HeadlessWrapper.lua" ]] || {
-  echo "pobcalc: initialize vendor/PathOfBuilding first (git submodule update --init)" >&2
-  exit 69
-}
 
-runtime_root=${POBCALC_RUNTIME:-"$root/engine/.runtime"}
-lua_bin=${POBCALC_LUA:-}
-if [[ -z $lua_bin && -x "$runtime_root/bin/luajit" ]]; then
-  lua_bin="$runtime_root/bin/luajit"
-fi
-if [[ -z $lua_bin ]]; then
-  lua_bin=$(command -v luajit || true)
-fi
-[[ -n $lua_bin ]] || {
-  echo "pobcalc: run engine/runtime/build.sh (or set POBCALC_LUA)" >&2
-  exit 69
-}
+def usage() -> int:
+    print(
+        "usage: pobcalc diff --build BUILD.xml --item ITEM.txt "
+        "--preset PRESET --json",
+        file=sys.stderr,
+    )
+    print("       pobcalc stats --build BUILD.xml --json", file=sys.stderr)
+    print("       pobcalc serve", file=sys.stderr)
+    return EX_USAGE
 
-lua_path="$root/engine/vendor/PathOfBuilding/runtime/lua/?.lua;$root/engine/vendor/PathOfBuilding/runtime/lua/?/init.lua;;"
-lua_cpath=${POBCALC_LUA_CPATH:-}
-if [[ -z $lua_cpath && -f "$runtime_root/lib/lua/5.1/lua-utf8.so" ]]; then
-  lua_cpath="$runtime_root/lib/lua/5.1/?.so;;"
-fi
-lua_cpath=${lua_cpath:-;;}
-preset_config=$(python3 "$root/engine/preset_config.py")
-timeless_data_root=$(python3 "$root/engine/timeless_cache.py" \
-  --source "$pob_src/Data/TimelessJewelData" \
-  --cache "$runtime_root")
-lua_args=("$build" "$item" "$preset" "$preset_config")
-if [[ $mode == "serve" ]]; then
-  lua_args=(--serve "" "" "$preset_config")
-elif [[ $mode == "stats" ]]; then
-  lua_args=(--stats "$build" "" "$preset_config")
-fi
 
-(
-  cd "$pob_src"
-  LUA_PATH="$lua_path" LUA_CPATH="$lua_cpath" \
-    POBCALC_DATA_ROOT="$timeless_data_root" \
-    "$lua_bin" "$root/engine/pobcalc.lua" "${lua_args[@]}"
-)
+def _parse(
+    argv: Sequence[str],
+) -> tuple[str, Path | None, Path | None, str] | None:
+    if not argv or argv[0] not in {"diff", "stats", "serve"}:
+        return None
+
+    mode = argv[0]
+    if mode == "serve":
+        return (mode, None, None, "") if len(argv) == 1 else None
+
+    build: str | None = None
+    item: str | None = None
+    preset = ""
+    json_output = False
+    index = 1
+    while index < len(argv):
+        argument = argv[index]
+        if argument == "--json":
+            json_output = True
+            index += 1
+        elif argument == "--build" and index + 1 < len(argv):
+            build = argv[index + 1]
+            index += 2
+        elif (
+            mode == "diff"
+            and argument == "--item"
+            and index + 1 < len(argv)
+        ):
+            item = argv[index + 1]
+            index += 2
+        elif (
+            mode == "diff"
+            and argument == "--preset"
+            and index + 1 < len(argv)
+        ):
+            preset = argv[index + 1]
+            index += 2
+        else:
+            return None
+
+    build_path = Path(build).resolve() if build else None
+    item_path = Path(item).resolve() if item else None
+    if build_path is None or not build_path.is_file() or not json_output:
+        return None
+    if mode == "diff" and (
+        item_path is None or not item_path.is_file() or not preset
+    ):
+        return None
+    return mode, build_path, item_path, preset
+
+
+def _runtime_artifacts(platform: str | None = None) -> tuple[str, str]:
+    platform = platform or sys.platform
+    if platform == "win32":
+        return "luajit.exe", "lua-utf8.dll"
+    return "luajit", "lua-utf8.so"
+
+
+def _find_lua(
+    runtime_root: Path,
+    environment: dict[str, str],
+    platform: str | None = None,
+) -> str | None:
+    configured = environment.get("POBCALC_LUA")
+    if configured:
+        return configured
+
+    binary_name, _ = _runtime_artifacts(platform)
+    bundled = runtime_root / "bin" / binary_name
+    is_windows = (platform or sys.platform) == "win32"
+    if bundled.is_file() and (is_windows or os.access(bundled, os.X_OK)):
+        return str(bundled)
+    return shutil.which(binary_name)
+
+
+def _lua_cpath(
+    runtime_root: Path,
+    environment: dict[str, str],
+    platform: str | None = None,
+) -> str:
+    configured = environment.get("POBCALC_LUA_CPATH")
+    if configured:
+        return configured
+
+    _, library_name = _runtime_artifacts(platform)
+    library = runtime_root / "lib" / "lua" / "5.1" / library_name
+    if library.is_file():
+        return f"{library.parent / ('?' + library.suffix)};;"
+    return ";;"
+
+
+def _helper_output(command: list[str]) -> tuple[int, str]:
+    completed = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    return completed.returncode, completed.stdout.rstrip("\r\n")
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parsed = _parse(sys.argv[1:] if argv is None else argv)
+    if parsed is None:
+        return usage()
+    mode, build, item, preset = parsed
+
+    root = Path(__file__).resolve().parent.parent
+    pob_src = root / "engine" / "vendor" / "PathOfBuilding" / "src"
+    if not (pob_src / "HeadlessWrapper.lua").is_file():
+        print(
+            "pobcalc: initialize vendor/PathOfBuilding first "
+            "(git submodule update --init)",
+            file=sys.stderr,
+        )
+        return EX_UNAVAILABLE
+
+    environment = os.environ.copy()
+    runtime_setting = environment.get("POBCALC_RUNTIME")
+    runtime_root = Path(
+        runtime_setting or root / "engine" / ".runtime"
+    ).resolve()
+    lua_bin = _find_lua(runtime_root, environment)
+    if lua_bin is None:
+        print(
+            "pobcalc: run engine/runtime/build.sh (or set POBCALC_LUA)",
+            file=sys.stderr,
+        )
+        return EX_UNAVAILABLE
+
+    lua_path_root = root / "engine" / "vendor" / "PathOfBuilding" / "runtime" / "lua"
+    environment["LUA_PATH"] = (
+        f"{lua_path_root / '?.lua'};"
+        f"{lua_path_root / '?' / 'init.lua'};;"
+    )
+    environment["LUA_CPATH"] = _lua_cpath(runtime_root, environment)
+
+    code, preset_config = _helper_output(
+        [sys.executable, str(root / "engine" / "preset_config.py")]
+    )
+    if code:
+        return code
+    code, timeless_data_root = _helper_output(
+        [
+            sys.executable,
+            str(root / "engine" / "timeless_cache.py"),
+            "--source",
+            str(pob_src / "Data" / "TimelessJewelData"),
+            "--cache",
+            str(runtime_root),
+        ]
+    )
+    if code:
+        return code
+    environment["POBCALC_DATA_ROOT"] = timeless_data_root
+
+    if mode == "serve":
+        lua_args = ["--serve", "", "", preset_config]
+    elif mode == "stats":
+        assert build is not None
+        lua_args = ["--stats", str(build), "", preset_config]
+    else:
+        assert build is not None and item is not None
+        lua_args = [str(build), str(item), preset, preset_config]
+
+    try:
+        completed = subprocess.run(
+            [lua_bin, str(root / "engine" / "pobcalc.lua"), *lua_args],
+            cwd=pob_src,
+            env=environment,
+            check=False,
+        )
+    except OSError as error:
+        print(f"pobcalc: unable to start LuaJIT: {error}", file=sys.stderr)
+        return EX_UNAVAILABLE
+    return completed.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

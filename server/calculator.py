@@ -8,6 +8,7 @@ import hashlib
 import json
 import selectors
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -226,7 +227,12 @@ class PobCalculator:
         self._materialized_config_key: str | None = None
         self._lock = threading.RLock()
         self.worker = worker or JsonRpcWorker(
-            [str(self.root / "engine" / "pobcalc"), "serve"], self.root
+            [
+                sys.executable,
+                str(self.root / "engine" / "pobcalc"),
+                "serve",
+            ],
+            self.root,
         )
         atexit.register(self.close)
 
