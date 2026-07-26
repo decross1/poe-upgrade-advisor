@@ -6,7 +6,7 @@ import atexit
 import base64
 import hashlib
 import json
-import selectors
+import queue
 import subprocess
 import sys
 import tempfile
@@ -90,6 +90,8 @@ class JsonRpcWorker:
         self._lock = threading.Lock()
         self._sequence = 0
         self._process: subprocess.Popen[bytes] | None = None
+        self._responses: queue.Queue[bytes] = queue.Queue()
+        self._reader: threading.Thread | None = None
         self._start()
         self.call("ping", {}, WORKER_START_SECONDS)
 
@@ -105,6 +107,24 @@ class JsonRpcWorker:
             )
         except OSError as error:
             raise WorkerUnavailable(f"unable to start pobcalc: {error}") from error
+        self._reader = threading.Thread(
+            target=self._read_responses,
+            name="pobcalc-stdout",
+            daemon=True,
+        )
+        self._reader.start()
+
+    def _read_responses(self) -> None:
+        process = self._process
+        if process is None or process.stdout is None:
+            self._responses.put(b"")
+            return
+        try:
+            while raw := process.stdout.readline():
+                self._responses.put(raw)
+        except OSError:
+            pass
+        self._responses.put(b"")
 
     def call(
         self, method: str, params: Mapping[str, Any], timeout: float
@@ -139,16 +159,12 @@ class JsonRpcWorker:
                     self._failure_detail("pobcalc request pipe closed")
                 ) from error
 
-            selector = selectors.DefaultSelector()
-            selector.register(process.stdout, selectors.EVENT_READ)
             try:
-                if not selector.select(timeout):
-                    raise WorkerUnavailable(
-                        f"pobcalc {method} exceeded {timeout * 1000:.0f}ms budget"
-                    )
-                raw = process.stdout.readline()
-            finally:
-                selector.close()
+                raw = self._responses.get(timeout=timeout)
+            except queue.Empty as error:
+                raise WorkerUnavailable(
+                    f"pobcalc {method} exceeded {timeout * 1000:.0f}ms budget"
+                ) from error
             if not raw:
                 raise WorkerUnavailable(
                     self._failure_detail("pobcalc closed its response pipe")
