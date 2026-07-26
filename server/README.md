@@ -10,14 +10,17 @@ corpus-testable). An optional LLM-polish pass is Phase 5 and must degrade
 gracefully to templates (I5: never block a verdict on a network call).
 Bind 127.0.0.1 only. Localhost is the trust boundary; no auth in v0, no remote bind ever.
 
-## Run the TASK-202a skeleton
+## Run the local server
 
 ```bash
+git submodule update --init
+engine/runtime/build.sh
 python3 -m server
 ```
 
-The service binds the contract address, `127.0.0.1:47791/api/v0`. The current
-calculator is deliberately a fixture-backed fake behind `Calculator`; TASK-202b
-replaces it with the real PoB adapter. Import a fake build first with `POST
-/api/v0/build`, then use `@fixture:<fixture-basename>` in `item_text` to select
-one of the golden response oracles in `contracts/fixtures/`.
+The service binds the contract address, `127.0.0.1:47791/api/v0`, starts one
+persistent `pobcalc serve` worker, and keeps the imported build warm between
+item comparisons. `POST /api/v0/build` accepts raw PoB XML or the usual
+compressed PoB code. `POST /api/v0/diff` accepts real clipboard item text.
+Golden files in `contracts/fixtures/` remain serializer/response-shape oracles;
+they are not served by the runtime.

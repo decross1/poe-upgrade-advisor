@@ -38,14 +38,30 @@ if presetDecodeError or type(presetDocument) ~= "table"
 	error("invalid compiled preset configuration: " .. tostring(presetDecodeError))
 end
 
-local function applyPreset(name)
+local function presetConfig(name)
 	local config = presetDocument.presets[name]
 	if type(config) ~= "table" then
 		error("unsupported preset: " .. tostring(name))
 	end
+	return config
+end
+
+local function applyConfig(config)
+	if type(config) ~= "table" then
+		error("configuration must be an object")
+	end
 	local input = build.configTab.configSets[build.configTab.activeConfigSetId].input
 	for key, value in pairs(config) do
-		input[key] = value
+		if key == "flasks_active" then
+			for _, slot in ipairs(build.itemsTab.orderedSlots) do
+				if slot.slotName:match("^Flask %d+$") then
+					slot.active = value
+					build.itemsTab.activeItemSet[slot.slotName].active = value
+				end
+			end
+		else
+			input[key] = value
+		end
 	end
 	build.configTab.input = input
 end
@@ -124,7 +140,7 @@ end
 
 local cachedBuildPath
 local cachedBuildXml
-local cachedPreset
+local cachedConfigKey
 local cachedCalculate
 local cachedBaselineOutput
 local cachedStatsBuildPath
@@ -138,30 +154,36 @@ local function loadBuild(buildXml, requestBuildPath)
 	end
 end
 
-local function prepareCalculation(requestBuildPath, requestPreset)
+local function prepareCalculation(requestBuildPath, requestConfig, requestConfigKey)
 	local buildXml = readAll(requestBuildPath)
 	if requestBuildPath == cachedBuildPath
 			and buildXml == cachedBuildXml
-			and requestPreset == cachedPreset then
+			and requestConfigKey == cachedConfigKey then
 		return cachedCalculate, cachedBaselineOutput
 	end
 
 	loadBuild(buildXml, requestBuildPath)
-	applyPreset(requestPreset)
+	applyConfig(requestConfig)
 	build.calcsTab:BuildOutput()
 	local calculate, baselineOutput = build.calcsTab:GetMiscCalculator()
 	cachedBuildPath = requestBuildPath
 	cachedBuildXml = buildXml
-	cachedPreset = requestPreset
+	cachedConfigKey = requestConfigKey
 	cachedCalculate = calculate
 	cachedBaselineOutput = baselineOutput
 	return calculate, baselineOutput
 end
 
-local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
+local function calculateDiff(
+		requestBuildPath,
+		requestItemPath,
+		requestConfig,
+		requestConfigKey
+	)
 	local calculate, baselineOutput = prepareCalculation(
 		requestBuildPath,
-		requestPreset
+		requestConfig,
+		requestConfigKey
 	)
 	local candidateItem = new("Item", readAll(requestItemPath))
 	if not candidateItem.base then
@@ -186,6 +208,16 @@ local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
 		.. ',"slot":' .. jsonString(slot)
 		.. ',"breakdown_ref":' .. jsonString("pob://calcs/" .. slot)
 		.. '}'
+end
+
+local function loadSession(requestBuildPath, requestConfig, requestConfigKey)
+	prepareCalculation(requestBuildPath, requestConfig, requestConfigKey)
+	local identity = {
+		base_class = build.spec.curClassName,
+		ascendancy = build.spec.curAscendClassName or "None",
+		level = build.characterLevel,
+	}
+	return '{"identity":' .. identityJson(identity) .. '}'
 end
 
 local function calculateStats(requestBuildPath)
@@ -230,7 +262,12 @@ local function oneShot()
 		if buildPath == "--stats" then
 			return calculateStats(itemPath)
 		end
-		return calculateDiff(buildPath, itemPath, preset)
+		return calculateDiff(
+			buildPath,
+			itemPath,
+			presetConfig(preset),
+			"preset:" .. preset
+		)
 	end, debug.traceback)
 
 	if not ok then
@@ -254,19 +291,41 @@ local function serve()
 		if decodeError or type(request) ~= "table" then
 			response = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}'
 		elseif request.jsonrpc ~= "2.0"
-				or (request.method ~= "diff" and request.method ~= "stats")
+				or (request.method ~= "diff"
+					and request.method ~= "load"
+					and request.method ~= "ping"
+					and request.method ~= "stats")
 				or type(request.params) ~= "table" then
 			response = '{"jsonrpc":"2.0","id":' .. idJson
 				.. ',"error":{"code":-32600,"message":"Invalid Request"}}'
 		else
 			local ok, result = xpcall(function()
+				if request.method == "ping" then
+					return '{"ready":true}'
+				end
 				if request.method == "stats" then
 					return calculateStats(request.params.build)
+				end
+				local requestConfig = request.params.config
+				local requestConfigKey = request.params.config_key
+				if type(requestConfig) ~= "table" then
+					requestConfig = presetConfig(request.params.preset)
+					requestConfigKey = "preset:" .. request.params.preset
+				elseif type(requestConfigKey) ~= "string" then
+					error("config_key is required with config")
+				end
+				if request.method == "load" then
+					return loadSession(
+						request.params.build,
+						requestConfig,
+						requestConfigKey
+					)
 				end
 				return calculateDiff(
 					request.params.build,
 					request.params.item,
-					request.params.preset
+					requestConfig,
+					requestConfigKey
 				)
 			end, debug.traceback)
 			if ok then

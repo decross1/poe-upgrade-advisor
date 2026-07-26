@@ -4,14 +4,19 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlsplit
 
 from .assumptions import AssumptionsEvaluator
-from .calculator import Calculator, FixtureNotFound
+from .calculator import (
+    BuildImportError,
+    Calculator,
+    ItemParseError,
+    WorkerUnavailable,
+)
 
 HOST = "127.0.0.1"
 PORT = 47791
@@ -22,6 +27,7 @@ VALID_PRESETS = {"mapping", "bossing", "balanced"}
 @dataclass
 class BuildStore:
     active: dict[str, Any] | None = None
+    facts: Mapping[str, Any] | None = None
 
 
 class ApiApplication:
@@ -62,17 +68,23 @@ class ApiApplication:
         if has_code == has_character:
             return 422, None
 
-        source = pob_code or f"{account}/{character}"
-        facts = self._fixture_build_facts(pob_code or "")
-        result = self.evaluator.evaluate(facts, "mapping")
-        try:
-            level = int(body.get("level", 1))
-        except (TypeError, ValueError):
+        if not has_code:
+            # A public account/character does not contain the complete PoB
+            # ConfigSet required for deterministic evaluation.
             return 422, None
+
+        try:
+            imported = self.calculator.import_build(pob_code)
+            result = self.evaluator.evaluate(imported.facts, "mapping")
+            identity = self.calculator.configure_build(result.pob_config)
+        except BuildImportError:
+            return 422, None
+
+        self.store.facts = imported.facts
         self.store.active = {
-            "build_id": f"b-{hashlib.sha256(source.encode()).hexdigest()[:8]}",
-            "character_class": str(body.get("character_class", "Unknown")),
-            "level": level,
+            "build_id": imported.build_id,
+            "character_class": identity["base_class"],
+            "level": int(identity["level"]),
             "main_skill": {
                 "name": result.main_skill,
                 "inferred": result.main_skill_inferred,
@@ -80,8 +92,9 @@ class ApiApplication:
             },
             "preset_default": "mapping",
         }
-        if body.get("ascendancy"):
-            self.store.active["ascendancy"] = str(body["ascendancy"])
+        ascendancy = identity.get("ascendancy")
+        if isinstance(ascendancy, str) and ascendancy and ascendancy != "None":
+            self.store.active["ascendancy"] = ascendancy
         return 200, self.store.active
 
     def _diff(self, body: Any) -> tuple[int, dict[str, Any] | None]:
@@ -94,10 +107,8 @@ class ApiApplication:
             or len(item_text) > 20_000
         ):
             return 422, None
-        if self.store.active is None or "@error:404" in item_text:
+        if self.store.active is None or self.store.facts is None:
             return 404, None
-        if "@error:422" in item_text:
-            return 422, None
         preset = body.get("preset")
         if preset is not None and preset not in VALID_PRESETS:
             return 422, None
@@ -109,37 +120,191 @@ class ApiApplication:
             for item in overrides
         ):
             return 422, None
-        try:
-            return 200, self.calculator.diff(item_text, preset, overrides)
-        except FixtureNotFound:
+        selected_preset = preset or self.store.active["preset_default"]
+        base_evaluation = self.evaluator.evaluate(
+            self.store.facts, selected_preset
+        )
+        known_values = {
+            assumption["id"]: assumption["value"]
+            for assumption in base_evaluation.assumptions
+        }
+        if any(
+            override["assumption_id"] not in known_values
+            or not self._same_value_type(
+                known_values[override["assumption_id"]], override["value"]
+            )
+            for override in overrides
+        ):
             return 422, None
+        evaluation = self.evaluator.evaluate(
+            self.store.facts, selected_preset, overrides
+        )
+        if evaluation.cant_evaluate:
+            return 200, self._cant_evaluate_card(
+                selected_preset,
+                evaluation.confidence,
+                evaluation.assumptions,
+                evaluation.reasons,
+                overrides,
+            )
+        try:
+            calculation = self.calculator.diff(item_text, evaluation.pob_config)
+        except ItemParseError:
+            return 422, None
+        except WorkerUnavailable:
+            return 200, self._cant_evaluate_card(
+                selected_preset,
+                0,
+                evaluation.assumptions,
+                ("engine.worker_unavailable: Path of Building did not respond",),
+                overrides,
+            )
+        return 200, self._verdict_card(
+            calculation.payload,
+            selected_preset,
+            evaluation.confidence,
+            evaluation.assumptions,
+            overrides,
+        )
+
+    def _verdict_card(
+        self,
+        payload: Mapping[str, Any],
+        preset: str,
+        confidence: float,
+        assumptions: tuple[Mapping[str, Any], ...],
+        overrides: list[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        baseline = payload["baseline"]
+        candidate = payload["candidate"]
+        offense = self._percent_delta(
+            baseline["total_dps"], candidate["total_dps"]
+        )
+        defense = self._percent_delta(baseline["ehp"], candidate["ehp"])
+        if offense is None or defense is None:
+            return self._cant_evaluate_card(
+                preset,
+                confidence,
+                assumptions,
+                (
+                    (
+                        "engine.zero_baseline: a percentage delta cannot be "
+                        "computed from a zero baseline"
+                    ),
+                ),
+                overrides,
+            )
+        offense = round(offense, 1)
+        defense = round(defense, 1)
+        if (
+            offense >= 0
+            and defense >= 0
+            and (offense > 0 or defense > 0)
+        ):
+            verdict = "UPGRADE"
+        elif (
+            offense <= 0
+            and defense <= 0
+            and (offense < 0 or defense < 0)
+        ):
+            verdict = "DOWNGRADE"
+        else:
+            verdict = "SIDEGRADE"
+        card = {
+            "diff_id": self._diff_id(preset, overrides, payload),
+            "verdict": verdict,
+            "offense_delta_pct": offense,
+            "defense_delta_pct": defense,
+            "sentence": self._sentence(verdict, offense, defense),
+            "assumptions": self._ordered_assumptions(assumptions),
+            "confidence": confidence,
+            "preset": preset,
+        }
+        return card
+
+    def _cant_evaluate_card(
+        self,
+        preset: str,
+        confidence: float,
+        assumptions: tuple[Mapping[str, Any], ...],
+        reasons: tuple[str, ...],
+        overrides: list[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        card = {
+            "diff_id": self._diff_id(preset, overrides, {"reasons": reasons}),
+            "verdict": "CANT_EVALUATE",
+            "offense_delta_pct": 0,
+            "defense_delta_pct": 0,
+            "sentence": (
+                "Confidence is too low for an honest verdict; open details "
+                "to review the assumptions."
+            ),
+            "assumptions": self._ordered_assumptions(assumptions),
+            "confidence": confidence,
+            "preset": preset,
+        }
+        if reasons:
+            card["cant_evaluate_reasons"] = list(reasons)
+        return card
+
+    def _diff_id(
+        self,
+        preset: str,
+        overrides: list[Mapping[str, Any]],
+        calculation: Mapping[str, Any],
+    ) -> str:
+        assert self.store.active is not None
+        encoded = json.dumps(
+            {
+                "build_id": self.store.active["build_id"],
+                "preset": preset,
+                "overrides": overrides,
+                "calculation": calculation,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        return f"d-{hashlib.sha256(encoded).hexdigest()[:12]}"
 
     @staticmethod
-    def _fixture_build_facts(pob_code: str) -> dict[str, Any]:
-        """Parse explicit fake metadata without pretending to parse a real PoB."""
-        skill_match = re.search(r"@skill:([^;\n]+)", pob_code)
-        skill = skill_match.group(1).strip() if skill_match else "Unknown"
-        return {
-            "active_skills": [
-                {
-                    "name": skill,
-                    "links": 6 if skill != "Unknown" else 0,
-                    "dps": 1,
-                    "tags": [
-                        tag
-                        for tag in ("chill", "shock")
-                        if f"@tag:{tag}" in pob_code
-                    ],
-                }
-            ],
-            "allocated_keystone": (
-                "Elemental Overload" if "@keystone:eo" in pob_code else None
-            ),
-            "has_charge_generation": (
-                "power" if "@charges:power" in pob_code else None
-            ),
-            "has_trigger_setup": "@trigger" in pob_code,
-        }
+    def _ordered_assumptions(
+        assumptions: tuple[Mapping[str, Any], ...],
+    ) -> list[dict[str, Any]]:
+        return [
+            dict(assumption)
+            for assumption in sorted(
+                assumptions,
+                key=lambda item: not bool(item.get("impactful")),
+            )[:6]
+        ]
+
+    @staticmethod
+    def _percent_delta(baseline: float, candidate: float) -> float | None:
+        if baseline == 0:
+            return 0.0 if candidate == 0 else None
+        return (candidate - baseline) / abs(baseline) * 100
+
+    @staticmethod
+    def _same_value_type(expected: Any, actual: Any) -> bool:
+        if isinstance(expected, bool):
+            return isinstance(actual, bool)
+        if isinstance(expected, str):
+            return isinstance(actual, str) and bool(actual)
+        return type(actual) is type(expected)
+
+    @staticmethod
+    def _sentence(verdict: str, offense: float, defense: float) -> str:
+        offense_text = f"{offense:+.1f}%"
+        defense_text = f"{defense:+.1f}%"
+        if verdict == "SIDEGRADE":
+            ending = "the candidate is a sidegrade."
+        elif verdict == "UPGRADE":
+            ending = "the combined change is an upgrade."
+        else:
+            ending = "the combined change is a downgrade."
+        return (
+            f"Offense changes {offense_text} and defense {defense_text}; {ending}"
+        )
 
 
 def create_server(

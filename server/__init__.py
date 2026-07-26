@@ -2,12 +2,12 @@
 
 from .app import ApiApplication, BuildStore, create_server
 from .assumptions import AssumptionsEvaluator
-from .calculator import FixtureCalculator
+from .calculator import PobCalculator
 
 __all__ = [
     "ApiApplication",
     "AssumptionsEvaluator",
     "BuildStore",
-    "FixtureCalculator",
+    "PobCalculator",
     "create_server",
 ]
