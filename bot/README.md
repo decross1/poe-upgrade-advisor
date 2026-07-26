@@ -14,19 +14,26 @@ labeled `quarantine`. PM decisions posted as issue comments beginning with
 - `BOT_DB`: persistent SQLite path. In deployment this must point at a durable
   volume, not the container filesystem.
 - `SUGGEST_CHANNEL_ID`: Discord channel ID where `/suggest` is accepted.
+- `DECISION_AUTHOR_LOGIN`: exact GitHub login allowed to relay `[DECISION]`
+  comments as official Discord updates.
+- `LEDGER_SCRIPT`: optional absolute path to `agents/postmaster/ledger.py`;
+  defaults to the copy in this checkout. The ledger itself is located through
+  `POB_LEDGER_DIR` or the standard shared project layout.
 
 Create the Discord application and bot in the developer portal, enable the
-`applications.commands` scope, and invite it with Send Messages and Create
-Public Threads permissions. Run with:
+`applications.commands` scope, and invite it with View Channel, Send Messages,
+Create Public Threads, and Send Messages in Threads permissions
+(`309237648384`). Run with:
 
 ```sh
 pip install -r requirements.txt
 python bot/bot.py
 ```
 
-The `intake` label is the PM notification mechanism under ADR-0002; PM scans
-that queue during heartbeat. The retired mail outbox is not used. A GitHub
-failure is reported to the submitter and creates no mapping or Discord thread.
+After filing, the bot calls `ledger.py send` directly with an untrusted
+`INTAKE_TICKET`; the retired mail outbox is not used. The `intake` label remains
+a durable triage fallback. A GitHub failure is reported to the submitter and
+creates no mapping or Discord thread.
 
 Deployment and the one-time Discord application/token/channel creation remain
 human-operated. Never print tokens in setup logs or issue comments.

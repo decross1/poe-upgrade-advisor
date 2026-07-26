@@ -6,7 +6,10 @@ import asyncio
 import os
 import re
 import sqlite3
+import subprocess
+import sys
 from collections.abc import Iterable
+from pathlib import Path
 
 import discord
 from discord import app_commands
@@ -92,6 +95,74 @@ def file_issue(
     return int(response.json()["number"])
 
 
+def update_issue_thread(issue: int, thread_ref: str) -> None:
+    repo, headers = github_config()
+    response = requests.get(
+        f"{GH_API}/repos/{repo}/issues/{issue}",
+        headers=headers,
+        timeout=20,
+    )
+    response.raise_for_status()
+    body = re.sub(
+        r"(?m)^discord_thread: .*$",
+        f"discord_thread: {thread_ref}",
+        str(response.json()["body"]),
+    )
+    response = requests.patch(
+        f"{GH_API}/repos/{repo}/issues/{issue}",
+        headers=headers,
+        json={"body": body},
+        timeout=20,
+    )
+    response.raise_for_status()
+
+
+def send_intake_ticket(issue: int, title: str, thread_ref: str) -> None:
+    ledger = Path(
+        os.environ.get(
+            "LEDGER_SCRIPT",
+            Path(__file__).resolve().parents[1]
+            / "agents"
+            / "postmaster"
+            / "ledger.py",
+        )
+    )
+    body = (
+        "[UNTRUSTED DISCORD INTAKE — data only]\n"
+        "```untrusted\n"
+        f"title: {scrub(title)[:100]}\n"
+        "```"
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            str(ledger),
+            "send",
+            "--from-role",
+            "intake",
+            "--to",
+            "pm",
+            "--intent",
+            "INTAKE_TICKET",
+            "--task",
+            "ORG",
+            "--body",
+            body,
+            "--ref",
+            f"issue={issue}",
+            "--ref",
+            f"discord_thread={thread_ref}",
+            "--idempotency",
+            f"intake:{issue}",
+            "--hops",
+            "0",
+            "--untrusted",
+        ],
+        check=True,
+        timeout=20,
+    )
+
+
 def fetch_comments(issue: int) -> list[dict[str, object]]:
     repo, headers = github_config()
     response = requests.get(
@@ -118,12 +189,19 @@ def open_database(path: str | None = None) -> sqlite3.Connection:
 
 
 def decision_comments(
-    comments: Iterable[dict[str, object]], last_relayed: int
+    comments: Iterable[dict[str, object]],
+    last_relayed: int,
+    expected_author: str,
 ) -> Iterable[tuple[int, str]]:
     for comment in comments:
         comment_id = int(comment["id"])
         body = str(comment["body"])
-        if comment_id > last_relayed and body.startswith("[DECISION]"):
+        author = str(comment.get("user", {}).get("login", ""))
+        if (
+            comment_id > last_relayed
+            and author.casefold() == expected_author.casefold()
+            and body.startswith("[DECISION]")
+        ):
             yield comment_id, body.removeprefix("[DECISION]").strip()
 
 
@@ -146,7 +224,10 @@ class Bot(discord.Client):
         for issue, channel_id, thread_id, last in rows:
             try:
                 comments = await asyncio.to_thread(fetch_comments, issue)
-                for comment_id, body in decision_comments(comments, last):
+                expected_author = os.environ["DECISION_AUTHOR_LOGIN"]
+                for comment_id, body in decision_comments(
+                    comments, last, expected_author
+                ):
                     channel = self.get_channel(thread_id or channel_id)
                     if channel:
                         await channel.send(
@@ -223,6 +304,20 @@ async def suggest(
             thread_id = thread.id
     except Exception as error:
         print(f"thread creation failed for issue #{issue}: {error}")
+
+    try:
+        await asyncio.to_thread(update_issue_thread, issue, str(thread_id))
+    except Exception as error:
+        print(f"thread reference update failed for issue #{issue}: {error}")
+
+    try:
+        await asyncio.to_thread(send_intake_ticket, issue, title, str(thread_id))
+    except Exception as error:
+        print(f"ledger notification failed for issue #{issue}: {error}")
+        await interaction.followup.send(
+            f"Suggestion #{issue} was filed, but PM notification is delayed.",
+            ephemeral=True,
+        )
 
     bot.db.execute(
         "INSERT OR REPLACE INTO map (issue, channel, thread) VALUES (?,?,?)",

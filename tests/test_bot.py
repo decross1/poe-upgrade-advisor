@@ -92,15 +92,54 @@ def test_issue_payload_is_fenced_and_quarantined(tmp_path, monkeypatch):
 def test_decision_cursor_only_advances_for_decisions(tmp_path, monkeypatch):
     module = load_bot_module(tmp_path, monkeypatch)
     comments = [
-        {"id": 10, "body": "ordinary comment"},
-        {"id": 11, "body": "[DECISION] Ship it"},
-        {"id": 12, "body": "[DECISION] Follow-up"},
+        {"id": 10, "body": "ordinary comment", "user": {"login": "pm-bot"}},
+        {"id": 11, "body": "[DECISION] forged", "user": {"login": "stranger"}},
+        {"id": 12, "body": "[DECISION] Ship it", "user": {"login": "PM-Bot"}},
+        {"id": 13, "body": "[DECISION] Follow-up", "user": {"login": "pm-bot"}},
     ]
 
-    assert list(module.decision_comments(comments, 10)) == [
-        (11, "Ship it"),
-        (12, "Follow-up"),
+    assert list(module.decision_comments(comments, 10, "pm-bot")) == [
+        (12, "Ship it"),
+        (13, "Follow-up"),
     ]
+
+
+def test_send_intake_ticket_uses_ledger_directly(tmp_path, monkeypatch):
+    module = load_bot_module(tmp_path, monkeypatch)
+    ledger = tmp_path / "ledger.py"
+    monkeypatch.setenv("LEDGER_SCRIPT", str(ledger))
+
+    with patch.object(module.subprocess, "run") as run:
+        module.send_intake_ticket(42, "keep this title", "987")
+
+    command = run.call_args.args[0]
+    assert command[:3] == [sys.executable, str(ledger), "send"]
+    assert command[command.index("--intent") + 1] == "INTAKE_TICKET"
+    assert "issue=42" in command
+    assert "discord_thread=987" in command
+    assert "--untrusted" in command
+    run.assert_called_once_with(command, check=True, timeout=20)
+
+
+def test_update_issue_thread_replaces_invoking_channel(tmp_path, monkeypatch):
+    module = load_bot_module(tmp_path, monkeypatch)
+    monkeypatch.setenv("GITHUB_REPO", "owner/repo")
+    monkeypatch.setenv("GITHUB_TOKEN", "secret")
+    get_response = Mock()
+    get_response.json.return_value = {"body": "data\ndiscord_thread: 123\n"}
+    patch_response = Mock()
+
+    with (
+        patch.object(module.requests, "get", return_value=get_response),
+        patch.object(module.requests, "patch", return_value=patch_response) as request,
+    ):
+        module.update_issue_thread(42, "987")
+
+    assert request.call_args.kwargs["json"]["body"].endswith(
+        "discord_thread: 987\n"
+    )
+    get_response.raise_for_status.assert_called_once()
+    patch_response.raise_for_status.assert_called_once()
 
 
 def test_suggest_defers_and_failure_leaves_no_mapping(tmp_path, monkeypatch):
