@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 import yaml
 
@@ -59,7 +60,9 @@ class AssumptionsEvaluator:
         weights: list[float] = []
         reasons: list[str] = []
 
-        main_skill, inferred, main_rule, main_weight = self._main_skill(build)
+        main_skill, inferred, main_rule, main_weight = self._main_skill(
+            build, override_values
+        )
         weights.append(main_weight)
         assumptions.append(
             self._assumption(
@@ -84,16 +87,19 @@ class AssumptionsEvaluator:
             assumptions.append(self._assumption(rule, value, rule["chip_label"]))
 
         for rule in self.main_skill_rules:
-            if rule.get("effect") != "reduce_confidence" or not self._matches(rule["when"], build):
+            if rule.get("effect") != "reduce_confidence" or not self._matches(
+                rule["when"], build
+            ):
+                continue
+            override_value = override_values.get(rule["id"], True)
+            assumptions.insert(
+                0,
+                self._assumption(rule, override_value, rule["chip_label"]),
+            )
+            if override_value is False:
                 continue
             penalty = float(rule["confidence_weight"])
             weights = [max(0.0, weight + penalty) for weight in weights]
-            assumptions.insert(
-                0,
-                self._assumption(
-                    rule, override_values.get(rule["id"], True), rule["chip_label"]
-                ),
-            )
             reasons.append(
                 f"{rule['id']}: trigger setup reduces skill-detection confidence"
             )
@@ -118,9 +124,14 @@ class AssumptionsEvaluator:
         )
 
     def _main_skill(
-        self, build: Mapping[str, Any]
+        self,
+        build: Mapping[str, Any],
+        override_values: Mapping[str, Any],
     ) -> tuple[str, bool, Mapping[str, Any], float]:
-        override = build.get("user_override")
+        override = override_values.get(
+            "main_skill.most_linked_highest_dps",
+            override_values.get("main_skill.user_override", build.get("user_override")),
+        )
         if isinstance(override, str) and override:
             rule = self.main_skill_rules[0]
             return override, False, rule, float(rule["confidence_weight"])
@@ -137,7 +148,9 @@ class AssumptionsEvaluator:
             key=lambda skill: (skill.get("links", 0), skill.get("dps", 0)),
             default={"name": "Unknown"},
         )
-        return str(winner.get("name", "Unknown")), True, rule, float(rule["confidence_weight"])
+        name = str(winner.get("name", "Unknown"))
+        weight = float(rule["confidence_weight"]) if name != "Unknown" else 0.0
+        return name, True, rule, weight
 
     @staticmethod
     def _matches(predicate: Mapping[str, Any], build: Mapping[str, Any]) -> bool:

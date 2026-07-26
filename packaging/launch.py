@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import http.client
-import json
 import mimetypes
 import sys
 import threading
@@ -56,18 +55,20 @@ MIME_OVERRIDES = {
 }
 
 
-def build_api_server(port: int) -> ThreadingHTTPServer:
+def build_api_server(
+    port: int,
+    calculator: object | None = None,
+) -> ThreadingHTTPServer:
     """Construct the contract API exactly like server/__main__.py does.
 
-    Keep in sync with server/__main__.py — when TASK-202b swaps the fixture
-    calculator for the real PoB adapter, only the construction below changes.
+    Keep in sync with server/__main__.py.
     """
     from server.app import ApiApplication, create_server
     from server.assumptions import AssumptionsEvaluator
-    from server.calculator import FixtureCalculator
+    from server.calculator import PobCalculator
 
     app = ApiApplication(
-        FixtureCalculator(ROOT / "contracts" / "fixtures"),
+        calculator or PobCalculator(ROOT),
         AssumptionsEvaluator(ROOT / "assumptions"),
     )
     return create_server(app, HOST, port)
@@ -153,9 +154,10 @@ def serve(
     web_dir: Path,
     port: int = PUBLIC_PORT,
     api_port: int = API_PORT,
+    calculator: object | None = None,
 ) -> tuple[ThreadingHTTPServer, ThreadingHTTPServer]:
     """Start (public, api) servers; caller owns shutdown. Port 0 = ephemeral."""
-    api_server = build_api_server(api_port)
+    api_server = build_api_server(api_port, calculator)
     threading.Thread(target=api_server.serve_forever, daemon=True).start()
     # Read back the bound port so api_port=0 (ephemeral, used by tests) works.
     bound_api_port = api_server.server_address[1]

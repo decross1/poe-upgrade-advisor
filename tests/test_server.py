@@ -1,17 +1,94 @@
+import base64
 import json
 import threading
+import zlib
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import jsonschema
 import pytest
 
-from server.app import ApiApplication, BASE_PATH, BuildStore, create_server
+from server.app import BASE_PATH, ApiApplication, BuildStore, create_server
 from server.assumptions import AssumptionsEvaluator
-from server.calculator import FixtureCalculator
+from server.calculator import (
+    EngineDiff,
+    ImportedBuild,
+    decode_pob_code,
+    extract_build_facts,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
+SIMPLE_XML = b"""<?xml version="1.0"?>
+<PathOfBuilding>
+  <Build level="91" className="Witch" ascendClassName="Occultist"
+         mainSocketGroup="1"/>
+  <Skills>
+    <Skill enabled="true" mainActiveSkill="1">
+      <Gem enabled="true" gemId="Metadata/Items/Gems/SkillGemArc"
+           skillId="Arc" nameSpec="Arc"/>
+      <Gem enabled="true" gemId="Metadata/Items/Gems/SupportGemAddedLightningDamage"
+           skillId="SupportAddedLightningDamage" nameSpec="Added Lightning Damage"/>
+    </Skill>
+  </Skills>
+</PathOfBuilding>
+"""
+
+
+class StubCalculator:
+    def __init__(self, facts: Mapping[str, Any] | None = None) -> None:
+        self.facts = facts or {
+            "active_skills": [
+                {"name": "Arc", "links": 6, "dps": 100, "tags": []}
+            ],
+            "allocated_keystone": None,
+            "has_charge_generation": None,
+            "has_trigger_setup": False,
+        }
+        self.configurations: list[dict[str, Any]] = []
+
+    def import_build(self, pob_code: str) -> ImportedBuild:
+        return ImportedBuild("b-stub", self.facts)
+
+    def configure_build(
+        self, canonical_config: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        self.configurations.append(dict(canonical_config))
+        return {"base_class": "Witch", "ascendancy": "Occultist", "level": 91}
+
+    def diff(
+        self, item_text: str, canonical_config: Mapping[str, Any]
+    ) -> EngineDiff:
+        self.configurations.append(dict(canonical_config))
+        candidates = {
+            "upgrade": (110, 110),
+            "sidegrade": (101, 99),
+            "downgrade": (90, 90),
+            "zero-baseline": (1, 100),
+        }
+        candidate_dps, candidate_ehp = candidates[item_text]
+        baseline_dps = 0 if item_text == "zero-baseline" else 100
+        return EngineDiff(
+            {
+                "baseline": {"total_dps": baseline_dps, "ehp": 100},
+                "candidate": {
+                    "total_dps": candidate_dps,
+                    "ehp": candidate_ehp,
+                },
+                "deltas": {
+                    "total_dps": candidate_dps - baseline_dps,
+                    "ehp": candidate_ehp - 100,
+                },
+                "slot": "Weapon 1",
+                "breakdown_ref": "pob://calcs/Weapon 1",
+            },
+            4.3,
+        )
+
+    def close(self) -> None:
+        return
 
 
 @pytest.fixture
@@ -20,10 +97,24 @@ def evaluator() -> AssumptionsEvaluator:
 
 
 @pytest.fixture
-def app(evaluator: AssumptionsEvaluator) -> ApiApplication:
-    return ApiApplication(
-        FixtureCalculator(ROOT / "contracts/fixtures"), evaluator, BuildStore()
+def calculator() -> StubCalculator:
+    return StubCalculator()
+
+
+@pytest.fixture
+def app(
+    evaluator: AssumptionsEvaluator, calculator: StubCalculator
+) -> ApiApplication:
+    return ApiApplication(calculator, evaluator, BuildStore())
+
+
+def import_stub_build(app: ApiApplication) -> dict[str, Any]:
+    status, build = app.dispatch(
+        "POST", f"{BASE_PATH}/build", {"pob_code": "stub"}
     )
+    assert status == 200
+    assert build is not None
+    return build
 
 
 def test_evaluator_loads_data_matches_rules_and_honors_overrides(
@@ -54,31 +145,41 @@ def test_evaluator_loads_data_matches_rules_and_honors_overrides(
     assert not result.cant_evaluate
 
 
-def test_trigger_penalty_degrades_to_cant_evaluate(
+def test_trigger_penalty_is_one_tap_reversible(
     evaluator: AssumptionsEvaluator,
 ) -> None:
-    result = evaluator.evaluate(
-        {
-            "active_skills": [{"name": "Cremation", "links": 6, "dps": 10}],
-            "has_trigger_setup": True,
-        },
-        "mapping",
-    )
+    facts = {
+        "active_skills": [{"name": "Cremation", "links": 6, "dps": 10}],
+        "has_trigger_setup": True,
+    }
+    result = evaluator.evaluate(facts, "mapping")
     assert result.confidence == 0.5
     assert result.cant_evaluate
     assert len(result.reasons) == 2
 
-
-def test_build_endpoints_and_validation(app: ApiApplication) -> None:
-    assert app.dispatch("GET", f"{BASE_PATH}/build") == (404, None)
-    status, build = app.dispatch(
-        "POST",
-        f"{BASE_PATH}/build",
-        {"pob_code": "@skill:Vortex;@tag:chill", "character_class": "Witch", "level": 91},
+    trusted = evaluator.evaluate(
+        facts,
+        "mapping",
+        [{"assumption_id": "main_skill.trigger_ambiguity", "value": False}],
     )
-    assert status == 200
-    assert build["main_skill"]["name"] == "Vortex"
-    assert build["character_class"] == "Witch"
+    assert trusted.confidence == 0.8
+    assert not trusted.cant_evaluate
+    assert trusted.reasons == ()
+
+
+def test_build_endpoints_use_engine_identity_and_hold_session(
+    app: ApiApplication,
+) -> None:
+    assert app.dispatch("GET", f"{BASE_PATH}/build") == (404, None)
+    build = import_stub_build(app)
+    assert build == {
+        "build_id": "b-stub",
+        "character_class": "Witch",
+        "ascendancy": "Occultist",
+        "level": 91,
+        "main_skill": {"name": "Arc", "inferred": True, "confidence": 0.8},
+        "preset_default": "mapping",
+    }
     assert app.dispatch("GET", f"{BASE_PATH}/build") == (200, build)
     assert app.dispatch("POST", f"{BASE_PATH}/build", {}) == (422, None)
     assert app.dispatch(
@@ -87,53 +188,88 @@ def test_build_endpoints_and_validation(app: ApiApplication) -> None:
         {"pob_code": "code", "account": "a", "character": "c"},
     ) == (422, None)
     assert app.dispatch(
-        "POST", f"{BASE_PATH}/build", {"pob_code": "code", "level": "not-a-level"}
+        "POST", f"{BASE_PATH}/build", {"account": "a", "character": "c"}
     ) == (422, None)
 
 
-def test_all_golden_responses_are_reproduced_and_schema_valid(
-    app: ApiApplication,
+@pytest.mark.parametrize(
+    ("item_text", "expected"),
+    [
+        ("upgrade", "UPGRADE"),
+        ("sidegrade", "SIDEGRADE"),
+        ("downgrade", "DOWNGRADE"),
+        ("zero-baseline", "CANT_EVALUATE"),
+    ],
+)
+def test_real_serializer_reaches_every_verdict_and_matches_golden_shape(
+    app: ApiApplication, item_text: str, expected: str
 ) -> None:
-    app.dispatch("POST", f"{BASE_PATH}/build", {"pob_code": "@skill:Arc"})
+    import_stub_build(app)
+    status, card = app.dispatch(
+        "POST", f"{BASE_PATH}/diff", {"item_text": item_text}
+    )
+    assert status == 200
+    assert card is not None
+    assert card["verdict"] == expected
     schema = json.loads((ROOT / "contracts/verdict.schema.json").read_text())
-    verdicts = set()
-    fixture_paths = sorted((ROOT / "contracts/fixtures").glob("*.json"))
-    assert len(fixture_paths) == 7
-    for path in fixture_paths:
-        expected = json.loads(path.read_text())
-        status, actual = app.dispatch(
-            "POST", f"{BASE_PATH}/diff", {"item_text": f"@fixture:{path.stem}"}
-        )
-        assert status == 200
-        assert actual == expected
-        jsonschema.validate(actual, schema)
-        verdicts.add(actual["verdict"])
-    assert verdicts == {"UPGRADE", "SIDEGRADE", "DOWNGRADE", "CANT_EVALUATE"}
+    jsonschema.validate(card, schema)
+
+    golden = [
+        json.loads(path.read_text())
+        for path in sorted((ROOT / "contracts/fixtures").glob("*.json"))
+    ]
+    assert expected in {fixture["verdict"] for fixture in golden}
+    allowed_fields = set().union(*(fixture.keys() for fixture in golden))
+    assert set(card) <= allowed_fields
 
 
-def test_diff_errors_and_deterministic_override(app: ApiApplication) -> None:
+def test_diff_validation_determinism_and_evaluator_config(
+    app: ApiApplication, calculator: StubCalculator
+) -> None:
     assert app.dispatch(
-        "POST", f"{BASE_PATH}/diff", {"item_text": "item"}
+        "POST", f"{BASE_PATH}/diff", {"item_text": "upgrade"}
     ) == (404, None)
-    app.dispatch("POST", f"{BASE_PATH}/build", {"pob_code": "@skill:Arc"})
+    import_stub_build(app)
     for body in (
         {},
         {"item_text": ""},
-        {"item_text": "@fixture:missing"},
-        {"item_text": "item", "overrides": [{"assumption_id": "missing-value"}]},
+        {"item_text": "upgrade", "preset": "invalid"},
+        {"item_text": "upgrade", "overrides": [{"assumption_id": "missing-value"}]},
+        {
+            "item_text": "upgrade",
+            "overrides": [{"assumption_id": "not-a-rule", "value": False}],
+        },
+        {
+            "item_text": "upgrade",
+            "overrides": [
+                {"assumption_id": "config.flasks_up", "value": "not-boolean"}
+            ],
+        },
     ):
         assert app.dispatch("POST", f"{BASE_PATH}/diff", body) == (422, None)
     request = {
-        "item_text": "@fixture:upgrade_mapping",
+        "item_text": "upgrade",
         "overrides": [{"assumption_id": "config.flasks_up", "value": False}],
     }
     first = app.dispatch("POST", f"{BASE_PATH}/diff", request)[1]
     second = app.dispatch("POST", f"{BASE_PATH}/diff", request)[1]
     assert first == second
-    assert first["diff_id"].startswith("d-8f2c41a7#ovr-")
+    assert first is not None
+    assert first["diff_id"].startswith("d-")
     assert next(
         item for item in first["assumptions"] if item["id"] == "config.flasks_up"
     )["value"] is False
+    assert calculator.configurations[-1]["flasks_active"] is False
+
+
+def test_pob_code_decode_and_conservative_fact_extraction() -> None:
+    encoded = base64.urlsafe_b64encode(zlib.compress(SIMPLE_XML)).rstrip(b"=")
+    assert decode_pob_code(encoded.decode()) == SIMPLE_XML
+    facts = extract_build_facts(SIMPLE_XML)
+    assert facts["active_skills"] == [
+        {"name": "Arc", "links": 2, "dps": 1, "tags": []}
+    ]
+    assert not facts["has_trigger_setup"]
 
 
 def test_http_round_trip_uses_bare_contract_errors(app: ApiApplication) -> None:
@@ -156,11 +292,11 @@ def test_http_round_trip_uses_bare_contract_errors(app: ApiApplication) -> None:
             return error.code, error.read()
 
     try:
-        assert post("/diff", {"item_text": "item"}) == (404, b"")
-        status, raw = post("/build", {"pob_code": "@skill:Arc"})
+        assert post("/diff", {"item_text": "upgrade"}) == (404, b"")
+        status, raw = post("/build", {"pob_code": "stub"})
         assert status == 200
         assert json.loads(raw)["main_skill"]["name"] == "Arc"
-        status, raw = post("/diff", {"item_text": "@fixture:sidegrade_bossing"})
+        status, raw = post("/diff", {"item_text": "sidegrade"})
         assert status == 200
         assert json.loads(raw)["verdict"] == "SIDEGRADE"
     finally:

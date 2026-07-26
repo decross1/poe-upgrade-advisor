@@ -1,7 +1,7 @@
 """Smoke tests for the MVP v0 launcher (TASK-208).
 
-Exercises the real server app (fixture calculator) through the launcher's
-same-origin proxy on ephemeral ports — no npm, no network, no fixed ports.
+Exercises the real server app through the launcher's same-origin proxy on
+ephemeral ports — no native engine, npm, network, or fixed ports.
 The web bundle is replaced by a two-file stand-in; packaging of the real
 bundle is covered by scripts/package_mvp.sh and the clean-room run recorded
 on the PR.
@@ -26,9 +26,44 @@ pytest.importorskip("yaml", reason="server/assumptions.py requires pyyaml")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # for `import server`, mirroring launch.py
 
+from server.calculator import EngineDiff, ImportedBuild
+
 _spec = importlib.util.spec_from_file_location("mvp_launch", ROOT / "packaging" / "launch.py")
 launch = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(launch)
+
+
+class SmokeCalculator:
+    def import_build(self, pob_code):
+        return ImportedBuild(
+            "b-smoke",
+            {
+                "active_skills": [
+                    {"name": "Fireball", "links": 6, "dps": 1, "tags": []}
+                ],
+                "allocated_keystone": None,
+                "has_charge_generation": None,
+                "has_trigger_setup": False,
+            },
+        )
+
+    def configure_build(self, canonical_config):
+        return {"base_class": "Witch", "ascendancy": "None", "level": 90}
+
+    def diff(self, item_text, canonical_config):
+        return EngineDiff(
+            {
+                "baseline": {"total_dps": 100, "ehp": 100},
+                "candidate": {"total_dps": 110, "ehp": 101},
+                "deltas": {"total_dps": 10, "ehp": 1},
+                "slot": "Weapon 1",
+                "breakdown_ref": "pob://calcs/Weapon 1",
+            },
+            4.3,
+        )
+
+    def close(self):
+        return
 
 
 @pytest.fixture()
@@ -37,7 +72,9 @@ def stack(tmp_path):
     (web / "assets").mkdir(parents=True)
     (web / "index.html").write_text("<h1>mvp-stand-in</h1>", encoding="utf-8")
     (web / "assets" / "app.js").write_text("console.log('ok')", encoding="utf-8")
-    public, api = launch.serve(web, port=0, api_port=0)
+    public, api = launch.serve(
+        web, port=0, api_port=0, calculator=SmokeCalculator()
+    )
     port = public.server_address[1]
     import threading
 
@@ -103,15 +140,12 @@ def test_unknown_route_is_spa_fallback(stack):
 def test_api_round_trip_through_proxy(stack):
     status, build = _post(
         f"{stack}/api/v0/build",
-        {"pob_code": "@skill:Fireball;@tag:chill", "character_class": "Witch", "level": 90},
+        {"pob_code": "smoke"},
     )
     assert status == 200
     assert build["main_skill"]["name"] == "Fireball"
 
-    item_text = (
-        "Rarity: RARE\nDoom Wrap\n--------\n"
-        "(launcher smoke test; fixture marker below)\n@fixture:upgrade_mapping"
-    )
+    item_text = "Rarity: RARE\nDoom Wrap\n--------\nlauncher smoke test"
     status, verdict = _post(f"{stack}/api/v0/diff", {"item_text": item_text})
     assert status == 200
     assert verdict["verdict"] == "UPGRADE"
