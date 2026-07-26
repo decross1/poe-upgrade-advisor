@@ -1,0 +1,14 @@
+# Real Shock Nova trigger build staged in the TASK-102 corpus. Its adjacent
+# metadata pins source repository, commit, path, and license.
+build: engine/corpus/builds/stacker-energy-blade/build.xml
+preset: mapping
+expected:
+  - rule_id: config.shock_from_setup
+    fires: true
+  - rule_id: main_skill.trigger_ambiguity
+    fires: true
+  - rule_id: main_skill.user_override
+    fires: false
+  - rule_id: main_skill.most_linked_highest_dps
+    resolved: { main_skill: "Shock Nova of Procession" }
+min_confidence: 0.4   # trigger ambiguity sinks confidence below the I5 floor

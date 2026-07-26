@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Doctrine I8 (CI job: assumptions-fixtures): every rule file must be
-referenced by >=1 fixture; every fixture must parse and name expectations."""
+"""Validate Doctrine I8 fixture coverage and build provenance."""
+
+import base64
+import binascii
 import sys
+import xml.etree.ElementTree as ET
+import zlib
 from pathlib import Path
+
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +29,34 @@ for ff in fix_dir.glob("*.yaml"):
     doc = yaml.safe_load(ff.read_text()) or {}
     if "build" not in doc or "expected" not in doc:
         errors.append(f"fixture {ff.name} missing build/expected")
+        continue
+    build = doc["build"]
+    if not isinstance(build, str) or not build:
+        errors.append(f"fixture {ff.name} has an invalid build")
+        continue
+    try:
+        if "/" in build:
+            build_path = (ROOT / build).resolve()
+            build_path.relative_to(ROOT)
+            raw_build = build_path.read_bytes()
+        else:
+            encoded = build.encode()
+            compressed = base64.urlsafe_b64decode(encoded + b"=" * (-len(encoded) % 4))
+            try:
+                raw_build = zlib.decompress(compressed)
+            except zlib.error:
+                raw_build = zlib.decompress(compressed, -zlib.MAX_WBITS)
+        root = ET.fromstring(raw_build)
+        if root.tag != "PathOfBuilding":
+            raise ValueError("root element is not PathOfBuilding")
+    except (
+        ValueError,
+        OSError,
+        ET.ParseError,
+        binascii.Error,
+        zlib.error,
+    ) as error:
+        errors.append(f"fixture {ff.name} build is not a loadable PoB export: {error}")
         continue
     for exp in doc["expected"]:
         covered.add(exp.get("rule_id"))

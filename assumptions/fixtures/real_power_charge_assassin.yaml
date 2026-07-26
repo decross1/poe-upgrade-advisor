@@ -1,0 +1,10 @@
+# Real Freezing Pulse build staged in the TASK-102 corpus. Its adjacent
+# metadata pins source repository, commit, path, and license.
+build: engine/corpus/builds/spell-freezing-pulse/build.xml
+preset: bossing
+expected:
+  - rule_id: config.power_charges_from_generation
+    fires: true
+  - rule_id: main_skill.most_linked_highest_dps
+    resolved: { main_skill: "Freezing Pulse" }
+min_confidence: 0.8
