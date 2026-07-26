@@ -1,9 +1,8 @@
 <!--
 POSTING INSTRUCTIONS — strip this comment before posting.
 When:  Once, when the MVP upgrade checker (the local web page: paste build,
-       pick an item -> verdict card) is released and installable by end users. Do NOT post while the
-       "Install & run" section below still reads TBD — the release task must
-       fill it in first.
+       pick an item -> verdict card) is released and installable by end users.
+       Released as v0.1.0, 2026-07-26 — this condition is satisfied.
 Where: #poe — the single project channel (single-channel mode, issue #16);
        post via ANNOUNCE_CHANNEL_ID, which holds the #poe channel id.
 Who:   Posted by the bot account, triggered by the PM agent as part of the
@@ -11,12 +10,9 @@ Who:   Posted by the bot account, triggered by the PM agent as part of the
 Note:  Discord caps messages at 2000 characters. Post each "---"-separated
        block below as its own message, in order.
 
-Record (PM, 2026-07-26): two human-gated release decisions pending with the
-       operator — (a) distribution channel: the repo is public and the build
-       ships as a GitHub Release asset; the link is still TBD until the
-       release step fills it in; (b) the Windows platform gap vs the tester
-       base — v0's bundled engine runtime is Linux x86-64 only, Windows
-       fast-follow tracked as #75. Announcement unguard tracked on #54.
+Record (PM, 2026-07-26): both release decisions ruled by the operator —
+       (a) distribution: public repo, GitHub Release v0.1.0, asset link wired
+       below; (b) Windows: fast-follow tracked as #75, stated honestly below.
 -->
 
 # The MVP is live: paste an item, get a verdict
@@ -37,17 +33,8 @@ Coming next: the in-game overlay — hover an item, hit `Ctrl+C`, and the card a
 
 ## Install & run
 
-> **DO NOT POST YET — release guard (TASK-208).** The steps below are real and
-> match the packaged build (the real PoB engine is IN the package — verdicts
-> are live calcs, not canned fixtures, proven by the clean-room transcript on
-> issue #36). This announcement stays blocked until ALL of: (1) TASK-103 GO
-> decision; (2) clean-machine install test on a non-dev box (done so far:
-> clean-dir tests on the dev box only); (3) the download link below is live.
-> If you are reading this guard in #poe, something went wrong — call it out.
-
-1. **Download** `poe-upgrade-advisor-v0-<sha>.tar.gz` (~63 MB) from the
-   repo's GitHub Releases page **(LINK TBD — filled in with the release-asset
-   URL once the packaging PR lands)**.
+1. **Download** `poe-upgrade-advisor-v0-8eaa2a4.tar.gz` (~63 MB):
+   <https://github.com/decross1/poe-upgrade-advisor/releases/download/v0.1.0/poe-upgrade-advisor-v0-8eaa2a4.tar.gz>
 2. **Extract it anywhere:**
    - Linux: `tar -xzf poe-upgrade-advisor-v0-*.tar.gz && cd poe-upgrade-advisor-v0`
    - macOS / Windows: double-click the archive, then open the
