@@ -43,11 +43,15 @@ jobs:
   windows-package-cleanroom:
     # TASK-209 lane C (issue #75): build the tester-facing Windows zip and
     # clean-room it on a real Windows machine. Lane A's pinned runtime
-    # artifact is downloaded CROSS-RUN (by exact pinned name) instead of via
-    # `needs:` so this workflow stays valid before lane A merges; until the
-    # artifact exists, the zip ships the explicit stub runtime and the
-    # clean-room asserts the honest 'engine cannot start' failure (I5) —
-    # a hard assertion, never a silent skip.
+    # artifact is downloaded CROSS-RUN (by exact pinned name, MAIN-branch
+    # runs only — "when it lands" means merged; pre-merge PR artifacts are
+    # ignored) instead of via `needs:` so this workflow stays valid before
+    # lane A merges. Until the artifact lands on main, the zip ships the
+    # explicit stub runtime and the clean-room asserts the honest 'engine
+    # cannot start' failure (I5) — a hard assertion, never a silent skip.
+    # SEQUENCING: once lane A merges, real-mode assertions activate; lane B
+    # (Windows worker entrypoint) must merge with or before lane A, or this
+    # job goes red by design — the honest alarm that the slice is incomplete.
     runs-on: windows-latest
     permissions:
       actions: read  # cross-run artifact download (lane A runtime)
@@ -63,14 +67,15 @@ jobs:
         run: |
           $name = "pobcalc-runtime-windows-x64-luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6"
           $resp = gh api "repos/${{ github.repository }}/actions/artifacts?name=$name&per_page=20" | ConvertFrom-Json
-          $artifact = $resp.artifacts | Where-Object { -not $_.expired } |
+          $artifact = $resp.artifacts |
+            Where-Object { -not $_.expired -and $_.workflow_run.head_branch -eq "main" } |
             Sort-Object created_at -Descending | Select-Object -First 1
           if ($null -ne $artifact) {
             Write-Host "== lane A runtime artifact #$($artifact.id) (run $($artifact.workflow_run.id), $($artifact.created_at))"
             "found=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
             "run_id=$($artifact.workflow_run.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           } else {
-            Write-Host "::warning::lane A runtime artifact not published yet (TASK-209 stage 1 in flight) — zip gets the explicit stub runtime; clean-room asserts the honest failure (I5)"
+            Write-Host "::warning::lane A runtime artifact has not landed on main yet — zip gets the explicit stub runtime; clean-room asserts the honest failure (I5)"
             "found=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           }
       - name: download lane A pinned Windows runtime

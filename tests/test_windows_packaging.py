@@ -109,8 +109,11 @@ def test_ci_has_windows_package_cleanroom_job():
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     assert "windows-package-cleanroom:" in workflow
     assert "runs-on: windows-latest" in workflow
-    # Downloads lane A's pinned runtime artifact (by exact pinned name)...
+    # Downloads lane A's pinned runtime artifact (by exact pinned name),
+    # from main-branch runs only — real-mode assertions activate when lane A
+    # LANDS (merged), not when a draft PR happens to publish an artifact.
     assert LANE_A_ARTIFACT in workflow
+    assert 'head_branch -eq "main"' in workflow
     # ...builds the zip, clean-room checks it, and uploads the zip artifact.
     assert "./scripts/package_mvp_windows.ps1" in workflow
     assert "./scripts/cleanroom_windows_check.ps1" in workflow
