@@ -93,17 +93,7 @@ class JsonRpcWorker:
         self._responses: queue.Queue[bytes] = queue.Queue()
         self._reader: threading.Thread | None = None
         self._start()
-        try:
-            self.call("ping", {}, WORKER_START_SECONDS)
-        except OSError as error:
-            # Windows: select() accepts sockets only, so the response-pipe
-            # selector dies with WinError 10038 there. Any startup I/O
-            # failure is a worker-start failure — surface it as
-            # WorkerUnavailable so the launcher prints the honest "engine
-            # could not start" (I5) instead of a mislabeled bind error.
-            detail = self._failure_detail("pobcalc startup ping failed")
-            self.close()
-            raise WorkerUnavailable(detail) from error
+        self.call("ping", {}, WORKER_START_SECONDS)
 
     def _start(self) -> None:
         try:
