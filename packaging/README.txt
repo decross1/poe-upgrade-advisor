@@ -2,12 +2,14 @@ PoE Upgrade Advisor — MVP v0 (test build)
 ==========================================
 
 WHAT THIS IS
-  A local tool: hover an item in Path of Exile, and get an honest
-  UPGRADE / SIDEGRADE / DOWNGRADE / CAN'T EVALUATE verdict against the
-  build you imported. Verdicts are LIVE calculations — the real Path of
-  Building engine is bundled inside (engine/), not canned answers.
-  Everything runs on your own machine (127.0.0.1); nothing you do in
-  the tool leaves your computer.
+  A local web page: paste your Path of Building build, pick an item,
+  and get an honest UPGRADE / SIDEGRADE / DOWNGRADE / CAN'T EVALUATE
+  verdict against the build you imported. Verdicts are LIVE
+  calculations — the real Path of Building engine is bundled inside
+  (engine/), not canned answers. Everything runs on your own machine
+  (127.0.0.1); nothing you do in the tool leaves your computer.
+  (The in-game hotkey overlay ships in a later build; this v0 page
+  stands in for it.)
 
 REQUIREMENTS
   - Linux x86-64 for this v0 build: the bundled engine's runtime is
@@ -46,6 +48,8 @@ REPORTING A WRONG VERDICT
   Your report becomes a permanent test fixture before the fix merges.
 
 PRIVACY / SAFETY
-  Reads only clipboard text the game itself produces on Ctrl+C and the
-  Client.txt log. No memory reads, no injection, no input automation,
-  one action per keypress. Binds localhost only.
+  v0 reads nothing from the game — you paste into a localhost page.
+  The upcoming overlay will read only clipboard text the game itself
+  produces on Ctrl+C and the Client.txt log. No memory reads, no
+  injection, no input automation, one action per keypress.
+  Binds localhost only.

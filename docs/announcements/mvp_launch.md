@@ -1,7 +1,7 @@
 <!--
 POSTING INSTRUCTIONS — strip this comment before posting.
 When:  Once, when the MVP upgrade checker (the local web page: paste build,
-       paste item -> verdict card) is released and installable by end users. Do NOT post while the
+       pick an item -> verdict card) is released and installable by end users. Do NOT post while the
        "Install & run" section below still reads TBD — the release task must
        fill it in first.
 Where: #poe — the single project channel (single-channel mode, issue #16);
@@ -10,11 +10,18 @@ Who:   Posted by the bot account, triggered by the PM agent as part of the
        release checklist.
 Note:  Discord caps messages at 2000 characters. Post each "---"-separated
        block below as its own message, in order.
+
+Record (PM, 2026-07-26): two human-gated release decisions pending with the
+       operator — (a) distribution channel: the repo is public and the build
+       ships as a GitHub Release asset; the link is still TBD until the
+       release step fills it in; (b) the Windows platform gap vs the tester
+       base — v0's bundled engine runtime is Linux x86-64 only, Windows
+       fast-follow tracked as #75. Announcement unguard tracked on #54.
 -->
 
 # The MVP is live: paste an item, get a verdict
 
-The core loop works. Run the tool, and your browser opens a page on your own machine. Import your build once by pasting your Path of Building code, then `Ctrl+C` any item in game and paste it into the page. You get a verdict card:
+The core loop works. Run the tool, and your browser opens a page on your own machine. Import your build once by pasting your Path of Building code, pick an item on the page, and you get a verdict card:
 
 - One word: **UPGRADE**, **SIDEGRADE**, **DOWNGRADE** — or **CAN'T EVALUATE** (more on that below).
 - Two deltas: offense and defense.
