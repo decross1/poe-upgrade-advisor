@@ -49,10 +49,13 @@ scripts/                 CI checks incl. doctrine invariant checker
 
 ## Building the tester distributable (TASK-208)
 
-One command produces `dist/poe-upgrade-advisor-v0-<sha>.tar.gz` — the web
-bundle, local API, real PoB engine (vendored PathOfBuilding + prebuilt
-pinned LuaJIT runtime), and the `run.sh` / `run.command` / `run.bat`
-entrypoints:
+**Platform support: Windows x86-64 is the only supported player platform**
+(decision on issue #75, 2026-07-26). macOS is not supported — dropped, not
+deferred. Linux x86-64 builds exist for development and CI only.
+
+One command produces the distributable — the web bundle, local API, real
+PoB engine (vendored PathOfBuilding + prebuilt pinned LuaJIT runtime), and
+the `run.bat` (Windows) / `run.sh` (Linux dev/CI) entrypoints:
 
 ```sh
 scripts/package_mvp.sh
