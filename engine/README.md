@@ -28,6 +28,12 @@ and publishes an artifact named
 Both platform scripts fetch those same exact LuaJIT and lua-utf8 revisions,
 which are also recorded in the runtime manifest.
 
+CI also runs `engine/runtime_parity.py` against three frozen poe.ninja builds:
+CI/LL support, Cast on Critical Strike, and mines. Linux and Windows execute
+the same unmodified PoB adapter with their pinned native runtimes, upload the
+raw stat JSON reports, and a dependent job requires the report files to be
+byte-identical. The spot-check is offline and makes no live poe.ninja calls.
+
 Never patch vendored PoB code (see backend.md); wrap gaps and document them in
 `GAPS.md`.
 

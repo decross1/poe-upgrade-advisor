@@ -40,6 +40,17 @@ jobs:
         run: engine/runtime/build.sh
       - name: run engine integration tests
         run: python3 -m unittest discover -s engine/tests -v
+      - name: capture Linux runtime parity spot-check
+        run: >-
+          python3 -m engine.runtime_parity
+          --output engine/runtime-parity-spot-check.json
+      - name: upload Linux runtime parity spot-check
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-parity-linux
+          path: engine/runtime-parity-spot-check.json
+          if-no-files-found: error
+          retention-days: 7
   windows-worker-pipes:
     # TASK-209 / issue #75: Windows selectors reject anonymous subprocess
     # pipes. Exercise the real JsonRpcWorker ping/response path on Windows so
@@ -59,6 +70,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with: { submodules: true }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install pyyaml
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: amd64
@@ -70,6 +85,17 @@ jobs:
         run: |
           copy /Y packaging\run.bat run.bat
           call run.bat --runtime-check-only
+      - name: capture Windows runtime parity spot-check
+        run: >-
+          python -m engine.runtime_parity
+          --output engine/runtime-parity-spot-check.json
+      - name: upload Windows runtime parity spot-check
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-parity-windows
+          path: engine/runtime-parity-spot-check.json
+          if-no-files-found: error
+          retention-days: 7
       - name: upload pinned Windows x86-64 Lua runtime
         uses: actions/upload-artifact@v4
         with:
@@ -78,6 +104,25 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 7
+  runtime-parity-cross-platform:
+    needs: [engine-integration, windows-runtime-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: download Linux runtime parity spot-check
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-parity-linux
+          path: runtime-parity/linux
+      - name: download Windows runtime parity spot-check
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-parity-windows
+          path: runtime-parity/windows
+      - name: require byte-identical runtime outputs
+        run: >-
+          cmp
+          runtime-parity/linux/runtime-parity-spot-check.json
+          runtime-parity/windows/runtime-parity-spot-check.json
   contracts:
     runs-on: ubuntu-latest
     steps:
