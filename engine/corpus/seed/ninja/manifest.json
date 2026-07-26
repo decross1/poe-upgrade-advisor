@@ -1,0 +1,807 @@
+{
+  "schema_version": 1,
+  "task": "TASK-101",
+  "adr": "ADR-0005",
+  "source": {
+    "provider": "poe.ninja",
+    "policy": "development-time frozen oracle only; product runtime and CI make no live requests",
+    "index_state": {
+      "raw_response": "index-state.json",
+      "fetch_metadata": "index-state.meta.json"
+    },
+    "league": "Allflame",
+    "snapshot_type": "exp",
+    "overview": "allflame",
+    "version": "0621-20260726-56012",
+    "character_detail_type": 0,
+    "request_cadence_seconds": 2.0
+  },
+  "selection": {
+    "count": 15,
+    "method": "Current Allflame experience snapshot search; chosen before detail fetch to cover distinct mechanics.",
+    "required_mechanics": {
+      "mine": [
+        "13-ascendant-icicle-mine"
+      ],
+      "trigger": [
+        "06-inquisitor-coc-ice-spear"
+      ],
+      "minion": [
+        "11-guardian-dominating-blow",
+        "15-guardian-absolution"
+      ],
+      "ci_or_low_life": [
+        "05-ascendant-ci-support",
+        "12-elementalist-ci-cold-snap"
+      ]
+    }
+  },
+  "scenario_config_observation": {
+    "mapping_and_bossing_config_diversity_observed": false,
+    "summary": "All 15 active ConfigSets omit enemyIsBoss and conditionInMap and use level-84, 50%-elemental-resistance placeholders with one nearby enemy. Mapping-oriented and bossing-oriented mechanics are represented, but the frozen exports do not expose two distinct scenario configurations.",
+    "stage_2_action": "Treat the embedded active ConfigSet verbatim; do not infer or apply a product preset. Escalate ADR scenario-diversity interpretation before claiming both scenario configs are covered."
+  },
+  "fetch_failures": [],
+  "parse_failures": [],
+  "entries": [
+    {
+      "id": "01-champion-smite",
+      "archetype": "melee-smite",
+      "mechanics": [
+        "melee",
+        "aura-stacking"
+      ],
+      "account": "Poteitik-3151",
+      "character": "ПОТЕЙТИК",
+      "class": "Champion",
+      "level": 100,
+      "files": {
+        "raw_response": "01-champion-smite.json",
+        "fetch_metadata": "01-champion-smite.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 185015,
+        "sha256": "411d36984687a10dca3ebad734dac81260256db5e2dac88b4de2183aa5017413"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10800,
+        "encoded_sha256": "391b22a3e8adb556b62fe754e6fcd61d5ae2d0823ee826ba590e4ff535357919"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38759,
+        "decoded_sha256": "3723449de7240238be04767f7a7d2b0215e54b231070d29d3e96fcaf0488d489"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "02-chieftain-righteous-fire",
+      "archetype": "righteous-fire",
+      "mechanics": [
+        "damage-over-time",
+        "righteous-fire"
+      ],
+      "account": "Brainwar-1546",
+      "character": "BrainAllFlamed",
+      "class": "Chieftain",
+      "level": 100,
+      "files": {
+        "raw_response": "02-chieftain-righteous-fire.json",
+        "fetch_metadata": "02-chieftain-righteous-fire.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 160028,
+        "sha256": "de6c1feafc81a08e55f79cf0f8ae8262e007c9c271bfddb4c65b4c85ec83735b"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10316,
+        "encoded_sha256": "3b85b537d13585730e4af7e1fe0316b77b6a633e77f5dea0ca8c6c1820e8c18a"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 37550,
+        "decoded_sha256": "59db829a0a4e4383e04bdf05911601640c2a273671330e8046c5187c0c7587f5"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "03-slayer-shield-crush",
+      "archetype": "shield-attack",
+      "mechanics": [
+        "melee",
+        "shield-attack"
+      ],
+      "account": "explosivebees-4852",
+      "character": "rrrocas",
+      "class": "Slayer",
+      "level": 100,
+      "files": {
+        "raw_response": "03-slayer-shield-crush.json",
+        "fetch_metadata": "03-slayer-shield-crush.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 180805,
+        "sha256": "82c24963d4b5e709715311405bfe126303a9f6d4332e21f81a88f520d50cb8ba"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 11832,
+        "encoded_sha256": "975400b958d6d1a1b0d85bf0b84bc92d774cb64ea25535cd43ca57498874cebd"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 41373,
+        "decoded_sha256": "18d7a77395956c0fccf8cd48a92b9e343f6c27fd5aef169bb462cf4e60e5637e"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "04-deadeye-kinetic-blast",
+      "archetype": "projectile-attack",
+      "mechanics": [
+        "projectile",
+        "mapping-oriented"
+      ],
+      "account": "fanfon3-0737",
+      "character": "fanfon",
+      "class": "Deadeye",
+      "level": 100,
+      "files": {
+        "raw_response": "04-deadeye-kinetic-blast.json",
+        "fetch_metadata": "04-deadeye-kinetic-blast.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 215451,
+        "sha256": "cbeae2a4f04aa6f57787c599d8275d49375ee881e3d664ff868bddbf9cb26004"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 13040,
+        "encoded_sha256": "f073913e5a9e05fe2c764d569fb53b662e3244d50bec0840d7b8f236673f5d3d"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 48631,
+        "decoded_sha256": "c38329352b063cc6b902a0258f8e4b0cc83a6d2b56503ef1cf3b60830c2e49dc"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "05-ascendant-ci-support",
+      "archetype": "ci-low-life-support",
+      "mechanics": [
+        "chaos-inoculation",
+        "low-life",
+        "support"
+      ],
+      "account": "Mikle-3761",
+      "character": "Misha",
+      "class": "Ascendant",
+      "level": 100,
+      "files": {
+        "raw_response": "05-ascendant-ci-support.json",
+        "fetch_metadata": "05-ascendant-ci-support.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 168905,
+        "sha256": "1edb30bb2a7175099c66c66fa4c415788f47373713d831d8d93c0d7398040dd1"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 11468,
+        "encoded_sha256": "899bf839519781cc9103f0d964a4e3448606d9330bfadbdddce91b625be93425"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 44724,
+        "decoded_sha256": "ec460ccc5305c1cc1842c751c4e2bd472de5f4712770625c7b9c345a341301c8"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "06-inquisitor-coc-ice-spear",
+      "archetype": "trigger-cast-on-crit",
+      "mechanics": [
+        "trigger",
+        "cast-on-critical-strike",
+        "bossing-oriented"
+      ],
+      "account": "iDei-1549",
+      "character": "CreatinyAfterlightBad",
+      "class": "Inquisitor",
+      "level": 98,
+      "files": {
+        "raw_response": "06-inquisitor-coc-ice-spear.json",
+        "fetch_metadata": "06-inquisitor-coc-ice-spear.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 178561,
+        "sha256": "d6deacbdc4e0fdd91f52ad1ff1e4c9fec910ceaaafa8758979656f8ed3e2a98a"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10708,
+        "encoded_sha256": "1f98ff7f8aa4e91b13c7ca2b807b33b8afff49372f91c6fb6a8f65518aafd482"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 37609,
+        "decoded_sha256": "3697b549334ea094275200a440b35b93eb743ede0deb25f3e910a77420e559fc"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "07-pathfinder-scourge-arrow",
+      "archetype": "poison-bow",
+      "mechanics": [
+        "projectile",
+        "poison",
+        "mapping-oriented"
+      ],
+      "account": "Belirs-4934",
+      "character": "RaiderFixEuServers",
+      "class": "Pathfinder",
+      "level": 97,
+      "files": {
+        "raw_response": "07-pathfinder-scourge-arrow.json",
+        "fetch_metadata": "07-pathfinder-scourge-arrow.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 138528,
+        "sha256": "1d1e6d7d7f7ce950fb2ff1658ca0b9cad525f421bf07dc631c09207f5e13b8a4"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10396,
+        "encoded_sha256": "f2a89f36b9209dda5e44cbafed389ac2f43221296252d9ff9e14ff2128c21e19"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 35595,
+        "decoded_sha256": "2532ee3734017de30a6561e1523d7ef50a8145e7c82b35a0f24f0a252c75478b"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "08-occultist-soulrend",
+      "archetype": "chaos-spell",
+      "mechanics": [
+        "chaos",
+        "spell",
+        "damage-over-time"
+      ],
+      "account": "Lepsutin-6118",
+      "character": "ChaosBoio",
+      "class": "Occultist",
+      "level": 97,
+      "files": {
+        "raw_response": "08-occultist-soulrend.json",
+        "fetch_metadata": "08-occultist-soulrend.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 147112,
+        "sha256": "0abde8fb06ec9f3f96eb3a2c9a36e6fe95d5fbef44a2b42e0048af119862ee7a"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10792,
+        "encoded_sha256": "3863bdac6ffda7faff6d42736a381094f3ea6b12fea872c15e8c0479d257839f"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38480,
+        "decoded_sha256": "b2cae094235ed62b034586670a56f27638f8250e2abfd5b2c7901e4f4aa1a566"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "09-slayer-dual-strike",
+      "archetype": "dual-wield-melee",
+      "mechanics": [
+        "melee",
+        "dual-wield"
+      ],
+      "account": "ShinX_-4985",
+      "character": "Dippiebeavermelon",
+      "class": "Slayer",
+      "level": 97,
+      "files": {
+        "raw_response": "09-slayer-dual-strike.json",
+        "fetch_metadata": "09-slayer-dual-strike.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 149737,
+        "sha256": "d6807ed89cb528788f9bdec174c67e195ba4f88799a51ed37e99a5ac88ea4b7a"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10796,
+        "encoded_sha256": "a26e6b087dc1169ae85d0d2c7a4f20f2f2b9c117a18b2c725ee02327456350a7"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38094,
+        "decoded_sha256": "a83fd8e6662f54656ea567cc1f5c44428f6a306f352c7662728f101bcee1159e"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "10-hierophant-kinetic-fusillade",
+      "archetype": "attack-totem",
+      "mechanics": [
+        "totem",
+        "projectile"
+      ],
+      "account": "Botyara2-6364",
+      "character": "wRunnflamewolyfombu",
+      "class": "Hierophant",
+      "level": 97,
+      "files": {
+        "raw_response": "10-hierophant-kinetic-fusillade.json",
+        "fetch_metadata": "10-hierophant-kinetic-fusillade.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 194800,
+        "sha256": "4e49b491d9a1b1940662a42e68e191025c14db93d11bc4cacb0c64cc9a886c40"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 11956,
+        "encoded_sha256": "33fd399155be59b6ea584a450e0b1bffc842e52244ad1c050fabe60d084b9cb0"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 47498,
+        "decoded_sha256": "54c8040b15e3a600ea4397732143536b7c3f100d8aacd3339a2bfd677819a165"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "11-guardian-dominating-blow",
+      "archetype": "dominating-blow-minion",
+      "mechanics": [
+        "minion",
+        "melee",
+        "bossing-oriented"
+      ],
+      "account": "arminyou-4843",
+      "character": "Dominating_Blow_Job__",
+      "class": "Guardian",
+      "level": 97,
+      "files": {
+        "raw_response": "11-guardian-dominating-blow.json",
+        "fetch_metadata": "11-guardian-dominating-blow.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 163163,
+        "sha256": "77b8f73ec3a5cfb22abf4adf32ff4215e5de00f8177db2c14b28c15e0a0590b5"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 12252,
+        "encoded_sha256": "79b2c0dd39a07c5abaa0e7dc12c0a3de7883dc972738e47b1c411a91c4eb75c9"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 46435,
+        "decoded_sha256": "77e1da9a182a2c97cf42bdf69d7ec486967f380f619b21d28edb7c797bd12125"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "12-elementalist-ci-cold-snap",
+      "archetype": "ci-cold-dot",
+      "mechanics": [
+        "chaos-inoculation",
+        "low-life",
+        "cold-damage-over-time"
+      ],
+      "account": "Jezie-4328",
+      "character": "JungroanCoolGirl",
+      "class": "Elementalist",
+      "level": 97,
+      "files": {
+        "raw_response": "12-elementalist-ci-cold-snap.json",
+        "fetch_metadata": "12-elementalist-ci-cold-snap.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 201795,
+        "sha256": "eb11289453b18425b39b40a440df3e43b494ea7d3d7b1fbe94018862c973732b"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 12544,
+        "encoded_sha256": "0c30a3edca6fcaf81333d62c4d3358bd3849b04b40415e030029ca7dd64d1e6b"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 45718,
+        "decoded_sha256": "71305024117b9d66f39c951e3f568cfd9c126349dffce9417a7962d849cfa5fd"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "13-ascendant-icicle-mine",
+      "archetype": "mine",
+      "mechanics": [
+        "mine",
+        "projectile",
+        "bossing-oriented"
+      ],
+      "account": "d4FnUmaVX0-7611",
+      "character": "Konfetkathree",
+      "class": "Ascendant",
+      "level": 97,
+      "files": {
+        "raw_response": "13-ascendant-icicle-mine.json",
+        "fetch_metadata": "13-ascendant-icicle-mine.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 149110,
+        "sha256": "345e8317624df06f5ac893ac7c06d076a39b94f8c38607935065f51937de7951"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 11212,
+        "encoded_sha256": "356521948d4af4bb8ab34ed873d960a335590e2c943e53a96e764a92ce24a324"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38285,
+        "decoded_sha256": "69e4ab490ccaa38e85247e2c521dc6583dbbc6eb29a1c15b75adadffd5deb4a2"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "14-inquisitor-penance-brand",
+      "archetype": "penance-brand",
+      "mechanics": [
+        "brand",
+        "spell",
+        "bossing-oriented"
+      ],
+      "account": "conheomaps69-6761",
+      "character": "AL_Seo",
+      "class": "Inquisitor",
+      "level": 96,
+      "files": {
+        "raw_response": "14-inquisitor-penance-brand.json",
+        "fetch_metadata": "14-inquisitor-penance-brand.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 183285,
+        "sha256": "68fa618c01b8b33034d6b4f6de95e47141e3f38347884271258fe40671ecb463"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 12252,
+        "encoded_sha256": "6ffe0f036a3d88333c33362926555f438502954d69ada63215692dceac3a4d14"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 49653,
+        "decoded_sha256": "a5fb0f30d0d3f93fcec682ff4f8c902b470065eff9175f714e88aadb167c6f31"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    },
+    {
+      "id": "15-guardian-absolution",
+      "archetype": "absolution-minion",
+      "mechanics": [
+        "minion",
+        "spell",
+        "bossing-oriented"
+      ],
+      "account": "Jak_sn-3120",
+      "character": "Allflame_Jaksn",
+      "class": "Guardian",
+      "level": 96,
+      "files": {
+        "raw_response": "15-guardian-absolution.json",
+        "fetch_metadata": "15-guardian-absolution.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 194314,
+        "sha256": "06fe7c0c230ea102cab8e50fb3a2eec7f55eed172be7f6b66124fc2af0bd0d0c"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 13900,
+        "encoded_sha256": "0fe14f7179c548bfa8bf60bf3b9c4ec08a29be9077c4b31354b8ed8acc435444"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 54463,
+        "decoded_sha256": "97b25ecff04bc8953eff6e84026028df0de0caf68bd5e77258002110a99a21d9"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": {
+          "kind": "input",
+          "value": "1"
+        }
+      }
+    }
+  ]
+}
