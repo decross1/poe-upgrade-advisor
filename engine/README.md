@@ -47,6 +47,18 @@ python3 engine/bench/benchmark_worker.py \
 ```
 The command exits nonzero when p95 is not below the 150 ms TASK-101 budget.
 
+ADR-0005 parity work uses the preset-free stats surface, which loads the
+export's active ConfigSet verbatim and returns the recalculated PlayerStat
+vector:
+```
+engine/pobcalc stats --build build.xml --json
+python3 engine/parity_harness.py
+```
+The parity harness is offline: it reads only the 15 frozen poe.ninja responses
+under `corpus/seed/ninja/`, runs its corrupted-stat and identity-mismatch
+canaries, checks 10 byte-identical runs in two locales, and writes
+`reports/ninja-parity.json`.
+
 ## corpus/ — the differential oracle
 ~100 builds × swaps, including adversarial ones (mines, triggers, minion hybrids,
 CI/LL, totems). `run_corpus.sh` executes all and diffs against recorded desktop-PoB

@@ -62,11 +62,37 @@ local function metricsJson(value)
 		.. ',"ehp":' .. jsonNumber(value.ehp) .. '}'
 end
 
+local function sortedKeys(value)
+	local keys = { }
+	for key in pairs(value) do
+		table.insert(keys, key)
+	end
+	table.sort(keys)
+	return keys
+end
+
+local function playerStatsJson(value)
+	local parts = { }
+	for _, key in ipairs(sortedKeys(value)) do
+		table.insert(parts, jsonString(key) .. ":" .. jsonNumber(value[key]))
+	end
+	return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function identityJson(value)
+	return '{"base_class":' .. jsonString(value.base_class)
+		.. ',"ascendancy":' .. jsonString(value.ascendancy)
+		.. ',"level":' .. jsonNumber(value.level) .. '}'
+end
+
 local cachedBuildPath
 local cachedBuildXml
 local cachedPreset
 local cachedCalculate
 local cachedBaselineOutput
+local cachedStatsBuildPath
+local cachedStatsBuildXml
+local cachedStatsJson
 
 local function prepareCalculation(requestBuildPath, requestPreset)
 	local buildXml = readAll(requestBuildPath)
@@ -118,8 +144,49 @@ local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
 		.. '}'
 end
 
+local function calculateStats(requestBuildPath)
+	local buildXml = readAll(requestBuildPath)
+	if requestBuildPath == cachedStatsBuildPath
+			and buildXml == cachedStatsBuildXml then
+		return cachedStatsJson
+	end
+
+	loadBuildFromXML(buildXml, requestBuildPath)
+	build.calcsTab:BuildOutput()
+	local savedBuild = { elem = "Build" }
+	build:Save(savedBuild)
+	local stats = { }
+	for _, node in ipairs(savedBuild) do
+		if node.elem == "PlayerStat" then
+			local name = node.attrib.stat
+			local value = tonumber(node.attrib.value)
+			if not name or value == nil then
+				error("non-numeric PlayerStat emitted by Path of Building")
+			end
+			if stats[name] ~= nil and stats[name] ~= value then
+				error("conflicting duplicate PlayerStat emitted by Path of Building: " .. name)
+			end
+			stats[name] = value
+		end
+	end
+	local identity = {
+		base_class = savedBuild.attrib.className,
+		ascendancy = savedBuild.attrib.ascendClassName,
+		level = tonumber(savedBuild.attrib.level),
+	}
+	local result = '{"identity":' .. identityJson(identity)
+		.. ',"player_stats":' .. playerStatsJson(stats) .. '}'
+	cachedStatsBuildPath = requestBuildPath
+	cachedStatsBuildXml = buildXml
+	cachedStatsJson = result
+	return result
+end
+
 local function oneShot()
 	local ok, result = xpcall(function()
+		if buildPath == "--stats" then
+			return calculateStats(itemPath)
+		end
 		return calculateDiff(buildPath, itemPath, preset)
 	end, debug.traceback)
 
@@ -143,11 +210,16 @@ local function serve()
 		local response
 		if decodeError or type(request) ~= "table" then
 			response = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}'
-		elseif request.jsonrpc ~= "2.0" or request.method ~= "diff" or type(request.params) ~= "table" then
+		elseif request.jsonrpc ~= "2.0"
+				or (request.method ~= "diff" and request.method ~= "stats")
+				or type(request.params) ~= "table" then
 			response = '{"jsonrpc":"2.0","id":' .. idJson
 				.. ',"error":{"code":-32600,"message":"Invalid Request"}}'
 		else
 			local ok, result = xpcall(function()
+				if request.method == "stats" then
+					return calculateStats(request.params.build)
+				end
 				return calculateDiff(
 					request.params.build,
 					request.params.item,

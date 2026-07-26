@@ -3,31 +3,37 @@ set -euo pipefail
 
 usage() {
   echo "usage: pobcalc diff --build BUILD.xml --item ITEM.txt --preset PRESET --json" >&2
+  echo "       pobcalc stats --build BUILD.xml --json" >&2
   echo "       pobcalc serve" >&2
   exit 64
 }
 
 mode=${1:-}
-[[ $mode == "diff" || $mode == "serve" ]] || usage
+[[ $mode == "diff" || $mode == "stats" || $mode == "serve" ]] || usage
 shift
 
 build=
 item=
 preset=
 json=false
-if [[ $mode == "diff" ]]; then
+if [[ $mode == "diff" || $mode == "stats" ]]; then
   while (($#)); do
     case "$1" in
       --build) [[ $# -ge 2 ]] || usage; build=$2; shift 2 ;;
-      --item) [[ $# -ge 2 ]] || usage; item=$2; shift 2 ;;
-      --preset) [[ $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
+      --item) [[ $mode == "diff" && $# -ge 2 ]] || usage; item=$2; shift 2 ;;
+      --preset) [[ $mode == "diff" && $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
       --json) json=true; shift ;;
       *) usage ;;
     esac
   done
-  [[ -n $build && -f $build && -n $item && -f $item && -n $preset && $json == true ]] || usage
+  [[ -n $build && -f $build && $json == true ]] || usage
+  if [[ $mode == "diff" ]]; then
+    [[ -n $item && -f $item && -n $preset ]] || usage
+  fi
   build=$(realpath "$build")
-  item=$(realpath "$item")
+  if [[ -n $item ]]; then
+    item=$(realpath "$item")
+  fi
 else
   (($# == 0)) || usage
 fi
@@ -62,6 +68,8 @@ preset_config=$(python3 "$root/engine/preset_config.py")
 lua_args=("$build" "$item" "$preset" "$preset_config")
 if [[ $mode == "serve" ]]; then
   lua_args=(--serve "" "" "$preset_config")
+elif [[ $mode == "stats" ]]; then
+  lua_args=(--stats "$build" "" "$preset_config")
 fi
 
 (

@@ -1,0 +1,435 @@
+#!/usr/bin/env python3
+"""Offline poe.ninja PlayerStat parity harness for ADR-0005."""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import copy
+from decimal import Decimal
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import time
+from typing import NamedTuple
+import xml.etree.ElementTree as ET
+import zlib
+
+
+ROOT = Path(__file__).resolve().parents[1]
+CORPUS = ROOT / "engine" / "corpus" / "seed" / "ninja"
+CLI = ROOT / "engine" / "pobcalc"
+DEFAULT_REPORT = ROOT / "engine" / "reports" / "ninja-parity.json"
+
+
+class HarnessError(RuntimeError):
+    """A corpus invariant or engine request failed."""
+
+
+class CorpusCase(NamedTuple):
+    case_id: str
+    raw_path: Path
+    raw: dict
+    xml: bytes
+    expected_stats: dict[str, str]
+    identity: dict[str, object]
+    config_sha256: str
+
+
+def _sha256(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _decode_export(encoded: str) -> bytes:
+    try:
+        padded = encoded + "=" * (-len(encoded) % 4)
+        return zlib.decompress(base64.urlsafe_b64decode(padded))
+    except (ValueError, zlib.error) as exc:
+        raise HarnessError(f"invalid pathOfBuildingExport: {exc}") from exc
+
+
+def _active_config_sha256(root: ET.Element) -> str:
+    config = root.find("Config")
+    if config is None:
+        raise HarnessError("export has no Config section")
+    active_id = config.attrib.get("activeConfigSet", "1")
+    active = next(
+        (
+            node
+            for node in config.findall("ConfigSet")
+            if node.attrib.get("id") == active_id
+        ),
+        None,
+    )
+    if active is None:
+        raise HarnessError(f"active ConfigSet {active_id!r} is missing")
+    return _sha256(ET.tostring(active, encoding="utf-8"))
+
+
+def _export_data(xml: bytes) -> tuple[dict[str, object], dict[str, str], str]:
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as exc:
+        raise HarnessError(f"invalid export XML: {exc}") from exc
+    if root.tag != "PathOfBuilding":
+        raise HarnessError(f"unexpected export root: {root.tag}")
+    build = root.find("Build")
+    if build is None:
+        raise HarnessError("export has no Build section")
+    try:
+        identity: dict[str, object] = {
+            "base_class": build.attrib["className"],
+            "ascendancy": build.attrib["ascendClassName"],
+            "level": int(build.attrib["level"]),
+        }
+    except (KeyError, ValueError) as exc:
+        raise HarnessError(f"invalid export identity: {exc}") from exc
+    stats: dict[str, str] = {}
+    for node in build.findall("PlayerStat"):
+        name = node.attrib.get("stat")
+        value = node.attrib.get("value")
+        if not name or value is None:
+            raise HarnessError("malformed PlayerStat in export")
+        if name in stats:
+            if stats[name] != value:
+                raise HarnessError(f"conflicting duplicate PlayerStat in export: {name}")
+            continue
+        try:
+            Decimal(value)
+        except Exception as exc:
+            raise HarnessError(f"non-numeric PlayerStat {name}: {value}") from exc
+        stats[name] = value
+    if not stats:
+        raise HarnessError("export has no PlayerStat values")
+    return identity, stats, _active_config_sha256(root)
+
+
+def _validate_identity(
+    raw: dict, export_identity: dict[str, object], case_id: str
+) -> None:
+    expected = {
+        "base_class": raw.get("baseClass"),
+        "ascendancy": raw.get("ascendancyClassName"),
+        "level": raw.get("level"),
+    }
+    if expected != export_identity:
+        raise HarnessError(
+            f"{case_id}: JSON/export identity mismatch: "
+            f"json={expected!r} export={export_identity!r}"
+        )
+
+
+def load_cases(corpus: Path = CORPUS) -> tuple[dict, list[CorpusCase]]:
+    manifest = json.loads((corpus / "manifest.json").read_bytes())
+    cases = []
+    for entry in manifest["entries"]:
+        case_id = entry["id"]
+        raw_path = corpus / entry["files"]["raw_response"]
+        raw_bytes = raw_path.read_bytes()
+        if _sha256(raw_bytes) != entry["fetch"]["sha256"]:
+            raise HarnessError(f"{case_id}: raw response hash mismatch")
+        raw = json.loads(raw_bytes)
+        encoded = raw.get("pathOfBuildingExport")
+        if not isinstance(encoded, str):
+            raise HarnessError(f"{case_id}: pathOfBuildingExport is missing")
+        if _sha256(encoded.encode()) != entry["export"]["encoded_sha256"]:
+            raise HarnessError(f"{case_id}: encoded export hash mismatch")
+        xml = _decode_export(encoded)
+        if _sha256(xml) != entry["parse"]["decoded_sha256"]:
+            raise HarnessError(f"{case_id}: decoded export hash mismatch")
+        identity, stats, config_sha256 = _export_data(xml)
+        _validate_identity(raw, identity, case_id)
+        cases.append(
+            CorpusCase(
+                case_id,
+                raw_path,
+                raw,
+                xml,
+                stats,
+                identity,
+                config_sha256,
+            )
+        )
+    if len(cases) != manifest["selection"]["count"]:
+        raise HarnessError("manifest selection count does not match entries")
+    return manifest, cases
+
+
+def _printed_half_ulp(value: str) -> Decimal:
+    decimal_value = Decimal(value)
+    return Decimal(5).scaleb(decimal_value.as_tuple().exponent - 1)
+
+
+def compare_stats(
+    expected: dict[str, str], actual: dict[str, object]
+) -> tuple[list[dict], dict[str, int], list[str]]:
+    cells = []
+    counts = {"exact": 0, "<=0.1%": 0, "<=1%": 0, "OVER": 0}
+    for name in sorted(expected):
+        expected_text = expected[name]
+        expected_value = Decimal(expected_text)
+        actual_raw = actual.get(name)
+        if not isinstance(actual_raw, (int, float)) or not math.isfinite(actual_raw):
+            cell = {
+                "stat": name,
+                "expected": float(expected_value),
+                "actual": None,
+                "absolute_delta": None,
+                "relative_delta": None,
+                "band": "OVER",
+            }
+        else:
+            actual_value = Decimal(str(actual_raw))
+            delta = abs(actual_value - expected_value)
+            if delta <= _printed_half_ulp(expected_text):
+                band = "exact"
+                relative = Decimal(0)
+            elif expected_value == 0:
+                band = "OVER"
+                relative = None
+            else:
+                relative = delta / abs(expected_value)
+                if relative <= Decimal("0.001"):
+                    band = "<=0.1%"
+                elif relative <= Decimal("0.01"):
+                    band = "<=1%"
+                else:
+                    band = "OVER"
+            cell = {
+                "stat": name,
+                "expected": float(expected_value),
+                "actual": float(actual_value),
+                "absolute_delta": float(delta),
+                "relative_delta": None if relative is None else float(relative),
+                "band": band,
+            }
+        counts[cell["band"]] += 1
+        cells.append(cell)
+    extras = sorted(set(actual) - set(expected))
+    return cells, counts, extras
+
+
+def run_self_test(case: CorpusCase) -> dict[str, str]:
+    corrupted = dict(case.expected_stats)
+    stat = sorted(corrupted)[0]
+    corrupted[stat] = str(Decimal(corrupted[stat]) + Decimal("1000000"))
+    _, counts, _ = compare_stats(corrupted, {stat: float(case.expected_stats[stat])})
+    if counts["OVER"] == 0:
+        raise HarnessError("corrupted-stat canary did not fail")
+
+    mismatched = copy.deepcopy(case.raw)
+    mismatched["level"] = int(mismatched["level"]) + 1
+    try:
+        _validate_identity(mismatched, case.identity, case.case_id)
+    except HarnessError:
+        pass
+    else:
+        raise HarnessError("JSON/export identity canary did not abort")
+    return {"corrupted_stat": "passed", "identity_mismatch": "passed"}
+
+
+class Worker:
+    def __init__(self, locale: str = "C"):
+        environment = os.environ.copy()
+        environment["LC_ALL"] = locale
+        self.process = subprocess.Popen(
+            [CLI, "serve"],
+            cwd=ROOT,
+            env=environment,
+            text=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.request_id = 0
+
+    def stats(self, build: Path) -> tuple[dict, str]:
+        self.request_id += 1
+        request = {
+            "jsonrpc": "2.0",
+            "id": self.request_id,
+            "method": "stats",
+            "params": {"build": str(build)},
+        }
+        if self.process.stdin is None or self.process.stdout is None:
+            raise HarnessError("engine worker pipes are unavailable")
+        self.process.stdin.write(json.dumps(request, separators=(",", ":")) + "\n")
+        self.process.stdin.flush()
+        line = self.process.stdout.readline()
+        if not line:
+            stderr = self.process.stderr.read() if self.process.stderr else ""
+            raise HarnessError(f"engine worker exited early: {stderr}")
+        response = json.loads(line)
+        if "error" in response:
+            raise HarnessError(f"engine request failed: {response['error']}")
+        return response["result"], line
+
+    def close(self) -> None:
+        if self.process.stdin:
+            self.process.stdin.close()
+        try:
+            self.process.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            self.process.terminate()
+            self.process.wait(timeout=5)
+        if self.process.returncode:
+            stderr = self.process.stderr.read() if self.process.stderr else ""
+            raise HarnessError(
+                f"engine worker exited with {self.process.returncode}: {stderr}"
+            )
+        if self.process.stdout:
+            self.process.stdout.close()
+        if self.process.stderr:
+            self.process.stderr.close()
+
+    def __enter__(self) -> Worker:
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
+
+
+def _available_locales() -> list[str]:
+    result = subprocess.run(
+        ["locale", "-a"], check=True, text=True, capture_output=True
+    )
+    locales = result.stdout.splitlines()
+    choices = []
+    for preferred in ("C", "C.utf8", "C.UTF-8"):
+        if preferred in locales and preferred not in choices:
+            choices.append(preferred)
+    if len(choices) < 2:
+        choices.extend(locale for locale in locales if locale not in choices)
+    if len(choices) < 2:
+        raise HarnessError("two installed locales are required for determinism gate")
+    return choices[:2]
+
+
+def _assert_engine_identity(case: CorpusCase, actual: dict) -> None:
+    if actual != case.identity:
+        raise HarnessError(
+            f"{case.case_id}: export/engine identity mismatch: "
+            f"export={case.identity!r} engine={actual!r}"
+        )
+
+
+def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
+    manifest, cases = load_cases()
+    self_test = run_self_test(cases[0])
+    case_files: dict[str, Path] = {}
+    with tempfile.TemporaryDirectory(prefix="pob-parity-") as temporary:
+        temp = Path(temporary)
+        for case in cases:
+            path = temp / f"{case.case_id}.xml"
+            path.write_bytes(case.xml)
+            case_files[case.case_id] = path
+
+        locales = _available_locales()
+        reference_lines = []
+        for locale in locales:
+            with Worker(locale) as worker:
+                locale_lines = []
+                for _ in range(10):
+                    actual, line = worker.stats(case_files[cases[0].case_id])
+                    _assert_engine_identity(cases[0], actual["identity"])
+                    locale_lines.append(line.split('"result":', 1)[1])
+                if len(set(locale_lines)) != 1:
+                    raise HarnessError(
+                        f"engine output is not byte deterministic under {locale}"
+                    )
+                reference_lines.append(locale_lines[0])
+        if len(set(reference_lines)) != 1:
+            raise HarnessError("engine output differs between locales")
+
+        results = []
+        total_counts = {"exact": 0, "<=0.1%": 0, "<=1%": 0, "OVER": 0}
+        latencies_ms = []
+        with Worker("C") as worker:
+            worker.stats(case_files[cases[0].case_id])
+            for case in cases:
+                started = time.perf_counter_ns()
+                actual, _ = worker.stats(case_files[case.case_id])
+                elapsed_ms = (time.perf_counter_ns() - started) / 1_000_000
+                latencies_ms.append(elapsed_ms)
+                _assert_engine_identity(case, actual["identity"])
+                cells, counts, extras = compare_stats(
+                    case.expected_stats, actual["player_stats"]
+                )
+                for band in total_counts:
+                    total_counts[band] += counts[band]
+                results.append(
+                    {
+                        "id": case.case_id,
+                        "config_set_sha256": case.config_sha256,
+                        "warm_latency_ms": round(elapsed_ms, 6),
+                        "band_counts": counts,
+                        "extra_engine_stats": extras,
+                        "stats": cells,
+                    }
+                )
+
+    ordered_latencies = sorted(latencies_ms)
+    p95_index = math.ceil(0.95 * len(ordered_latencies)) - 1
+    report = {
+        "schema_version": 1,
+        "task": "TASK-101",
+        "adr": "ADR-0005",
+        "oracle": {
+            "provider": "poe.ninja frozen character exports",
+            "snapshot_version": manifest["source"]["version"],
+            "build_count": len(cases),
+            "expected_vector": "pathOfBuildingExport/Build/PlayerStat",
+            "config_policy": "embedded active ConfigSet loaded verbatim; no product preset",
+        },
+        "self_test": self_test,
+        "determinism": {
+            "runs_per_locale": 10,
+            "locales": locales,
+            "byte_identical": True,
+        },
+        "summary": {
+            "compared_cells": sum(total_counts.values()),
+            "band_counts": total_counts,
+            "warm_p95_ms": round(ordered_latencies[p95_index], 6),
+            "warm_p95_limit_ms": 150,
+            "warm_p95_pass": ordered_latencies[p95_index] < 150,
+            "over_band_pass": total_counts["OVER"] == 0,
+        },
+        "builds": results,
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument(
+        "--self-test-only",
+        action="store_true",
+        help="run corpus-integrity and canary checks without starting PoB",
+    )
+    args = parser.parse_args()
+    try:
+        if args.self_test_only:
+            _, cases = load_cases()
+            print(json.dumps(run_self_test(cases[0]), sort_keys=True))
+            return 0
+        report = run_harness(args.report)
+    except HarnessError as exc:
+        print(f"parity-harness: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(report["summary"], sort_keys=True))
+    return 0 if report["summary"]["over_band_pass"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
