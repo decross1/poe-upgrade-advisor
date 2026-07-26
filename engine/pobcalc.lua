@@ -44,15 +44,15 @@ local function metricsJson(value)
 		.. ',"ehp":' .. jsonNumber(value.ehp) .. '}'
 end
 
-local ok, result = xpcall(function()
-	if preset ~= "mapping" and preset ~= "bossing" and preset ~= "balanced" then
-		error("unsupported preset: " .. tostring(preset))
+local function calculateDiff(requestBuildPath, requestItemPath, requestPreset)
+	if requestPreset ~= "mapping" and requestPreset ~= "bossing" and requestPreset ~= "balanced" then
+		error("unsupported preset: " .. tostring(requestPreset))
 	end
 
-	loadBuildFromXML(readAll(buildPath), buildPath)
+	loadBuildFromXML(readAll(requestBuildPath), requestBuildPath)
 	build.calcsTab:BuildOutput()
 
-	local candidateItem = new("Item", readAll(itemPath))
+	local candidateItem = new("Item", readAll(requestItemPath))
 	if not candidateItem.base then
 		error("candidate item has an unknown or invalid base")
 	end
@@ -76,10 +76,60 @@ local ok, result = xpcall(function()
 		.. ',"slot":' .. jsonString(slot)
 		.. ',"breakdown_ref":' .. jsonString("pob://calcs/" .. slot)
 		.. '}'
-end, debug.traceback)
-
-if not ok then
-	io.stderr:write("pobcalc: " .. result .. "\n")
-	os.exit(70)
 end
-io.write(result, "\n")
+
+local function oneShot()
+	local ok, result = xpcall(function()
+		return calculateDiff(buildPath, itemPath, preset)
+	end, debug.traceback)
+
+	if not ok then
+		io.stderr:write("pobcalc: " .. result .. "\n")
+		os.exit(70)
+	end
+	io.write(result, "\n")
+end
+
+local function serve()
+	local json = require("dkjson")
+	for line in io.lines() do
+		local request, _, decodeError = json.decode(line, 1, nil)
+		local id = type(request) == "table" and request.id or nil
+		local idJson = "null"
+		if type(id) == "string" then
+			idJson = jsonString(id)
+		elseif type(id) == "number" then
+			idJson = jsonNumber(id)
+		end
+		local response
+		if decodeError or type(request) ~= "table" then
+			response = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}'
+		elseif request.jsonrpc ~= "2.0" or request.method ~= "diff" or type(request.params) ~= "table" then
+			response = '{"jsonrpc":"2.0","id":' .. idJson
+				.. ',"error":{"code":-32600,"message":"Invalid Request"}}'
+		else
+			local ok, result = xpcall(function()
+				return calculateDiff(
+					request.params.build,
+					request.params.item,
+					request.params.preset
+				)
+			end, debug.traceback)
+			if ok then
+				response = '{"jsonrpc":"2.0","id":' .. idJson .. ',"result":' .. result .. '}'
+			else
+				response = '{"jsonrpc":"2.0","id":' .. idJson
+					.. ',"error":{"code":-32602,"message":'
+					.. jsonString(result) .. '}}'
+			end
+		end
+		io.write(response, "\n")
+		io.flush()
+	end
+end
+
+if buildPath == "--serve" then
+	serve()
+else
+	oneShot()
+end

@@ -20,6 +20,14 @@ pobcalc diff --build build.xml --item item.txt --preset bossing --json
 Acceptance: matches desktop PoB numbers exactly for 5 hand-verified build+item
 pairs committed to `corpus/seed/`; warm-run < 150 ms; deterministic across runs.
 
+For warm invocations, start `pobcalc serve` once and send one JSON-RPC 2.0
+request per line:
+```
+{"jsonrpc":"2.0","id":"1","method":"diff","params":{"build":"/abs/build.xml","item":"/abs/item.txt","preset":"bossing"}}
+```
+The worker emits one response per line and flushes it immediately. Keeping the
+worker alive excludes PoB initialization from per-diff latency measurements.
+
 ## corpus/ — the differential oracle
 ~100 builds × swaps, including adversarial ones (mines, triggers, minion hybrids,
 CI/LL, totems). `run_corpus.sh` executes all and diffs against recorded desktop-PoB
