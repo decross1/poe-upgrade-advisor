@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import http.client
 import mimetypes
+import platform
 import sys
 import threading
 import webbrowser
@@ -195,13 +196,12 @@ def main() -> None:
         from server.calculator import WorkerUnavailable
 
         if isinstance(exc, WorkerUnavailable):
+            host_platform = f"{platform.system()} {platform.machine()}".strip()
             sys.exit(
                 "error: the calculation engine could not start on this "
-                f"machine ({exc}).\nThis download has no working engine "
-                "runtime for your platform. Windows x86-64 is the shipping "
-                "platform (issue #75): early fast-follow zips ship the "
-                "runtime as a stub on purpose — grab the latest zip. No "
-                "verdict will ever be guessed; please report this in #poe."
+                f"machine ({exc}).\nNo verdict was produced. The bundled "
+                f"runtime is missing or unsupported on {host_platform}. "
+                "Re-download the app and report this in #poe if it continues."
             )
         raise
     url = f"http://{HOST}:{public.server_address[1]}/"

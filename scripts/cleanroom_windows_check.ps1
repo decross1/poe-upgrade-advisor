@@ -156,6 +156,10 @@ try {
         }
         if ($log -match "engine could not start") {
             Ok "honest failure message printed: $(($log -split "`n" | Select-String 'engine could not start' | Select-Object -First 1).Line.Trim())"
+        } elseif ($log -match "engine cannot start") {
+            # run.bat's runtime gate (lane A, #78) stops a stub zip before
+            # launch.py runs, with its own honest phrasing — same I5 contract.
+            Ok "honest failure message printed: $(($log -split "`n" | Select-String 'engine cannot start' | Select-Object -First 1).Line.Trim())"
         } else {
             Bad "honest 'engine could not start' message missing; server log follows"
             Write-Host $log

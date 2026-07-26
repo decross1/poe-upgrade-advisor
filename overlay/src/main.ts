@@ -39,5 +39,12 @@ app.whenReady().then(() => {
     }
   });
 
+  // I3 (§7): a chip tap in the renderer is one explicit user action — the
+  // flow alone decides whether it becomes a /diff (S2; taps outside the
+  // VERDICT phase or on display-only chips are swallowed there).
+  ipcMain.on("overlay:chip-tap", (_event, assumption: Parameters<typeof flow.onChipTap>[0]) => {
+    void flow.onChipTap(assumption);
+  });
+
   app.on("will-quit", unregisterAllHotkeys);
 });

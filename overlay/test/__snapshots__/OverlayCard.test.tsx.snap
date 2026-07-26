@@ -1,5 +1,336 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`snapshot matrix — chip session states (§9 rows 9 and 11, issue #64) > 9. overridden-chip style — sidegrade_balanced with config.chill_from_setup overridden 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--sidegrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--sidegrade"
+    >
+      SIDEGRADE
+    </span>
+    <span
+      class="low-confidence-badge"
+    >
+      ◦ low confidence
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 4.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +1.1%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 3.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −0.9%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Comparable overall: a touch more cold damage for a touch less evasion. Flip an assumption if this looks off.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Ice Shot
+    </span>
+    <button
+      class="chip chip--overridden"
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="chip-revert"
+      >
+        ↺
+         
+      </span>
+      enemy chilled
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-c47a1f55"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — chip session states (§9 rows 9 and 11, issue #64) > 11. REDIFFING — pending chip spins, whole strip disabled (§8.3, S2) 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--sidegrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--sidegrade"
+    >
+      SIDEGRADE
+    </span>
+    <span
+      class="low-confidence-badge"
+    >
+      ◦ low confidence
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 4.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +1.1%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 3.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −0.9%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Comparable overall: a touch more cold damage for a touch less evasion. Flip an assumption if this looks off.
+    "
+  </p>
+  <div
+    aria-busy="true"
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      aria-disabled="true"
+      class="chip"
+    >
+      skill: Ice Shot
+    </span>
+    <button
+      aria-busy="true"
+      aria-label="enemy chilled"
+      class="chip chip--pending"
+      disabled=""
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="chip-spinner"
+      />
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-c47a1f55"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — chip session states (§9 rows 9 and 11, issue #64) > RULING-21: the transient message reuses the sentence slot (I2 element count intact) 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--sidegrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--sidegrade"
+    >
+      SIDEGRADE
+    </span>
+    <span
+      class="low-confidence-badge"
+    >
+      ◦ low confidence
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 4.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +1.1%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 3.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −0.9%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence verdict-sentence--transient"
+  >
+    Couldn't recompute — tap the chip to retry.
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Ice Shot
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      enemy chilled
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-c47a1f55"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
 exports[`snapshot matrix — fixture variants (§9 rows 5–8) > 5. CAN'T EVALUATE degraded minimal — edge_degraded_minimal.json 1`] = `
 <section
   aria-label="Upgrade verdict"

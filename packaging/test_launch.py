@@ -192,6 +192,22 @@ def test_run_bat_mirrors_run_sh_contract():
     assert "47791" not in bat and "http" not in bat.lower().replace("https://www.python.org", "")
 
 
+def test_run_bat_binds_and_smoke_tests_windows_runtime():
+    bat = (ROOT / "packaging" / "run.bat").read_text(encoding="ascii")
+
+    assert 'set "POBCALC_RUNTIME=%CD%\\engine\\.runtime"' in bat
+    for artifact in (
+        r"%POBCALC_RUNTIME%\bin\luajit.exe",
+        r"%POBCALC_RUNTIME%\bin\lua51.dll",
+        r"%POBCALC_RUNTIME%\lib\lua\5.1\lua-utf8.dll",
+    ):
+        assert f'if not exist "{artifact}" goto fail_engine' in bat
+    assert "require('lua-utf8')" in bat
+    assert "if errorlevel 1 goto fail_engine" in bat
+    assert 'if /I "%~1"=="--runtime-check-only" exit /b 0' in bat
+    assert "No verdict was produced." in bat
+
+
 def test_package_script_stages_all_launchers():
     script = (ROOT / "scripts" / "package_mvp.sh").read_text(encoding="utf-8")
     for artifact in ('"$STAGE/run.sh"', '"$STAGE/run.bat"'):
@@ -244,6 +260,7 @@ def test_launch_exits_honestly_when_engine_unavailable(tmp_path, monkeypatch, ca
         launch.main()
     message = str(excinfo.value)
     assert "calculation engine could not start" in message
+    assert "No verdict was produced" in message
     assert "#poe" in message  # tells the tester where to report
 
     def boom_other(*_args, **_kwargs):
