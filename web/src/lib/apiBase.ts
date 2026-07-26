@@ -11,11 +11,11 @@
  * contract changed: regenerate the client (PM-owned contract flow), never
  * hand-patch either side.
  *
- * The mock → real-skeleton switch is ONE LINE, no generated-code edits:
+ * The mock ↔ real-server switch is ONE LINE, no generated-code edits:
  * create web/.env.local with `VITE_API_BASE_URL=http://127.0.0.1:<port>/api/v0`
  * (vite inlines VITE_* vars at dev/build time). With no override at all, the
- * mock and the skeleton share the contract address, so the switch is: stop
- * the mock, start the skeleton — zero web changes.
+ * mock and the real server share the contract address, so the switch is: stop
+ * one, start the other — zero web changes.
  */
 import { OpenAPI } from "../generated/core/OpenAPI";
 

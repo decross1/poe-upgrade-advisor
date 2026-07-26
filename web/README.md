@@ -22,7 +22,7 @@ shell TASK-201 picks. `npm install && npm test` runs the suite with no server;
 - `src/lib/` — generated API types + pure presentation/override/session rules (every rule cites its spec ruling). `session.ts` is the TASK-204 card-session state machine (spec §7/§8): pure, no React, no network.
 - `src/components/` — `VerdictCard`, `DeltaBar`, `AssumptionsChip`, `CardStatus` (§8.1/8.2 LOADING/ERROR panels). Props in, payload callbacks out; no network, no engine/server imports (enforced by `test/sourceHygiene.test.ts`).
 - `src/session/` — TASK-204 wiring: `useCardSession` (the ONE hand-written place that touches the network, via the generated client only) + `SessionCard` (state-machine → component switch, §8.4).
-- `src/demo/` — live session harness (`npm run mock` + `npm run dev`): each picker entry is a "hotkey press" whose item text routes the fixture mock (`@fixture:`/`@error:` markers); chip taps issue real `POST /diff`s. Includes the details affordance's Tier-2 preview (the only place `cant_evaluate_reasons` render).
+- `src/demo/` — live session harness (`python3 -m server` from the repo root + `npm run dev`): each picker entry is a "hotkey press" evaluated by the REAL engine (golden item text, byte-identical to `engine/tests/fixtures/item.txt`); chip taps issue real `POST /diff`s. Includes the details affordance's Tier-2 preview (the only place `cant_evaluate_reasons` render). The TASK-206 fixture mock (`npm run mock`) remains for the all-verdict-states fixture demo.
 - `test/` — snapshot matrix (docs/specs/verdict_card.md §9 rows 1–11: card states in `VerdictCard.test.tsx`, LOADING/ERROR/REDIFFING + the real-HTTP override round-trip in `rediffInteraction.test.tsx` / `overrideRoundTrip.test.tsx`), chip interaction, session machine units, fixture schema validation, format units, source hygiene (I1 banned filenames per PM-REFINEMENT on #25).
 - `test/fixtures/` — FE-local fixtures ONLY for §9 gap cases (no golden fixture yet): bar overflow >25pp, near-zero, 40-char label.
 
@@ -40,23 +40,25 @@ Never edit files under `src/generated/`; change the contract (PM-owned, RFC)
 and regenerate. The client's default base URL is `servers[0].url` from the
 spec: `http://127.0.0.1:47791/api/v0`.
 
-## Choosing the API target (mock ↔ real server skeleton)
+## Choosing the API target (real server ↔ fixture mock)
 
 One hand-written module, `src/lib/apiBase.ts`, decides which server the
 generated client talks to, and `src/main.tsx` applies that decision once at
-app entry — nothing else in the app picks a URL. Pointing the app at the
-real python skeleton (`server/`) instead of the fixture mock
-(`mock/server.mjs`) never touches generated code:
+app entry — nothing else in the app picks a URL. Since TASK-208 the demo
+harness targets the REAL python server (`server/`, real PoB engine); the
+fixture mock (`mock/server.mjs`) remains for the all-verdict-states demo.
+Switching never touches generated code:
 
-- **Zero lines — both servers share the contract address.** The mock and the
-  skeleton both bind `http://127.0.0.1:47791/api/v0`, so the switch is: stop
-  the mock, start the skeleton from the repo root, reload the app.
+- **Zero lines — both servers share the contract address.** The real server
+  and the mock both bind `http://127.0.0.1:47791/api/v0`, so the switch is:
+  stop one, start the other from the repo root, reload the app.
 
   ```bash
-  python3 -m server   # binds the contract address; fixture-backed TASK-202a calculator
+  python3 -m server   # real engine — the harness default (needs engine/.runtime + the PoB submodule)
+  npm run mock        # TASK-206 fixture mock (all four verdict states on demand)
   ```
 
-- **One line — skeleton on any other address.** Create `web/.env.local`
+- **One line — either server on any other address.** Create `web/.env.local`
   (git-ignored; never commit a local override):
 
   ```bash
@@ -69,19 +71,21 @@ real python skeleton (`server/`) instead of the fixture mock
 
 `test/apiBase.test.ts` pins these resolution rules and asserts the default
 against the `contracts/openapi.yaml` text, so contract drift fails a test.
-`test/serverSkeleton.smoke.test.ts` proves the switch end to end: it boots
-the real `server/` skeleton on an ephemeral port and drives it through the
-generated client (build import, `/diff` verdict, chip-override re-diff,
-honest 404/422 codes).
+`test/realServer.e2e.test.ts` proves the server boundary end to end: it
+boots the real `server/` + engine on an ephemeral port, imports a golden
+corpus PoB code through the rendered app, and drives the real engine through
+the generated client (schema-valid verdict, chip-override re-diff, honest
+404/422 codes). It needs the pinned runtime (`engine/runtime/build.sh`) and
+skips loudly without it.
 
 ### Development-browser CORS caveat
 
-Neither the fixture mock nor the python skeleton sends CORS headers
+Neither the fixture mock nor the python server sends CORS headers
 (`Access-Control-Allow-Origin`). During Vite development the app is served
 from its own origin (e.g. `http://localhost:5173`), so a dev **browser**
 treats the API calls as cross-origin and blocks the responses — the harness
-is server-side-test driven, and browser sessions against the mock or skeleton
-are not a supported development setup. This is deliberate: the packaged app
+is server-side-test driven, and browser sessions against the mock or the real
+server are not a supported development setup. This is deliberate: the packaged app
 (`packaging/run.sh`, TASK-208) serves the web bundle and the API same-origin
 on the contract address, so it is unaffected by CORS entirely. Do not "fix"
 this by adding CORS headers to the mock or skeleton — same-origin packaging
