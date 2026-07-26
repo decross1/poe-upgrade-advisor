@@ -1,0 +1,12 @@
+Rarity: RARE
+Capture Needle
+Whalebone Rapier
+Item Level: 85
+Quality: 20
+Sockets: G-G-G
+LevelReq: 58
+Implicits: 1
++25% to Global Critical Strike Multiplier
+40% increased Critical Strike Chance
+90% increased Spell Damage
+Hits can't be Evaded

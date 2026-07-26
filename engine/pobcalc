@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "usage: pobcalc diff --build BUILD.xml --item ITEM.txt --preset PRESET --json" >&2
+  echo "       pobcalc stats --build BUILD.xml --json" >&2
+  echo "       pobcalc serve" >&2
+  exit 64
+}
+
+mode=${1:-}
+[[ $mode == "diff" || $mode == "stats" || $mode == "serve" ]] || usage
+shift
+
+build=
+item=
+preset=
+json=false
+if [[ $mode == "diff" || $mode == "stats" ]]; then
+  while (($#)); do
+    case "$1" in
+      --build) [[ $# -ge 2 ]] || usage; build=$2; shift 2 ;;
+      --item) [[ $mode == "diff" && $# -ge 2 ]] || usage; item=$2; shift 2 ;;
+      --preset) [[ $mode == "diff" && $# -ge 2 ]] || usage; preset=$2; shift 2 ;;
+      --json) json=true; shift ;;
+      *) usage ;;
+    esac
+  done
+  [[ -n $build && -f $build && $json == true ]] || usage
+  if [[ $mode == "diff" ]]; then
+    [[ -n $item && -f $item && -n $preset ]] || usage
+  fi
+  build=$(realpath "$build")
+  if [[ -n $item ]]; then
+    item=$(realpath "$item")
+  fi
+else
+  (($# == 0)) || usage
+fi
+
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+pob_src="$root/engine/vendor/PathOfBuilding/src"
+[[ -f "$pob_src/HeadlessWrapper.lua" ]] || {
+  echo "pobcalc: initialize vendor/PathOfBuilding first (git submodule update --init)" >&2
+  exit 69
+}
+
+runtime_root=${POBCALC_RUNTIME:-"$root/engine/.runtime"}
+lua_bin=${POBCALC_LUA:-}
+if [[ -z $lua_bin && -x "$runtime_root/bin/luajit" ]]; then
+  lua_bin="$runtime_root/bin/luajit"
+fi
+if [[ -z $lua_bin ]]; then
+  lua_bin=$(command -v luajit || true)
+fi
+[[ -n $lua_bin ]] || {
+  echo "pobcalc: run engine/runtime/build.sh (or set POBCALC_LUA)" >&2
+  exit 69
+}
+
+lua_path="$root/engine/vendor/PathOfBuilding/runtime/lua/?.lua;$root/engine/vendor/PathOfBuilding/runtime/lua/?/init.lua;;"
+lua_cpath=${POBCALC_LUA_CPATH:-}
+if [[ -z $lua_cpath && -f "$runtime_root/lib/lua/5.1/lua-utf8.so" ]]; then
+  lua_cpath="$runtime_root/lib/lua/5.1/?.so;;"
+fi
+lua_cpath=${lua_cpath:-;;}
+preset_config=$(python3 "$root/engine/preset_config.py")
+timeless_data_root=$(python3 "$root/engine/timeless_cache.py" \
+  --source "$pob_src/Data/TimelessJewelData" \
+  --cache "$runtime_root")
+lua_args=("$build" "$item" "$preset" "$preset_config")
+if [[ $mode == "serve" ]]; then
+  lua_args=(--serve "" "" "$preset_config")
+elif [[ $mode == "stats" ]]; then
+  lua_args=(--stats "$build" "" "$preset_config")
+fi
+
+(
+  cd "$pob_src"
+  LUA_PATH="$lua_path" LUA_CPATH="$lua_cpath" \
+    POBCALC_DATA_ROOT="$timeless_data_root" \
+    "$lua_bin" "$root/engine/pobcalc.lua" "${lua_args[@]}"
+)
