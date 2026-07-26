@@ -8,7 +8,7 @@
  */
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Assumption } from "../../web/src/lib/overrides";
 import { RECOMPUTE_FAILED_MESSAGE } from "../../web/src/lib/session";
 import type { VerdictCard } from "../../web/src/lib/verdictFormat";
@@ -390,6 +390,33 @@ describe("diffFlow — chip tap → one re-diff (I3/§7, issue #64)", () => {
       appliedOverrides: [],
       transientMessage: null,
     });
+  });
+
+  it("RULING-21: each failed retry keeps its own transient message visible for the full duration", async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      const server = await stub(() => (++calls === 1 ? { status: 200, json: upgradeMappingJson } : { status: 500 }));
+      const { states, onState } = collectStates();
+      const flow = createDiffFlow({
+        readClipboard: () => SAMPLE_ITEM_TEXT,
+        postDiff: bindGeneratedDiff(server.url),
+        onState,
+      });
+      await flow.onHotkey();
+      await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+
+      vi.advanceTimersByTime(2000);
+      await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
+      vi.advanceTimersByTime(1000); // first failure's 3 s window, only
+
+      expect(states.at(-1)).toMatchObject({
+        kind: "VERDICT",
+        transientMessage: RECOMPUTE_FAILED_MESSAGE,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("a re-diff timing out counts as failure (RULING-19/21): revert + transient message", async () => {
