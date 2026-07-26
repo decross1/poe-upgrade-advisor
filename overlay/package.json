@@ -1,0 +1,31 @@
+{
+  "name": "poe-upgrade-advisor-overlay",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tier-1 verdict overlay shell (TASK-203). Electron fallback stack per ADR-0004; the card UI is stack-agnostic and shared with web (web/src/components).",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "npm run build && electron .",
+    "test": "vitest run && tsc --noEmit",
+    "test:ui": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "main": "dist/main.cjs",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.20.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "electron": "^43.2.0",
+    "esbuild": "^0.24.0",
+    "jsdom": "^25.0.1",
+    "typescript": "~5.6.3",
+    "vitest": "^2.1.8",
+    "yaml": "^2.6.1"
+  }
+}

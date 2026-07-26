@@ -1,0 +1,23 @@
+/* Overlay-shell-only styles. The card itself is styled by the shared
+   web/src/styles.css (imported alongside this file by renderer.tsx). */
+
+html,
+body {
+  margin: 0;
+  background: transparent; /* frameless shell; the card carries the bg */
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Non-verdict states (spec §8): one short line + at most one affordance. */
+.overlay-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.overlay-state-line {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
