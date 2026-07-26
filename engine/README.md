@@ -5,11 +5,18 @@ as a deterministic CLI/JSON-RPC service. **This is the Phase 1 go/no-go spike.**
 
 ## Setup
 ```
-git submodule add https://github.com/PathOfBuildingCommunity/PathOfBuilding vendor/PathOfBuilding
+git submodule update --init
+engine/runtime/build.sh
 ```
 PoB ships a headless entry point (`HeadlessWrapper.lua` in the repo root) used by
-community sites for server-side calcs. Run it under LuaJIT. Never patch vendored
-code (see backend.md); wrap gaps and document them in `GAPS.md`.
+community sites for server-side calcs. `runtime/build.sh` builds the pinned
+LuaJIT and lua-utf8 revisions from source into ignored `engine/.runtime/`;
+`pobcalc` discovers that runtime automatically. An alternate installation can
+be selected with `POBCALC_RUNTIME`, or its binary/module can be selected
+individually with `POBCALC_LUA` and `POBCALC_LUA_CPATH`.
+
+Never patch vendored PoB code (see backend.md); wrap gaps and document them in
+`GAPS.md`.
 
 ## TASK-101 spike contract (go/no-go)
 ```

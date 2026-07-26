@@ -16,6 +16,20 @@ assert SPEC.loader
 SPEC.loader.exec_module(PRESET_CONFIG)
 
 
+def runtime_is_available():
+    runtime_root = pathlib.Path(
+        os.environ.get("POBCALC_RUNTIME", ROOT / "engine" / ".runtime")
+    )
+    configured = os.environ.get("POBCALC_LUA") and os.environ.get(
+        "POBCALC_LUA_CPATH"
+    )
+    bundled = (
+        (runtime_root / "bin" / "luajit").is_file()
+        and (runtime_root / "lib" / "lua" / "5.1" / "lua-utf8.so").is_file()
+    )
+    return configured or bundled
+
+
 class PobcalcCliTest(unittest.TestCase):
     def test_compiles_versioned_pob_translation(self):
         presets = PRESET_CONFIG.compile_presets(ROOT)
@@ -62,10 +76,8 @@ class PobcalcCliTest(unittest.TestCase):
         self.assertIn("pobcalc serve", result.stderr)
 
     def test_output_is_byte_deterministic_when_runtime_is_available(self):
-        lua = os.environ.get("POBCALC_LUA")
-        cpath = os.environ.get("POBCALC_LUA_CPATH")
-        if not lua or not cpath:
-            self.skipTest("set POBCALC_LUA and POBCALC_LUA_CPATH for integration test")
+        if not runtime_is_available():
+            self.skipTest("run engine/runtime/build.sh for integration test")
 
         fixture = ROOT / "engine" / "tests" / "fixtures"
         command = [
@@ -96,10 +108,8 @@ class PobcalcCliTest(unittest.TestCase):
         )
 
     def test_warm_worker_reuses_build_without_changing_result(self):
-        lua = os.environ.get("POBCALC_LUA")
-        cpath = os.environ.get("POBCALC_LUA_CPATH")
-        if not lua or not cpath:
-            self.skipTest("set POBCALC_LUA and POBCALC_LUA_CPATH for integration test")
+        if not runtime_is_available():
+            self.skipTest("run engine/runtime/build.sh for integration test")
 
         fixture = ROOT / "engine" / "tests" / "fixtures"
         request = {

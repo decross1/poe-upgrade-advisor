@@ -39,16 +39,25 @@ pob_src="$root/engine/vendor/PathOfBuilding/src"
   exit 69
 }
 
+runtime_root=${POBCALC_RUNTIME:-"$root/engine/.runtime"}
 lua_bin=${POBCALC_LUA:-}
+if [[ -z $lua_bin && -x "$runtime_root/bin/luajit" ]]; then
+  lua_bin="$runtime_root/bin/luajit"
+fi
 if [[ -z $lua_bin ]]; then
   lua_bin=$(command -v luajit || true)
 fi
 [[ -n $lua_bin ]] || {
-  echo "pobcalc: LuaJIT is required (or set POBCALC_LUA)" >&2
+  echo "pobcalc: run engine/runtime/build.sh (or set POBCALC_LUA)" >&2
   exit 69
 }
 
 lua_path="$root/engine/vendor/PathOfBuilding/runtime/lua/?.lua;$root/engine/vendor/PathOfBuilding/runtime/lua/?/init.lua;;"
+lua_cpath=${POBCALC_LUA_CPATH:-}
+if [[ -z $lua_cpath && -f "$runtime_root/lib/lua/5.1/lua-utf8.so" ]]; then
+  lua_cpath="$runtime_root/lib/lua/5.1/?.so;;"
+fi
+lua_cpath=${lua_cpath:-;;}
 preset_config=$(python3 "$root/engine/preset_config.py")
 lua_args=("$build" "$item" "$preset" "$preset_config")
 if [[ $mode == "serve" ]]; then
@@ -57,6 +66,6 @@ fi
 
 (
   cd "$pob_src"
-  LUA_PATH="$lua_path" LUA_CPATH="${POBCALC_LUA_CPATH:-;;}" \
+  LUA_PATH="$lua_path" LUA_CPATH="$lua_cpath" \
     "$lua_bin" "$root/engine/pobcalc.lua" "${lua_args[@]}"
 )

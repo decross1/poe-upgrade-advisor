@@ -28,6 +28,17 @@ jobs:
               cov = json.load(open('coverage.json'))['totals']['percent_covered']
           print(f"COVERAGE: {cov:.1f}")
           PY
+  engine-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: build pinned Lua runtime
+        run: engine/runtime/build.sh
+      - name: run engine integration tests
+        run: python3 -m unittest discover -s engine/tests -v
   contracts:
     runs-on: ubuntu-latest
     steps:
