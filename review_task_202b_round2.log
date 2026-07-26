@@ -1,0 +1,92 @@
+=== REVIEW CONTEXT ===
+pr: #63 branch: backend/task-202b-real-adapter
+head: 7cddc04f4810462474c412a7badc1d0a18091b90
+reviewer: frontend (round 2, covers c53c96e..7cddc04)
+utc: 2026-07-26T09:41:41Z
+
+=== DELTA UNDER REVIEW (c53c96e..7cddc04) ===
+ engine/pobcalc.lua                  | 14 +++++-
+ engine/tests/test_server_adapter.py | 54 ++++++++-------------
+ server/calculator.py                | 95 ++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 126 insertions(+), 37 deletions(-)
+
+=== git diff --check (origin/main...HEAD) ===
+diff-check: clean
+
+=== SUITE: pytest tests packaging/test_launch.py ===
+...............................................                          [100%]
+47 passed in 5.74s
+exit=0
+
+=== SUITE: unittest discover -s engine/tests -v ===
+test_compiles_versioned_pob_translation (test_cli.PobcalcCliTest.test_compiles_versioned_pob_translation) ... ok
+test_output_is_byte_deterministic_when_runtime_is_available (test_cli.PobcalcCliTest.test_output_is_byte_deterministic_when_runtime_is_available) ... ok
+test_serve_rejects_extra_arguments (test_cli.PobcalcCliTest.test_serve_rejects_extra_arguments) ... ok
+test_usage_rejects_incomplete_invocation (test_cli.PobcalcCliTest.test_usage_rejects_incomplete_invocation) ... ok
+test_warm_worker_reuses_build_without_changing_result (test_cli.PobcalcCliTest.test_warm_worker_reuses_build_without_changing_result) ... ok
+test_committed_report_is_strict_json (test_parity_harness.ParityHarnessTest.test_committed_report_is_strict_json) ... ok
+test_comparison_bands_and_extra_values (test_parity_harness.ParityHarnessTest.test_comparison_bands_and_extra_values) ... ok
+test_corrupted_stat_is_the_cell_that_fails (test_parity_harness.ParityHarnessTest.test_corrupted_stat_is_the_cell_that_fails) ... ok
+test_corrupted_stat_self_test_fails_comparison (test_parity_harness.ParityHarnessTest.test_corrupted_stat_self_test_fails_comparison) ... ok
+test_json_export_identity_mismatch_aborts (test_parity_harness.ParityHarnessTest.test_json_export_identity_mismatch_aborts) ... ok
+test_loads_all_frozen_cases_and_player_stats (test_parity_harness.ParityHarnessTest.test_loads_all_frozen_cases_and_player_stats) ... ok
+test_non_finite_stats_use_strict_json_sentinels (test_parity_harness.ParityHarnessTest.test_non_finite_stats_use_strict_json_sentinels) ... ok
+test_over_cells_require_an_explicit_adr_classification (test_parity_harness.ParityHarnessTest.test_over_cells_require_an_explicit_adr_classification) ... ok
+test_stats_cli_imports_every_frozen_build_with_expected_identity (test_parity_harness.ParityHarnessTest.test_stats_cli_imports_every_frozen_build_with_expected_identity) ... ok
+test_contract_card_comes_from_real_warm_engine (test_server_adapter.RealServerAdapterTest.test_contract_card_comes_from_real_warm_engine) ... ok
+test_evaluator_config_is_translated_before_worker_call (test_server_adapter.RealServerAdapterTest.test_evaluator_config_is_translated_before_worker_call) ... ok
+test_prepares_all_pinned_archives_without_touching_source (test_timeless_cache.TimelessCacheTest.test_prepares_all_pinned_archives_without_touching_source) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 21.981s
+
+OK
+exit=0
+
+=== SUITE: scripts/check_invariants.py ===
+doctrine invariants: OK
+exit=0
+
+=== LIVE SERVER REVIEWER DRIVER (review_task_202b_driver.py) ===
+FAIL: server did not start
+exit=1
+
+=== LIVE SERVER REVIEWER DRIVER (retry after probe fix) ===
+PASS: build.status status=200
+PASS: build.import_latency 417.674 ms (gate <2000)
+PASS: build.identity identity=Witch/Elementalist/97/Vaal Cold Snap
+PASS: build.warm_identity GET /build byte-stable identity
+PASS: diff.latency 100-sample p95=12.813 ms median=5.069 ms (gate <150)
+PASS: diff.determinism byte-identical cards across 100 runs
+PASS: diff.verdict_word SIDEGRADE
+PASS: diff.schema_valid card validates against verdict.schema.json
+PASS: i2.card_minimal sentence=72 chars, assumptions=3
+PASS: materialize.presets_differ mapping vs bossing cards differ (config reaches engine)
+PASS: materialize.cache_switch_stable A/B/A preset switching returns byte-identical mapping card
+PASS: i3.flask_chip_present chip=['config.flasks_up']
+PASS: i3.override_applied chip flips True -> False
+PASS: i3.override_changes_card baseline=(SIDEGRADE,15.4,-11.8) override=(SIDEGRADE,15.4,-11.8)
+PASS: i3.override_reversible post-override default diff is byte-identical to baseline
+PASS: i5.trigger_detected extract_build_facts flags CoC trigger setup
+PASS: i5.trigger_degrades cant_evaluate=True confidence=0.5
+PASS: errors.account_only_422 status=422
+PASS: errors.empty_item_422 status=422
+PASS: errors.bad_preset_422 status=422
+ALL REVIEWER CHECKS PASSED
+exit=0
+
+=== SUITE: scripts/check_fixture_coverage.py (assumptions-fixtures CI mirror) ===
+fixture coverage: OK (8 rules, all covered)
+exit=0
+
+=== SUPPLEMENTARY: flask override materiality on OccVortex (I3 reaches engine) ===
+flasks_up chip: True -> False
+baseline on : total_dps=1304184.1642318824 ehp=45168.85810357127
+baseline off: total_dps=1268826.2008768823 ehp=29696.258664825396
+FLASK OVERRIDE MATERIALLY CHANGES BASELINE: OK
+(cold-snap export flasks do not move its stats; equal deltas there are honest)
+
+=== BLAST RADIUS / GATE-WEAKENING ===
+protected paths touched: none (agents/ .github/ contracts/ PRODUCT_DOCTRINE.md AGENTS.md engine/corpus/ scripts/check_invariants.py)
+delta touches no tests/ contracts/ .github/; engine test count unchanged (17), pytest 47/47, no skipped tests
+12
