@@ -32,10 +32,17 @@
     },
     "imported_builds": 15,
     "failed_imports": 0,
-    "warm_p95_ms": 762.250871,
+    "warm_p95_ms": 765.870522,
     "warm_p95_limit_ms": 150,
     "warm_p95_pass": false,
-    "over_band_pass": false
+    "over_band_pass": false,
+    "over_cell_classifications": {
+      "our-bug": 0,
+      "PoB-version-skew": 4,
+      "documented-limitation": 0,
+      "unclassified": 0
+    },
+    "classification_gate_pass": true
   },
   "builds": [
     {
@@ -48,7 +55,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 0.412048,
+      "warm_latency_ms": 0.389344,
       "band_counts": {
         "exact": 93,
         "<=0.1%": 0,
@@ -813,7 +820,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 580.141056,
+      "warm_latency_ms": 461.855639,
       "band_counts": {
         "exact": 97,
         "<=0.1%": 0,
@@ -1610,7 +1617,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 370.034546,
+      "warm_latency_ms": 507.481871,
       "band_counts": {
         "exact": 102,
         "<=0.1%": 0,
@@ -2447,7 +2454,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 445.482576,
+      "warm_latency_ms": 419.476372,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -3252,7 +3259,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 589.542168,
+      "warm_latency_ms": 504.2039,
       "band_counts": {
         "exact": 92,
         "<=0.1%": 0,
@@ -4009,7 +4016,7 @@
         "level": 98
       },
       "engine_error": null,
-      "warm_latency_ms": 570.588792,
+      "warm_latency_ms": 493.546675,
       "band_counts": {
         "exact": 91,
         "<=0.1%": 0,
@@ -4758,7 +4765,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 452.35143,
+      "warm_latency_ms": 410.260556,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -5563,7 +5570,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 390.502659,
+      "warm_latency_ms": 349.134952,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -6336,7 +6343,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 512.872921,
+      "warm_latency_ms": 427.452027,
       "band_counts": {
         "exact": 101,
         "<=0.1%": 0,
@@ -7165,7 +7172,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 762.250871,
+      "warm_latency_ms": 404.410983,
       "band_counts": {
         "exact": 97,
         "<=0.1%": 0,
@@ -7962,7 +7969,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 465.194161,
+      "warm_latency_ms": 765.870522,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -8425,7 +8432,11 @@
           "actual": 10.0,
           "absolute_delta": 2.0,
           "relative_delta": 0.25,
-          "band": "OVER"
+          "band": "OVER",
+          "classification": {
+            "kind": "PoB-version-skew",
+            "evidence": "poe.ninja values reproduce exactly at upstream 961363511; pinned e0cc037d8 includes cost-efficiency ordering change 592c24073"
+          }
         },
         {
           "stat": "ManaLeechGainRate",
@@ -8441,7 +8452,11 @@
           "actual": 17.544,
           "absolute_delta": 3.5088,
           "relative_delta": 0.25,
-          "band": "OVER"
+          "band": "OVER",
+          "classification": {
+            "kind": "PoB-version-skew",
+            "evidence": "poe.ninja values reproduce exactly at upstream 961363511; pinned e0cc037d8 includes cost-efficiency ordering change 592c24073"
+          }
         },
         {
           "stat": "ManaPercentCost",
@@ -8783,7 +8798,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 463.449632,
+      "warm_latency_ms": 439.767317,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -9556,7 +9571,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 501.673855,
+      "warm_latency_ms": 472.273473,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -10329,7 +10344,7 @@
         "level": 96
       },
       "engine_error": null,
-      "warm_latency_ms": 492.399064,
+      "warm_latency_ms": 462.636601,
       "band_counts": {
         "exact": 93,
         "<=0.1%": 0,
@@ -11094,7 +11109,7 @@
         "level": 96
       },
       "engine_error": null,
-      "warm_latency_ms": 614.868669,
+      "warm_latency_ms": 560.548267,
       "band_counts": {
         "exact": 89,
         "<=0.1%": 0,
@@ -11557,7 +11572,11 @@
           "actual": 48.8,
           "absolute_delta": 2.8,
           "relative_delta": 0.06086956521739131,
-          "band": "OVER"
+          "band": "OVER",
+          "classification": {
+            "kind": "PoB-version-skew",
+            "evidence": "poe.ninja values reproduce exactly at upstream 961363511; pinned e0cc037d8 includes cost-efficiency ordering change 592c24073"
+          }
         },
         {
           "stat": "ManaLeechGainRate",
@@ -11573,7 +11592,11 @@
           "actual": 76.203076923077,
           "absolute_delta": 4.372307692308,
           "relative_delta": 0.06086956521739578,
-          "band": "OVER"
+          "band": "OVER",
+          "classification": {
+            "kind": "PoB-version-skew",
+            "evidence": "poe.ninja values reproduce exactly at upstream 961363511; pinned e0cc037d8 includes cost-efficiency ordering change 592c24073"
+          }
         },
         {
           "stat": "ManaPercentCost",

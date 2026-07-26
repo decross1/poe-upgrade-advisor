@@ -25,6 +25,21 @@ ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "engine" / "corpus" / "seed" / "ninja"
 CLI = ROOT / "engine" / "pobcalc"
 DEFAULT_REPORT = ROOT / "engine" / "reports" / "ninja-parity.json"
+VERSION_SKEW_EVIDENCE = (
+    "poe.ninja values reproduce exactly at upstream 961363511; pinned "
+    "e0cc037d8 includes cost-efficiency ordering change 592c24073"
+)
+OVER_CLASSIFICATIONS = {
+    (case_id, stat): {
+        "kind": "PoB-version-skew",
+        "evidence": VERSION_SKEW_EVIDENCE,
+    }
+    for case_id in (
+        "11-guardian-dominating-blow",
+        "15-guardian-absolution",
+    )
+    for stat in ("ManaCost", "ManaPerSecondCost")
+}
 
 
 class HarnessError(RuntimeError):
@@ -248,6 +263,25 @@ def compare_stats(
     return cells, counts, extras
 
 
+def classify_over_cells(case_id: str, cells: list[dict]) -> dict[str, int]:
+    counts = {
+        "our-bug": 0,
+        "PoB-version-skew": 0,
+        "documented-limitation": 0,
+        "unclassified": 0,
+    }
+    for cell in cells:
+        if cell["band"] != "OVER":
+            continue
+        classification = OVER_CLASSIFICATIONS.get((case_id, cell["stat"]))
+        if classification is None:
+            counts["unclassified"] += 1
+        else:
+            cell["classification"] = classification
+            counts[classification["kind"]] += 1
+    return counts
+
+
 def run_self_test(case: CorpusCase) -> dict[str, str]:
     corrupted = dict(case.expected_stats)
     stat = sorted(corrupted)[0]
@@ -384,6 +418,12 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
 
         results = []
         total_counts = {"exact": 0, "<=0.1%": 0, "<=1%": 0, "OVER": 0}
+        classification_counts = {
+            "our-bug": 0,
+            "PoB-version-skew": 0,
+            "documented-limitation": 0,
+            "unclassified": 0,
+        }
         latencies_ms = []
         imported_builds = 0
         worker = Worker("C")
@@ -419,6 +459,11 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
                     )
                 for band in total_counts:
                     total_counts[band] += counts[band]
+                case_classifications = classify_over_cells(case.case_id, cells)
+                for classification in classification_counts:
+                    classification_counts[classification] += case_classifications[
+                        classification
+                    ]
                 results.append(
                     {
                         "id": case.case_id,
@@ -468,6 +513,12 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
             "warm_p95_limit_ms": 150,
             "warm_p95_pass": ordered_latencies[p95_index] < 150,
             "over_band_pass": total_counts["OVER"] == 0,
+            "over_cell_classifications": classification_counts,
+            "classification_gate_pass": (
+                classification_counts["our-bug"] == 0
+                and classification_counts["documented-limitation"] == 0
+                and classification_counts["unclassified"] == 0
+            ),
         },
         "builds": results,
     }

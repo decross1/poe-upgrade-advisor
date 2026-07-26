@@ -58,7 +58,11 @@ python3 engine/parity_harness.py
 The parity harness is offline: it reads only the 15 frozen poe.ninja responses
 under `corpus/seed/ninja/`, runs its corrupted-stat and identity-mismatch
 canaries, checks 10 byte-identical runs in two locales, and writes
-`reports/ninja-parity.json`.
+`reports/ninja-parity.json`. Signed infinity in the PlayerStat vector is
+encoded as the strict-JSON string sentinel `"Infinity"` or `"-Infinity"` and
+compared exactly; a missing or `null` stat is still an over-band failure.
+Every over-band report cell must carry one of ADR-0005's explicit
+classifications or the classification gate remains red.
 
 ## corpus/ — the differential oracle
 ~100 builds × swaps, including adversarial ones (mines, triggers, minion hybrids,

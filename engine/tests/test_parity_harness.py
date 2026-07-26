@@ -103,6 +103,39 @@ class ParityHarnessTest(unittest.TestCase):
         self.assertEqual(counts["OVER"], 1)
         json.dumps(cells, allow_nan=False)
 
+    def test_committed_report_is_strict_json(self):
+        def reject_non_standard_constant(value):
+            raise ValueError(value)
+
+        report = json.loads(
+            HARNESS.DEFAULT_REPORT.read_text(encoding="utf-8"),
+            parse_constant=reject_non_standard_constant,
+        )
+        self.assertEqual(
+            report["summary"]["over_cell_classifications"],
+            {
+                "our-bug": 0,
+                "PoB-version-skew": 4,
+                "documented-limitation": 0,
+                "unclassified": 0,
+            },
+        )
+        self.assertTrue(report["summary"]["classification_gate_pass"])
+
+    def test_over_cells_require_an_explicit_adr_classification(self):
+        known = [{"stat": "ManaCost", "band": "OVER"}]
+        counts = HARNESS.classify_over_cells(
+            "11-guardian-dominating-blow", known
+        )
+        self.assertEqual(counts["PoB-version-skew"], 1)
+        self.assertEqual(known[0]["classification"]["kind"], "PoB-version-skew")
+        self.assertIn("961363511", known[0]["classification"]["evidence"])
+
+        unknown = [{"stat": "UnexpectedStat", "band": "OVER"}]
+        counts = HARNESS.classify_over_cells("new-case", unknown)
+        self.assertEqual(counts["unclassified"], 1)
+        self.assertNotIn("classification", unknown[0])
+
     def test_stats_cli_imports_every_frozen_build_with_expected_identity(self):
         if not runtime_is_available():
             self.skipTest("run engine/runtime/build.sh for integration test")
