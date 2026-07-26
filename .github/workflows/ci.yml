@@ -35,6 +35,7 @@ jobs:
         with: { submodules: true }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
+      - run: pip install pyyaml
       - name: build pinned Lua runtime
         run: engine/runtime/build.sh
       - name: run engine integration tests
