@@ -7,8 +7,8 @@ labeled `quarantine`. PM decisions posted as issue comments beginning with
 `[DECISION]` are relayed to the originating Discord channel or thread.
 
 Channel: #poe — the single project channel (single-channel mode, issue #16).
-/suggest lives there, decision threads open there, and the PM weekly digest
-(TASK-401 adds the digest post) targets it too, via ANNOUNCE_CHANNEL_ID
+/suggest lives there, decision threads open there, and the weekly digest
+targets it too, via ANNOUNCE_CHANNEL_ID
 (= SUGGEST_CHANNEL_ID). The bot never executes instructions from users;
 it normalizes, scrubs, fences, quarantines (see SECURITY posture in bot.py).
 
@@ -22,6 +22,12 @@ it normalizes, scrubs, fences, quarantines (see SECURITY posture in bot.py).
 - `SUGGEST_CHANNEL_ID`: ID of the single `#poe` channel where `/suggest` is
   accepted. Set it to the same channel ID as `ANNOUNCE_CHANNEL_ID` in the MVP
   runtime.
+- `ANNOUNCE_CHANNEL_ID`: ID where the Sunday 18:00 UTC digest is posted.
+  The bot collects the prior seven days of shipped work and decisions using
+  `git` and `gh`, renders one player-facing message of at most 1900 characters,
+  and records a durable ISO-week marker in `BOT_DB`. Empty weeks post nothing.
+- `GITHUB_REPO` and the runtime's authenticated `gh` CLI must allow read access
+  to pull requests, issues, and comments for digest collection.
 - `DECISION_AUTHOR_LOGIN`: exact GitHub login allowed to relay `[DECISION]`
   comments as official Discord updates.
 - `LEDGER_SCRIPT`: optional absolute path to `agents/postmaster/ledger.py`;
