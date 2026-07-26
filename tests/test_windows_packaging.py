@@ -118,3 +118,26 @@ def test_ci_has_windows_package_cleanroom_job():
     assert "./scripts/package_mvp_windows.ps1" in workflow
     assert "./scripts/cleanroom_windows_check.ps1" in workflow
     assert "actions/upload-artifact@v4" in workflow
+
+
+def test_worker_startup_io_failure_surfaces_as_worker_unavailable(tmp_path):
+    """A startup I/O failure must surface as WorkerUnavailable — never a raw
+    OSError and never a hang: launch.py keys the honest "engine could not
+    start" dead stop (I5) off WorkerUnavailable, and a raw OSError escaping
+    startup was misreported as a port-bind failure (real windows-latest run
+    30210831928, WinError 10038).
+
+    Rewritten against the reader-thread/queue worker (#83, which superseded
+    the selector path this test used to simulate): a child that exits
+    immediately gives the reader thread EOF, it enqueues b"", and the
+    startup ping in JsonRpcWorker.__init__ raises WorkerUnavailable via the
+    pipe-closed path. No selectors reference remains in the worker.
+    """
+    import sys
+
+    import pytest
+
+    import server.calculator as calculator
+
+    with pytest.raises(calculator.WorkerUnavailable):
+        calculator.JsonRpcWorker([sys.executable, "-c", "pass"], tmp_path)
