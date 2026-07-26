@@ -17,7 +17,7 @@ Record (PM, 2026-07-26): both release decisions ruled by the operator —
        Linux is dev/CI-only, stated below as a dev note.
 -->
 
-# The MVP is live: paste an item, get a verdict
+# The MVP is live: pick an item, get a verdict
 
 The core loop works. Run the tool, and your browser opens a page on your own machine. Import your build once by pasting your Path of Building code, pick an item on the page, and you get a verdict card:
 
