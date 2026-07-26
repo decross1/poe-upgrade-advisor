@@ -1,0 +1,16 @@
+{
+  "diff_id": "bench-downgrade-0001",
+  "verdict": "DOWNGRADE",
+  "offense_delta_pct": -6.8,
+  "defense_delta_pct": 0.4,
+  "sentence": "Loses your helm's spell damage roll; the tiny life gain does not come close to compensating.",
+  "assumptions": [
+    "Main skill: Fireball",
+    "Preset: mapping",
+    "Enemy: standard pack",
+    "Flasks: up"
+  ],
+  "confidence": 0.88,
+  "preset": "mapping",
+  "compute_ms": 91
+}

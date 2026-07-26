@@ -1,0 +1,18 @@
+{
+  "diff_id": "bench-canteval-0001",
+  "verdict": "CANT_EVALUATE",
+  "offense_delta_pct": 0.0,
+  "defense_delta_pct": 0.0,
+  "sentence": "Can't evaluate safely — open details to inspect this item by hand.",
+  "assumptions": [
+    "Preset: mapping",
+    "Enemy: standard pack"
+  ],
+  "confidence": 0.42,
+  "cant_evaluate_reasons": [
+    "Unrecognized mod: 'Grants Level 20 Doryani's Touch'",
+    "Hybrid minion/trigger build: inference confidence below threshold"
+  ],
+  "preset": "mapping",
+  "compute_ms": 63
+}

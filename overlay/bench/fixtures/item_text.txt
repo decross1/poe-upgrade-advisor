@@ -1,0 +1,26 @@
+Rarity: RARE
+Doom Crown
+Hubris Circlet
+--------
+Quality: +20% (augmented)
+Energy Shield: 312 (augmented)
+--------
+Requirements:
+Level: 69
+Int: 154
+--------
+Sockets: B-B-B
+--------
+Item Level: 86
+--------
++38% to Fire Resistance
++52% to Cold Resistance
++31% to Lightning Resistance
+12% increased Cast Speed
+98 maximum Energy Shield (enchant)
+--------
+Corrupted
+--------
+Note: sample of the game's own Ctrl+C clipboard text, used to preload the
+clipboard so the platform clipboard-read leg of the benchmark has realistic
+content. The overlay must only ever read this text (Doctrine S1).
