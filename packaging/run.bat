@@ -59,6 +59,6 @@ echo error: could not install pyyaml (needs an internet connection, once). 1>&2
 exit /b 1
 
 :fail_engine
-echo error: the Windows calculation engine cannot start; the bundled runtime is missing or incompatible. 1>&2
+echo error: the calculation engine could not start on this machine; the bundled runtime is missing or incompatible. 1>&2
 echo        No verdict was produced. Re-download the app and report this in #poe if it continues. 1>&2
 exit /b 1
