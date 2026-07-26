@@ -24,3 +24,12 @@ item comparisons. `POST /api/v0/build` accepts raw PoB XML or the usual
 compressed PoB code. `POST /api/v0/diff` accepts real clipboard item text.
 Golden files in `contracts/fixtures/` remain serializer/response-shape oracles;
 they are not served by the runtime.
+
+`POST /api/v0/scan` evaluates up to 2,000 item texts under one preset and returns
+the contract's original input indexes in ranked order. Honest verdict class
+outranks the aggregate score (`UPGRADE`, `SIDEGRADE`, `DOWNGRADE`, then
+`CANT_EVALUATE`); within a class, offense plus defense percentage delta sorts
+descending, with original input order breaking exact ties. The CI integration
+suite exercises a 500-item fixture against the real warm engine and requires
+the complete request to finish in under 30 seconds. An item that PoB cannot
+parse remains in the result as `CANT_EVALUATE` instead of aborting the batch.

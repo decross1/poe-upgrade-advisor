@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlsplit
 
-from .assumptions import AssumptionsEvaluator
+from .assumptions import AssumptionsEvaluator, Evaluation
 from .calculator import (
     BuildImportError,
     Calculator,
@@ -22,6 +22,12 @@ HOST = "127.0.0.1"
 PORT = 47791
 BASE_PATH = "/api/v0"
 VALID_PRESETS = {"mapping", "bossing", "balanced"}
+VERDICT_RANK = {
+    "UPGRADE": 3,
+    "SIDEGRADE": 2,
+    "DOWNGRADE": 1,
+    "CANT_EVALUATE": 0,
+}
 
 
 @dataclass
@@ -50,6 +56,8 @@ class ApiApplication:
             return self._import_build(body)
         if path == f"{BASE_PATH}/diff" and method == "POST":
             return self._diff(body)
+        if path == f"{BASE_PATH}/scan" and method == "POST":
+            return self._scan(body)
         return 404, None
 
     def _import_build(self, body: Any) -> tuple[int, dict[str, Any] | None]:
@@ -139,6 +147,52 @@ class ApiApplication:
         evaluation = self.evaluator.evaluate(
             self.store.facts, selected_preset, overrides
         )
+        return self._evaluate_item(
+            item_text, selected_preset, evaluation, overrides
+        )
+
+    def _scan(self, body: Any) -> tuple[int, dict[str, Any] | None]:
+        if not isinstance(body, Mapping):
+            return 422, None
+        items = body.get("items")
+        if (
+            not isinstance(items, list)
+            or len(items) > 2_000
+            or any(not isinstance(item, str) for item in items)
+        ):
+            return 422, None
+        if self.store.active is None or self.store.facts is None:
+            return 404, None
+        preset = body.get("preset")
+        if preset is not None and preset not in VALID_PRESETS:
+            return 422, None
+        selected_preset = preset or self.store.active["preset_default"]
+        evaluation = self.evaluator.evaluate(
+            self.store.facts, selected_preset
+        )
+        results = []
+        for index, item_text in enumerate(items):
+            status, verdict = self._evaluate_item(
+                item_text,
+                selected_preset,
+                evaluation,
+                [],
+                item_parse_is_uncertain=True,
+            )
+            if status != 200 or verdict is None:
+                return status, None
+            results.append({"index": index, "verdict": verdict})
+        results.sort(key=self._scan_rank)
+        return 200, {"results": results}
+
+    def _evaluate_item(
+        self,
+        item_text: str,
+        selected_preset: str,
+        evaluation: Evaluation,
+        overrides: list[Mapping[str, Any]],
+        item_parse_is_uncertain: bool = False,
+    ) -> tuple[int, dict[str, Any] | None]:
         if evaluation.cant_evaluate:
             return 200, self._cant_evaluate_card(
                 selected_preset,
@@ -150,6 +204,14 @@ class ApiApplication:
         try:
             calculation = self.calculator.diff(item_text, evaluation.pob_config)
         except ItemParseError:
+            if item_parse_is_uncertain:
+                return 200, self._cant_evaluate_card(
+                    selected_preset,
+                    0,
+                    evaluation.assumptions,
+                    ("engine.item_unparseable: Path of Building rejected the item",),
+                    overrides,
+                )
             return 422, None
         except WorkerUnavailable:
             return 200, self._cant_evaluate_card(
@@ -165,6 +227,18 @@ class ApiApplication:
             evaluation.confidence,
             evaluation.assumptions,
             overrides,
+        )
+
+    @staticmethod
+    def _scan_rank(result: Mapping[str, Any]) -> tuple[float, float, int]:
+        card = result["verdict"]
+        combined_delta = (
+            card["offense_delta_pct"] + card["defense_delta_pct"]
+        )
+        return (
+            -VERDICT_RANK[card["verdict"]],
+            -combined_delta,
+            result["index"],
         )
 
     def _verdict_card(
