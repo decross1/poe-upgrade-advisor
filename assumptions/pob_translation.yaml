@@ -1,0 +1,34 @@
+# pob_translation.yaml — canonical assumption keys/values → Path of Building
+# config fields. PM-owned doctrine (changes require RFC; see ADR-0001 process).
+# The engine applies this table MECHANICALLY. If a needed mapping is missing,
+# the engine must raise/record a gap (engine/GAPS.md), never invent semantics.
+#
+# Parity note: desktop-PoB corpus fixtures MUST be captured with configs
+# produced by THIS table at THIS version. Parity is defined against the pinned
+# values below, not against anyone's intuition of "typical".
+translation_version: 1
+
+enums:
+  enemyBoss:
+    # canonical (stable, SCREAMING_CASE) -> PoB's cased strings
+    PINNACLE: "Pinnacle"
+    NONE: "None"
+
+keys:
+  conditionNearEnemy:
+    pob_key: multiplierNearbyEnemies
+    map: { true: 1, false: 0 }
+    note: canonical boolean "an enemy is nearby" -> PoB numeric nearby count.
+
+  multiplierEnemyCount:
+    pob_key: multiplierNearbyEnemies
+    map: { pack: 8, single: 1 }
+    note: >
+      'pack'=8 is the v1 pinned convention for the mapping scenario (white-map
+      pack scale). Not empirical — pinned for determinism. Revisit only via
+      RFC backed by corpus evidence of verdict divergence.
+
+conflict_rule: >
+  When multiple canonical keys target the same PoB key (both keys above write
+  multiplierNearbyEnemies), the maximum numeric result wins. Log any observed
+  conflict occurrence to engine/GAPS.md with the winning source key.
