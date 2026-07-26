@@ -1,12 +1,15 @@
 /**
  * Assumptions chip — Doctrine I3's one-tap reversal, MVP scope (RULING-14/15,
- * PM-REFINEMENT on #25): tappability is by VALUE TYPE. Payload emission only;
- * HTTP wiring is TASK-206, full re-diff UX is TASK-204.
+ * PM-REFINEMENT on #25): tappability is by VALUE TYPE. Emission contract only
+ * (payload + tapped chip); the live re-diff session is TASK-204's
+ * rediffInteraction.test.tsx / overrideRoundTrip.test.tsx.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { VerdictCard } from "../src/components/VerdictCard";
-import type { OverrideEntry } from "../src/lib/overrides";
+import type { Assumption, OverrideEntry } from "../src/lib/overrides";
+
+type OnOverride = (overrides: OverrideEntry[], assumption: Assumption) => void;
 
 import type { VerdictCard as VerdictCardData } from "../src/lib/verdictFormat";
 
@@ -51,32 +54,41 @@ describe("tappability by value type (RULING-14/15)", () => {
   });
 
   it("a tap on a boolean chip emits exactly [{assumption_id, value: !value}] (RULING-16)", () => {
-    const onOverride = vi.fn<(p: OverrideEntry[]) => void>();
+    const onOverride = vi.fn<OnOverride>();
     render(<VerdictCard card={upgradeMapping} onOverride={onOverride} />);
     fireEvent.click(screen.getByText("crit recently"));
     expect(onOverride).toHaveBeenCalledTimes(1);
-    expect(onOverride).toHaveBeenCalledWith([{ assumption_id: "config.elemental_overload", value: false }]);
+    expect(onOverride).toHaveBeenCalledWith(
+      [{ assumption_id: "config.elemental_overload", value: false }],
+      expect.objectContaining({ id: "config.elemental_overload" }),
+    );
   });
 
   it("dimmed (impactful:false) boolean chips flip too — PM-REFINEMENT (2)", () => {
-    const onOverride = vi.fn<(p: OverrideEntry[]) => void>();
+    const onOverride = vi.fn<OnOverride>();
     render(<VerdictCard card={upgradeMapping} onOverride={onOverride} />);
     fireEvent.click(screen.getByText("flasks up"));
-    expect(onOverride).toHaveBeenCalledWith([{ assumption_id: "config.flasks_up", value: false }]);
+    expect(onOverride).toHaveBeenCalledWith(
+      [{ assumption_id: "config.flasks_up", value: false }],
+      expect.objectContaining({ id: "config.flasks_up" }),
+    );
   });
 
   it("tapping a non-boolean chip emits nothing (skill chips are display-only in MVP)", () => {
-    const onOverride = vi.fn<(p: OverrideEntry[]) => void>();
+    const onOverride = vi.fn<OnOverride>();
     render(<VerdictCard card={sidegradeBossing} onOverride={onOverride} />);
     fireEvent.click(screen.getByText("skill: Boneshatter (yours)"));
     expect(onOverride).not.toHaveBeenCalled();
   });
 
   it("the CANT_EVALUATE 'trigger build' chip is boolean and flippable (§3.4/§6.2)", () => {
-    const onOverride = vi.fn<(p: OverrideEntry[]) => void>();
+    const onOverride = vi.fn<OnOverride>();
     render(<VerdictCard card={cantEvaluateTrigger} onOverride={onOverride} />);
     fireEvent.click(screen.getByText("trigger build"));
-    expect(onOverride).toHaveBeenCalledWith([{ assumption_id: "main_skill.trigger_ambiguity", value: false }]);
+    expect(onOverride).toHaveBeenCalledWith(
+      [{ assumption_id: "main_skill.trigger_ambiguity", value: false }],
+      expect.objectContaining({ id: "main_skill.trigger_ambiguity" }),
+    );
     // ...while its best-guess skill chip stays display-only.
     expect(screen.getByText("skill: Cremation").tagName).toBe("SPAN");
   });
@@ -84,25 +96,31 @@ describe("tappability by value type (RULING-14/15)", () => {
 
 describe("session override accumulation (RULING-17)", () => {
   it("emits the FULL accumulated overrides array, not just the tapped chip", () => {
-    const onOverride = vi.fn<(p: OverrideEntry[]) => void>();
+    const onOverride = vi.fn<OnOverride>();
     const applied = new Map<string, unknown>([["config.elemental_overload", false]]);
     render(<VerdictCard card={upgradeMapping} appliedOverrides={applied} onOverride={onOverride} />);
     fireEvent.click(screen.getByText("flasks up"));
-    expect(onOverride).toHaveBeenCalledWith([
-      { assumption_id: "config.elemental_overload", value: false },
-      { assumption_id: "config.flasks_up", value: false },
-    ]);
+    expect(onOverride).toHaveBeenCalledWith(
+      [
+        { assumption_id: "config.elemental_overload", value: false },
+        { assumption_id: "config.flasks_up", value: false },
+      ],
+      expect.objectContaining({ id: "config.flasks_up" }),
+    );
   });
 
   it("tapping an overridden chip REMOVES the override (tap again to restore, §7.1)", () => {
-    const onOverride = vi.fn<(p: OverrideEntry[]) => void>();
+    const onOverride = vi.fn<OnOverride>();
     const applied = new Map<string, unknown>([
       ["config.elemental_overload", false],
       ["config.flasks_up", false],
     ]);
     render(<VerdictCard card={upgradeMapping} appliedOverrides={applied} onOverride={onOverride} />);
     fireEvent.click(screen.getByText("flasks up"));
-    expect(onOverride).toHaveBeenCalledWith([{ assumption_id: "config.elemental_overload", value: false }]);
+    expect(onOverride).toHaveBeenCalledWith(
+      [{ assumption_id: "config.elemental_overload", value: false }],
+      expect.objectContaining({ id: "config.flasks_up" }),
+    );
   });
 
   it("marks overridden chips with the ↺ revert glyph", () => {

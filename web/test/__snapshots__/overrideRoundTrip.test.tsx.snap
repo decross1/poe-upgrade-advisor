@@ -1,0 +1,115 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`override round-trip over real HTTP (I3, RULING-16/17) > tap → POST /diff → fresh card; overrides accumulate; tap-again restores 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--upgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--upgrade"
+    >
+      UPGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 49.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +12.4%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 7.2%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −1.8%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    +1 to cold gems and higher flat cold beat the small life loss; clear DPS rises 12.4%.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Vortex
+    </span>
+    <button
+      class="chip chip--overridden"
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        class="chip-revert"
+      >
+        ↺
+         
+      </span>
+      crit recently
+    </button>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-8f2c41a7%23ovr-834917a103e2"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;

@@ -5,8 +5,12 @@ export interface AssumptionsChipProps {
   assumptions: Assumption[];
   /** Session overrides (assumption_id → overridden value). [RULING-17] */
   appliedOverrides?: ReadonlyMap<string, unknown>;
-  /** Called with the FULL accumulated overrides payload on each tap. */
-  onOverride?: (overrides: OverrideEntry[]) => void;
+  /** Called with the FULL accumulated overrides payload plus the tapped chip. */
+  onOverride?: (overrides: OverrideEntry[], assumption: Assumption) => void;
+  /** §8.3: ALL chips non-interactive while a re-diff is in flight (S2). */
+  disabled?: boolean;
+  /** §8.3: the tapped chip shows an inline spinner replacing its label. */
+  pendingChipId?: string;
 }
 
 /**
@@ -18,16 +22,18 @@ export interface AssumptionsChipProps {
  * - impactful:false chips dim but stay visible AND flippable. (fixtures README conv. 6)
  * - Only boolean-valued chips are tappable. [RULING-14/15]
  */
-export function AssumptionsChip({ assumptions, appliedOverrides, onOverride }: AssumptionsChipProps) {
+export function AssumptionsChip({ assumptions, appliedOverrides, onOverride, disabled, pendingChipId }: AssumptionsChipProps) {
   const applied = appliedOverrides ?? new Map<string, unknown>();
   return (
-    <div className="chip-strip" role="group" aria-label="Assumptions">
+    <div className="chip-strip" role="group" aria-label="Assumptions" aria-busy={disabled ? true : undefined}>
       {assumptions.map((a) => {
         const overridden = applied.has(a.id);
+        const pending = pendingChipId === a.id;
         const className = [
           "chip",
           a.impactful ? "" : "chip--dimmed",
           overridden ? "chip--overridden" : "",
+          pending ? "chip--pending" : "",
         ]
           .filter(Boolean)
           .join(" ");
@@ -46,14 +52,26 @@ export function AssumptionsChip({ assumptions, appliedOverrides, onOverride }: A
             key={a.id}
             type="button"
             className={className}
-            onClick={() => onOverride?.(toggleOverride(applied, a))}
+            disabled={disabled}
+            // The spinner replaces the visible label; keep the chip's name.
+            aria-label={pending ? a.label : undefined}
+            aria-busy={pending ? true : undefined}
+            onClick={() => onOverride?.(toggleOverride(applied, a), a)}
           >
-            {content}
+            {pending ? (
+              <span className="chip-spinner" aria-hidden="true" />
+            ) : (
+              content
+            )}
           </button>
         ) : (
           // Non-boolean: display-only in MVP, no press affordance. [RULING-14]
-          <span key={a.id} className={className}>
-            {content}
+          <span key={a.id} className={className} aria-disabled={disabled ? true : undefined}>
+            {pending ? (
+              <span className="chip-spinner" aria-hidden="true" />
+            ) : (
+              content
+            )}
           </span>
         );
       })}
