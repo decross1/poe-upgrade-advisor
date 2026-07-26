@@ -10,6 +10,10 @@ export interface SessionCardProps {
   onTapChip: (assumption: Assumption) => void;
   /** Tier-2 deep link target; defaults to /breakdown/{diff_id}. */
   detailsHref?: string;
+  /** When set, the card's details tap opens Tier 2 in place (I7). */
+  onOpenDetails?: () => void;
+  /** Panel state reflected on the card's details affordance. */
+  detailsOpen?: boolean;
   /** ERROR_NO_BUILD affordance target (web-app import). */
   importHref?: string;
 }
@@ -19,7 +23,7 @@ export interface SessionCardProps {
  * and the three error panels. The VerdictCard itself stays pure; this
  * container is the only component that knows sessions exist.
  */
-export function SessionCard({ state, loadingVisible, onTapChip, detailsHref, importHref }: SessionCardProps) {
+export function SessionCard({ state, loadingVisible, onTapChip, detailsHref, onOpenDetails, detailsOpen, importHref }: SessionCardProps) {
   switch (state.phase.kind) {
     case "idle":
       return null;
@@ -43,6 +47,8 @@ export function SessionCard({ state, loadingVisible, onTapChip, detailsHref, imp
           transientMessage={state.transientMessage}
           onOverride={(_overrides, assumption) => onTapChip(assumption)}
           detailsHref={detailsHref}
+          onOpenDetails={onOpenDetails}
+          detailsOpen={detailsOpen}
         />
       );
     }

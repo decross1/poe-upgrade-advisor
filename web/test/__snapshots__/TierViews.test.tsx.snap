@@ -7,9 +7,7 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel 404 — 
     class="details-panel"
   >
     <h2>
-      Details (diff 
-      d-8f2c41a7
-      )
+      Details (diff d-8f2c41a7)
     </h2>
     <p
       role="alert"
@@ -27,9 +25,7 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel cant_eva
     class="details-panel"
   >
     <h2>
-      Details (diff 
-      d-6efc9d24
-      )
+      Details (diff d-6efc9d24)
     </h2>
     <ul>
       <li>
@@ -95,9 +91,7 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loaded s
     class="details-panel"
   >
     <h2>
-      Details (diff 
-      d-8f2c41a7
-      )
+      Details (diff d-8f2c41a7)
     </h2>
     <section
       aria-label="Top stat drivers"
@@ -144,9 +138,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loaded s
                   aria-hidden="true"
                 >
                   ▲
-                   
                 </span>
-                +5.6%
+                 +5.6%
               </span>
               <span
                 aria-hidden="true"
@@ -176,9 +169,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loaded s
                   aria-hidden="true"
                 >
                   ▲
-                   
                 </span>
-                +4.9%
+                 +4.9%
               </span>
               <span
                 aria-hidden="true"
@@ -208,9 +200,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loaded s
                   aria-hidden="true"
                 >
                   ▲
-                   
                 </span>
-                +1.9%
+                 +1.9%
               </span>
               <span
                 aria-hidden="true"
@@ -240,9 +231,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loaded s
                   aria-hidden="true"
                 >
                   ▼
-                   
                 </span>
-                −1.8%
+                 −1.8%
               </span>
               <span
                 aria-hidden="true"
@@ -329,9 +319,7 @@ exports[`snapshot states (issue #13 acceptance criteria) > DetailsPanel loading 
     class="details-panel"
   >
     <h2>
-      Details (diff 
-      d-8f2c41a7
-      )
+      Details (diff d-8f2c41a7)
     </h2>
     <p
       role="status"
@@ -389,9 +377,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > Tier-2 drivers view �
                 aria-hidden="true"
               >
                 ▲
-                 
               </span>
-              +5.6%
+               +5.6%
             </span>
             <span
               aria-hidden="true"
@@ -421,9 +408,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > Tier-2 drivers view �
                 aria-hidden="true"
               >
                 ▲
-                 
               </span>
-              +4.9%
+               +4.9%
             </span>
             <span
               aria-hidden="true"
@@ -453,9 +439,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > Tier-2 drivers view �
                 aria-hidden="true"
               >
                 ▲
-                 
               </span>
-              +1.9%
+               +1.9%
             </span>
             <span
               aria-hidden="true"
@@ -485,9 +470,8 @@ exports[`snapshot states (issue #13 acceptance criteria) > Tier-2 drivers view �
                 aria-hidden="true"
               >
                 ▼
-                 
               </span>
-              −1.8%
+               −1.8%
             </span>
             <span
               aria-hidden="true"

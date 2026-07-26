@@ -18,6 +18,11 @@ export interface VerdictCardProps {
   transientMessage?: string | null;
   /** Tier-2 deep link target; defaults to /breakdown/{diff_id}. */
   detailsHref?: string;
+  /** When set, the details tap opens Tier 2 in place (I7) and navigation is
+   *  suppressed; href remains the no-JS/deep-link fallback. */
+  onOpenDetails?: () => void;
+  /** Panel state reflected on the affordance (only with onOpenDetails). */
+  detailsOpen?: boolean;
 }
 
 /**
@@ -27,7 +32,7 @@ export interface VerdictCardProps {
  * else: no preset, no confidence number, no compute_ms, no diff_id, no
  * cant_evaluate_reasons. [RULING-1/2/3/4]
  */
-export function VerdictCard({ card, appliedOverrides, onOverride, chipsDisabled, pendingChipId, transientMessage, detailsHref }: VerdictCardProps) {
+export function VerdictCard({ card, appliedOverrides, onOverride, chipsDisabled, pendingChipId, transientMessage, detailsHref, onOpenDetails, detailsOpen }: VerdictCardProps) {
   const cantEvaluate = card.verdict === "CANT_EVALUATE";
   const verdictKey = card.verdict.toLowerCase();
   return (
@@ -62,10 +67,24 @@ export function VerdictCard({ card, appliedOverrides, onOverride, chipsDisabled,
         pendingChipId={pendingChipId}
       />
 
-      {/* 5. One "open details" affordance — emphasized under CAN'T EVALUATE (I5). */}
+      {/* 5. One "open details" affordance — emphasized under CAN'T EVALUATE (I5).
+          This is THE details affordance (I7): with onOpenDetails wired it opens
+          Tier 2 itself; no second control may duplicate it. */}
       <footer className="details-row">
-        <a className={`details-link${cantEvaluate ? " details-link--emphasized" : ""}`} href={detailsHref ?? `/breakdown/${encodeURIComponent(card.diff_id)}`}>
-          Open details ▸
+        <a
+          className={`details-link${cantEvaluate ? " details-link--emphasized" : ""}`}
+          href={detailsHref ?? `/breakdown/${encodeURIComponent(card.diff_id)}`}
+          aria-expanded={onOpenDetails ? (detailsOpen ?? false) : undefined}
+          onClick={
+            onOpenDetails
+              ? (e) => {
+                  e.preventDefault();
+                  onOpenDetails();
+                }
+              : undefined
+          }
+        >
+          {onOpenDetails && detailsOpen ? "Hide details ▾" : "Open details ▸"}
         </a>
       </footer>
     </section>

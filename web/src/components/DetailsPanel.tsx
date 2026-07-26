@@ -51,7 +51,9 @@ export function DetailsPanel({
 
   return (
     <section className="details-panel" aria-label="Details">
-      <h2>Details (diff {card.diff_id})</h2>
+      {/* Single text node: split JSX text leaves trailing-whitespace nodes
+          in the serialized snapshot. Rendered text is unchanged. */}
+      <h2>{`Details (diff ${card.diff_id})`}</h2>
       {card.cant_evaluate_reasons && card.cant_evaluate_reasons.length > 0 && (
         <ul>
           {card.cant_evaluate_reasons.map((reason, i) => (

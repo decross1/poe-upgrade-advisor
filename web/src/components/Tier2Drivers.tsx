@@ -12,6 +12,25 @@ import type { Breakdown } from "../generated/models/Breakdown";
 
 type Driver = Breakdown["drivers"][number];
 
+/**
+ * Ranking is owned HERE, not by the server: contracts/openapi.yaml imposes no
+ * ordering on Breakdown.drivers, so any contract-valid order must render
+ * ranked. Sorts a COPY by descending absolute contribution; ties break
+ * deterministically (signed value desc, then mod_text, then stat) so every
+ * input permutation of the same drivers renders identically. The prop array
+ * is never mutated.
+ */
+function rankDrivers(drivers: Driver[]): Driver[] {
+  const byText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+  return [...drivers].sort(
+    (a, b) =>
+      Math.abs(b.contribution_pct) - Math.abs(a.contribution_pct) ||
+      b.contribution_pct - a.contribution_pct ||
+      byText(a.mod_text, b.mod_text) ||
+      byText(a.stat, b.stat),
+  );
+}
+
 function formatContribution(pct: number): string {
   const sign = pct > 0 ? "+" : pct < 0 ? "−" : "±";
   return `${sign}${Math.abs(pct).toFixed(1)}%`;
@@ -34,7 +53,8 @@ export function Tier2Drivers({ drivers }: { drivers: Driver[] }) {
       </section>
     );
   }
-  const max = Math.max(...drivers.map((d) => Math.abs(d.contribution_pct)), 0.1);
+  const ranked = rankDrivers(drivers);
+  const max = Math.max(...ranked.map((d) => Math.abs(d.contribution_pct)), 0.1);
   return (
     <section className="tier2-drivers" aria-label="Top stat drivers">
       <h3>What drove this</h3>
@@ -47,7 +67,7 @@ export function Tier2Drivers({ drivers }: { drivers: Driver[] }) {
           </tr>
         </thead>
         <tbody>
-          {drivers.map((d, i) => (
+          {ranked.map((d, i) => (
             <tr key={i}>
               <td>{d.mod_text}</td>
               <td>
@@ -59,8 +79,8 @@ export function Tier2Drivers({ drivers }: { drivers: Driver[] }) {
                     d.contribution_pct > 0 ? "positive" : d.contribution_pct < 0 ? "negative" : "neutral"
                   }`}
                 >
-                  <span aria-hidden="true">{arrow(d.contribution_pct)} </span>
-                  {formatContribution(d.contribution_pct)}
+                  <span aria-hidden="true">{arrow(d.contribution_pct)}</span>
+                  {` ${formatContribution(d.contribution_pct)}`}
                 </span>
                 <span className="delta-track driver-track" aria-hidden="true">
                   <span

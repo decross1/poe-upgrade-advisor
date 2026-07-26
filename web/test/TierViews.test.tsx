@@ -121,4 +121,21 @@ describe("backend review regressions", () => {
       rows.map((row) => within(row).getAllByRole("cell")[0].textContent),
     ).toEqual(["largest", "middle", "small"]);
   });
+
+  it("tie-break is deterministic (signed desc, then mod_text) and never mutates the prop", () => {
+    const drivers = [
+      { mod_text: "b-mod", contribution_pct: -5, stat: "ehp" },
+      { mod_text: "a-mod", contribution_pct: 5, stat: "ehp" },
+      { mod_text: "c-mod", contribution_pct: -5, stat: "total_dps" },
+    ];
+    const inputOrder = drivers.map((d) => d.mod_text);
+
+    render(<Tier2Drivers drivers={drivers} />);
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(
+      rows.map((row) => within(row).getAllByRole("cell")[0].textContent),
+    ).toEqual(["a-mod", "b-mod", "c-mod"]); // +5 first; −5 tie by mod_text asc
+    expect(drivers.map((d) => d.mod_text)).toEqual(inputOrder);
+  });
 });
