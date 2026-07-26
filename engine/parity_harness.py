@@ -308,7 +308,7 @@ class Worker:
         environment = os.environ.copy()
         environment["LC_ALL"] = locale
         self.process = subprocess.Popen(
-            [CLI, "serve"],
+            [sys.executable, CLI, "serve"],
             cwd=ROOT,
             env=environment,
             text=True,

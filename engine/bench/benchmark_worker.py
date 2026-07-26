@@ -9,6 +9,7 @@ import math
 import pathlib
 import statistics
 import subprocess
+import sys
 import time
 
 
@@ -32,7 +33,7 @@ def main() -> int:
         parser.error("--samples and --warmup must be positive")
 
     worker = subprocess.Popen(
-        [ROOT / "engine" / "pobcalc", "serve"],
+        [sys.executable, ROOT / "engine" / "pobcalc", "serve"],
         cwd=ROOT,
         text=True,
         stdin=subprocess.PIPE,
