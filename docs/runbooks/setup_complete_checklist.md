@@ -31,12 +31,12 @@ Copy these into the relevant task acceptance criteria; the checks below assume t
 | Convention | Requirement |
 |---|---|
 | Bot launch | The bot is started as `python3 bot/bot.py` (relative to a clone root) or by absolute path — its cmdline must contain `bot/bot.py`. |
-| Env vars | `DISCORD_TOKEN`, `ANNOUNCE_CHANNEL_ID` (numeric channel id of `#announcements`), optional `DISCORD_GUILD_ID`, optional `MOCK_PORT` (default `47791`, per `contracts/openapi.yaml`). |
+| Env vars | `DISCORD_TOKEN`, `ANNOUNCE_CHANNEL_ID` (numeric channel id of `#poe`, the single project channel — single-channel mode per issue #16; same value as `SUGGEST_CHANNEL_ID`), optional `DISCORD_GUILD_ID`, optional `MOCK_PORT` (default `47791`, per `contracts/openapi.yaml`). |
 | Doc-post marker | Every doc the bot posts to Discord ends with a final line `[doc:<basename>]`, e.g. `[doc:welcome_setup]`. This is the idempotency latch the heartbeat greps for. |
 | Announce docs | Announcement sources live at `docs/announcements/welcome_setup.md` and `docs/announcements/mvp_launch.md`. Each begins with an HTML `POSTING INSTRUCTIONS` comment (stripped before posting, per the comment itself) and is posted as one Discord message per `---`-separated block, in order; every block must be ≤ 1900 chars (Discord caps a message at 2000). The `[doc:<basename>]` marker is appended to the **final** block only. |
 | Snapshot naming | TASK-203 commits one snapshot artifact per verdict state under `overlay/` (or `web/`); each filename contains `snap` and the state name (case-insensitive): `UPGRADE`, `SIDEGRADE`, `DOWNGRADE`, `CANT_EVALUATE`. |
 | MVP task set | `TASK-202 TASK-203 TASK-301`. PR titles contain their task id (AGENTS.md definition of done). TASK-301 (#13, web Tier-2 drivers + Tier-3 raw breakdown) is in the set because `mvp_launch.md` promises "one more tap opens the full breakdown" — the gate must not announce a feature that is not on `main`. PM updates this list here if MVP scope changes (e.g. a dedicated mock-server task). |
-| Bot permissions | In `#announcements` the bot needs Send Messages and Read Message History (history is required by the marker checks). |
+| Bot permissions | In `#poe` the bot needs Send Messages and Read Message History (history is required by the marker checks). |
 
 ## Preflight
 
@@ -108,7 +108,7 @@ Note: `inbox` exits 3 while HALT is set — correct behavior, P1 already gates t
 > (or an equivalent append into `$POB_LEDGER_DIR/messages/`). That fix is part
 > of bot deployment (TASK-401 scope).
 
-**D5 — welcome_setup.md has been posted to `#announcements`** (the gate's completion latch — set by the firing rule below, checked here so the gate reads PASSED exactly once the action has happened).
+**D5 — welcome_setup.md has been posted to `#poe`** (via `ANNOUNCE_CHANNEL_ID`; the gate's completion latch — set by the firing rule below, checked here so the gate reads PASSED exactly once the action has happened).
 
 ```bash
 curl -sf -H "Authorization: Bot $DISCORD_TOKEN" \
@@ -174,7 +174,7 @@ done
 ```
 PASS: one `PASS <task>` line per task in the MVP task set, no `FAIL` lines.
 
-**M5 — mvp_launch.md has been posted to `#announcements`** (completion latch, mirror of D5).
+**M5 — mvp_launch.md has been posted to `#poe`** (via `ANNOUNCE_CHANNEL_ID`; completion latch, mirror of D5).
 
 ```bash
 curl -sf -H "Authorization: Bot $DISCORD_TOKEN" \
@@ -205,7 +205,7 @@ the notification latch.
    PY
    ```
    If not `OK`: do not fire; file/fix the doc first (pm owns `docs/`).
-2. **pm has the bot post welcome_setup.md** to `#announcements` (bot identity =
+2. **pm has the bot post welcome_setup.md** to `#poe` via `ANNOUNCE_CHANNEL_ID` (bot identity =
    bot token), one message per block in order, marker appended to the final block:
    ```bash
    python3 - docs/announcements/welcome_setup.md '[doc:welcome_setup]' <<'PY'
@@ -228,7 +228,7 @@ the notification latch.
    ```bash
    [ "$(gh issue list --state all --search '"[GATE] GATE-DISCORD passed" in:title' --json number --jq 'length')" -eq 0 ] \
    && gh issue create --title "[GATE] GATE-DISCORD passed — Discord intake is live" \
-        --body "All GATE-DISCORD checks in docs/runbooks/setup_complete_checklist.md pass. welcome_setup.md is posted to #announcements. Human: verify the post renders correctly and announce wider if desired."
+        --body "All GATE-DISCORD checks in docs/runbooks/setup_complete_checklist.md pass. welcome_setup.md is posted to #poe. Human: verify the post renders correctly and announce wider if desired."
    ```
 
 After firing, GATE-DISCORD reads fully PASSED (D1–D5) on the next heartbeat and

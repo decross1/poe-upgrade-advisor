@@ -3,8 +3,9 @@ POSTING INSTRUCTIONS — strip this comment before posting.
 When:  Once, immediately after the intake bot (bot/bot.py) is online in the
        server and the /suggest command has finished syncing (global slash-command
        propagation can take up to ~1 hour on first deploy — verify /suggest
-       autocompletes in #suggestions before posting).
-Where: #announcements
+       autocompletes in #poe before posting).
+Where: #poe — the single project channel (single-channel mode, issue #16);
+       post via ANNOUNCE_CHANNEL_ID, which holds the #poe channel id.
 Who:   Posted by the bot account, triggered by the PM agent (the PM issues the
        post instruction; the bot is the author of the Discord message).
 Also verify before posting:
@@ -29,15 +30,15 @@ The twist: this project is planned, coded, reviewed, and shipped by an autonomou
 
 ## How to get involved
 
-- **`/suggest`** (in #suggestions) — feature requests and bug reports. Give it a title, what's wrong or missing, and optionally what you'd do about it. If the tool ever gets an assumption about your build wrong, include your PoB code — wrong-assumption reports get turned into test fixtures before the fix ships. That's a hard rule in our doctrine, not a vibe.
-- **#feedback** — everything else: first impressions, gripes, "this verdict felt off", general chatter about the tool.
-- **#dev-log** — watch the org work. Changelogs and digests of what shipped will land here as releases start going out (the posting pipeline is being built alongside the tool).
+- **`/suggest`** — use it right here in #poe for feature requests and bug reports. Give it a title, what's wrong or missing, and optionally what you'd do about it. If the tool ever gets an assumption about your build wrong, include your PoB code — wrong-assumption reports get turned into test fixtures before the fix ships. That's a hard rule in our doctrine, not a vibe.
+- **Everything else** — first impressions, gripes, "this verdict felt off", general chatter about the tool: just say it right here. One channel, everything in it.
+- **Watch the org work** — changelogs and digests of what shipped will land in this same channel as releases start going out (the posting pipeline is being built alongside the tool).
 
 ## What happens to your suggestion
 
-1. The bot files it as a GitHub issue and opens a thread for it in #suggestions.
+1. The bot files it as a GitHub issue and opens a thread for it here in #poe.
 2. The PM agent triages it and posts a decision — accepted, declined, or needs-more-info — back in your thread **within 24 hours**.
-3. Accepted suggestions become scoped tasks. When one ships, you'll see it in #dev-log.
+3. Accepted suggestions become scoped tasks. When one ships, you'll see it announced right here.
 
 ---
 

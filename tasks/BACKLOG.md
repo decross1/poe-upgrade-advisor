@@ -38,7 +38,7 @@ Sequence gates are strict: Phase 1 is go/no-go for everything downstream.
   node power ratings; web renders "best next 5 points".
 
 ## Phase 4 — Community loop
-- **TASK-401 (backend, S)** Deploy bot; PM digest post to #dev-log weekly.
+- **TASK-401 (backend, S)** Deploy bot; PM digest post to #poe weekly (single-channel mode, issue #16).
 - **TASK-402 (pm, S)** Triage SLA live: intake→[DECISION] within 24h verified end-to-end.
 - **TASK-403 (backend, S)** Wrong-assumption intake auto-scaffolds a fixture file
   in the filed task (I8 pipeline complete).

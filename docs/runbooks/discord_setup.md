@@ -46,10 +46,12 @@ None beyond defaults — see 1.1. If Discord ever prompts you to enable an inten
 for this bot, that is a signal the code changed; check with the backend agent
 before toggling anything.
 
-Known planned exception: TASK-404 (#27, #feedback channel piping) will require
-the privileged **Message Content Intent**. Enabling it is an explicit
-human-only step of that task — its issue names it — not something to turn on
-now. Until that task lands, all three privileged intents stay OFF.
+Known planned exception (parked): TASK-404 (#27, feedback listener) would
+require the privileged **Message Content Intent**. That task is **PARKED
+needs-redesign** under single-channel mode (decision, issue #16) — enabling
+the intent remains an explicit human-only step of that task if it is ever
+revived, not something to turn on now. Until then, all three privileged
+intents stay OFF.
 
 ### 1.3 Generate the invite URL (exact permission integer)
 
@@ -76,31 +78,39 @@ https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&scope=bot%20appl
 Open the URL in a browser, pick the server, **Authorize**. Do not grant
 Administrator or anything beyond the integer above.
 
-### 1.4 Create the server channels
+### 1.4 Create the server channel
 
 Enable **Developer Mode** first (User Settings → Advanced → Developer Mode) so
-you can right-click → **Copy Channel ID** for every channel you create. Record
-each ID — they go into the config table in section 3.
+you can right-click → **Copy Channel ID**. Record the ID — it goes into the
+config table in section 3.
 
-| Channel         | Type to create           | Purpose |
-|-----------------|--------------------------|---------|
-| `#suggestions`  | **Text** (see GAP-2)     | home of `/suggest`; bot creates one public thread per suggestion |
-| `#feedback`     | Text                     | free-form user chatter (no bot code touches it today) |
-| `#dev-log`      | Text                     | PM weekly digest + shipped changelog (TASK-401 — no code yet) |
-| `#announcements`| Announcement (or Text)   | release announcements (no bot code touches it today) |
+**SINGLE-CHANNEL MODE** (decision, issue #16, 2026-07-26): the server uses
+exactly **one** channel, `#poe`, for everything — `/suggest` usage,
+per-suggestion `[DECISION]` relay threads, announcements (welcome + MVP
+launch), and any future digest. Both channel env vars
+(`SUGGEST_CHANNEL_ID` and `ANNOUNCE_CHANNEL_ID`) are set to this one
+channel's ID. The channels `#suggestions`/`#feedback`/`#dev-log`/
+`#announcements` referenced by older docs do **not** exist. The server
+serves 3–5 users; revisit this decision around ~25 members.
 
-> ⚠ **GAP-2** — The product plan and bot.py's docstring say `#suggestions` can be
-> a **forum** channel ("forum or text channel id", line 13). The code disagrees:
-> thread creation is gated on `isinstance(interaction.channel, discord.TextChannel)`
-> (line 138) and everything else falls through a bare `except: pass`. In a Forum
-> channel `/suggest` still files the issue but silently gets no dedicated thread
-> handling. **Create `#suggestions` as a Text channel for v0**; convert to Forum
-> only after backend ships forum support under TASK-401.
+| Channel | Type to create       | Purpose |
+|---------|----------------------|---------|
+| `#poe`  | **Text** (see GAP-2) | everything: home of `/suggest` (bot creates one public thread per suggestion), `[DECISION]` relay threads, announcements, any future digest. `SUGGEST_CHANNEL_ID` = `ANNOUNCE_CHANNEL_ID` = this channel's ID. |
+
+> ⚠ **GAP-2** — The product plan and bot.py's docstring say the suggest channel
+> can be a **forum** channel ("forum or text channel id", line 13). The code
+> disagrees: thread creation is gated on
+> `isinstance(interaction.channel, discord.TextChannel)` (line 138) and
+> everything else falls through a bare `except: pass`. In a Forum channel
+> `/suggest` still files the issue but silently gets no dedicated thread
+> handling. **Create `#poe` as a Text channel** — and under single-channel mode
+> it must stay Text anyway, because announcements post plain messages into the
+> same channel (a Forum channel cannot receive them).
 
 Optional but recommended hardening (Discord-side, since the code does not gate —
 see GAP-3): Server Settings → **Integrations** → your bot → command permissions →
-restrict `/suggest` to `#suggestions`. Without this, any member can run
-`/suggest` in **any** channel and the bot will happily file issues from there.
+restrict `/suggest` to `#poe`. Without this, any member can run `/suggest` in
+**any** channel or thread and the bot will happily file issues from there.
 
 ### 1.5 GitHub token
 
@@ -134,8 +144,14 @@ GITHUB_TOKEN=<PAT from step 1.5>
 GITHUB_REPO=decross1/poe-upgrade-advisor
 BOT_DB=/home/decross1/projects/poe-discord-proj/botstate/bot_state.sqlite3
 INTAKE_OUTBOX=/home/decross1/projects/poe-discord-proj/worktrees/backend/.mailroom/outbox
-SUGGEST_CHANNEL_ID=<channel ID of #suggestions>
+SUGGEST_CHANNEL_ID=<channel ID of #poe>
+ANNOUNCE_CHANNEL_ID=<channel ID of #poe, same value>
 ```
+
+(Single-channel mode: both channel vars hold the one `#poe` channel ID.
+`ANNOUNCE_CHANNEL_ID` is not read by `bot.py` at all — it is consumed by the
+pm heartbeat, see `docs/runbooks/setup_complete_checklist.md` D5/M5 and the
+firing rules.)
 
 Then: `chmod 600 .../bot/.env`.
 
@@ -343,7 +359,7 @@ Work through in order; every box must pass before TASK-401 can call deployment d
       note: `setup_hook` calls global `tree.sync()` (bot.py line 94) — global
       command propagation can take **up to ~1 hour** the first time. Wait; do
       not restart-spam (each restart re-syncs and burns rate limit, ⚠ GAP-11).
-- [ ] **Happy path**: in `#suggestions` run
+- [ ] **Happy path**: in `#poe` run
       `/suggest title:"test intake" problem:"runbook verification"` →
       bot replies `Logged as intake #N ...` (public, not ephemeral).
       Known wart: the GitHub call happens before the interaction reply with no
@@ -353,7 +369,7 @@ Work through in order; every box must pass before TASK-401 can call deployment d
       has `INTAKE: test intake`, label `intake`, body with the
       ` ```untrusted ` fence and a `discord_thread:` line.
 - [ ] **Thread created**: a public thread `#N test intake` appeared under the
-      message in `#suggestions`.
+      message in `#poe`.
 - [ ] **State row**: `sqlite3 $BOT_DB 'SELECT * FROM map;'` shows
       `(N, <channel>, <thread>, 0)`.
 - [ ] **Outbox written**: `intake-N.json` appeared in `$INTAKE_OUTBOX` (then
@@ -384,12 +400,9 @@ Work through in order; every box must pass before TASK-401 can call deployment d
 
 Code truth column is what `bot.py` actually does with the value today.
 
-| Discord channel  | Env var              | Where set        | Code truth (bot.py) |
-|------------------|----------------------|------------------|---------------------|
-| `#suggestions`   | `SUGGEST_CHANNEL_ID` | `bot/.env`       | **Never read** (docstring only, GAP-3). Set it anyway so the TASK-401 gating change is config-complete. Enforcement today = Discord command permissions (§1.4). |
-| `#dev-log`       | — none exists —      | n/a              | No code references `#dev-log`. The PM digest/changelog post is unbuilt (TASK-401). Backend: introduce `DEVLOG_CHANNEL_ID` when implementing. |
-| `#feedback`      | — none —             | n/a              | No code touches it; humans only. |
-| `#announcements` | — none —             | n/a              | No code touches it; humans only. |
+| Discord channel | Env var | Where set | Code truth (bot.py) |
+|-----------------|---------|-----------|---------------------|
+| `#poe` (the only channel — single-channel mode, issue #16) | `SUGGEST_CHANNEL_ID` **and** `ANNOUNCE_CHANNEL_ID` (same value) | `bot/.env` | `SUGGEST_CHANNEL_ID`: **never read** (docstring only, GAP-3) — set it anyway so the TASK-401 gating change is config-complete; enforcement today = Discord command permissions (§1.4). `ANNOUNCE_CHANNEL_ID`: never read by bot.py — consumed by the pm heartbeat (`setup_complete_checklist.md` D5/M5 + firing rules). The future PM digest/changelog post (TASK-401's deferred half) targets this same channel via `ANNOUNCE_CHANNEL_ID` — no separate `DEVLOG_CHANNEL_ID` will be introduced. |
 
 Non-channel env vars (all read by `bot.py` unless noted):
 
@@ -417,10 +430,12 @@ should work *through* them. Numbering matches the inline ⚠ flags.
 1. **README invite permissions are wrong** — omits Send Messages in Threads and
    View Channel; the relay cannot post decisions into threads with the README's
    set. Correct integer: `309237648384` (§1.3). Fix `bot/README.md`.
-2. **Forum channels unsupported** — docstring claims "forum or text channel id";
-   code only creates threads for `discord.TextChannel` and swallows everything
-   else with `except: pass` (lines 137–143). Either implement ForumChannel post
-   creation or delete the claim.
+2. **Forum channels unsupported (parked)** — docstring claims "forum or text
+   channel id"; code only creates threads for `discord.TextChannel` and swallows
+   everything else with `except: pass` (lines 137–143). Under single-channel
+   mode (issue #16) `#poe` must stay a Text channel (announcements post plain
+   messages into it), so implementing ForumChannel support is parked — for now
+   just delete the docstring claim.
 3. **`SUGGEST_CHANNEL_ID` is dead config** — documented, never read. No channel
    gating exists; `/suggest` is globally synced and usable anywhere. Implement
    the gate (and consider per-guild sync, see 11).
@@ -454,8 +469,10 @@ should work *through* them. Numbering matches the inline ⚠ flags.
    `get_channel()` is cache-only with no `fetch_channel` fallback (uncached or
    archived threads → decision silently skipped); closed issues are polled
    forever; errors are `print()`-only.
-10. **No announcement half** — zero code posts to `#dev-log` (weekly PM digest,
-    shipped changelog). This is the named deliverable of TASK-401 itself.
+10. **No announcement half** — zero code posts the weekly PM digest / shipped
+    changelog to `#poe` (via `ANNOUNCE_CHANNEL_ID` — single-channel mode,
+    issue #16). This is the named deliverable of TASK-401 itself (digest
+    currently deferred per the sprint plan).
 11. **Global `tree.sync()` on every startup** — up to 1 h propagation on first
     deploy and rate-limit exposure on restarts. Sync per-guild (instant) or only
     when the command set changes.

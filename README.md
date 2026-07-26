@@ -60,7 +60,7 @@ scripts/                 CI checks incl. doctrine invariant checker
 4. **Identities**: create three GitHub machine users (or fine-grained PATs) with *branch-push only* rights, plus one for the merge robot with merge rights. Branch protection on `main`: only the merge robot can merge; required checks per `.github/workflows/ci.yml`.
 5. **Governor**: review `agents/governor/policy.yaml` caps — this is your spend firewall.
 6. **Sessions**: run each role's CLI session (interactive, or cron-woken with a prompt that says "process your ledger inbox per AGENTS.md"). Heartbeat prompts make each agent check its assigned issues even with an empty inbox.
-7. **Discord**: create the bot (see `bot/README.md`), point it at `intake@` and the repo, invite it, create the `#suggestions` forum and `#dev-log` channels.
+7. **Discord**: create the bot (see `bot/README.md`), point it at `intake@` and the repo, invite it, create the single `#poe` text channel (single-channel mode, issue #16 — one channel for `/suggest`, decision threads, and announcements).
 8. **Ignition**: append the bootstrap message in `tasks/BACKLOG.md` §Ignition to the ledger addressed to `pm`. The PM triages Phase 0/1 tasks and the org starts running.
 
 ## Human controls (the only two)

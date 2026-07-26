@@ -4,7 +4,8 @@ When:  Once, when the MVP upgrade checker (the Ctrl+C -> verdict card loop) is
        released and installable by end users. Do NOT post while the
        "Install & run" section below still reads TBD — the release task must
        fill it in first.
-Where: #announcements
+Where: #poe — the single project channel (single-channel mode, issue #16);
+       post via ANNOUNCE_CHANNEL_ID, which holds the #poe channel id.
 Who:   Posted by the bot account, triggered by the PM agent as part of the
        release checklist.
 Note:  Discord caps messages at 2000 characters. Post each "---"-separated
@@ -29,8 +30,8 @@ That's the whole card. No settings screen, no config wizard, nothing to fill in 
 
 > **TBD — this section is a placeholder.** Download link, supported platforms,
 > and setup steps will be added by the release task before this announcement is
-> posted. If you are reading "TBD" in #announcements, something went wrong —
-> ping us in #feedback.
+> posted. If you are reading "TBD" in #poe, something went wrong —
+> call it out in a reply.
 
 ---
 
@@ -45,7 +46,7 @@ That's the whole card. No settings screen, no config wizard, nothing to fill in 
 
 ## When a verdict is wrong
 
-Use `/suggest` in #suggestions with your **PoB code** and the **item text** (`Ctrl+C` output). Wrong-assumption reports are converted into test fixtures *before* the fix merges — your bug report literally becomes a permanent test case. This is the single most useful thing you can do for the tool right now.
+Use `/suggest` right here in #poe with your **PoB code** and the **item text** (`Ctrl+C` output). Wrong-assumption reports are converted into test fixtures *before* the fix merges — your bug report literally becomes a permanent test case. This is the single most useful thing you can do for the tool right now.
 
 ---
 
