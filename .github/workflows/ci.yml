@@ -109,6 +109,21 @@ jobs:
           path: dist/poe-upgrade-advisor-v0-*-windows-x64.zip
           if-no-files-found: error
           retention-days: 7
+  windows-worker-pipes:
+    # TASK-209 / issue #75: Windows selectors reject anonymous subprocess
+    # pipes. Exercise the real JsonRpcWorker ping/response path on Windows so
+    # the shipping runtime cannot regress to WinError 10038.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pytest pyyaml jsonschema
+      - name: exercise worker subprocess pipes
+        run: >-
+          python -m pytest
+          tests/test_server.py::test_worker_reads_subprocess_pipes_without_selector_support
+          -q
   contracts:
     runs-on: ubuntu-latest
     steps:
