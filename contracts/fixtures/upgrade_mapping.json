@@ -1,0 +1,35 @@
+{
+  "diff_id": "d-8f2c41a7",
+  "verdict": "UPGRADE",
+  "offense_delta_pct": 12.4,
+  "defense_delta_pct": -1.8,
+  "sentence": "+1 to cold gems and higher flat cold beat the small life loss; clear DPS rises 12.4%.",
+  "assumptions": [
+    {
+      "id": "main_skill.most_linked_highest_dps",
+      "label": "skill: Vortex",
+      "value": "Vortex",
+      "impactful": true,
+      "reversible": true,
+      "source_rule": "main_skill.most_linked_highest_dps"
+    },
+    {
+      "id": "config.elemental_overload",
+      "label": "crit recently",
+      "value": true,
+      "impactful": true,
+      "reversible": true,
+      "source_rule": "config.elemental_overload"
+    },
+    {
+      "id": "config.flasks_up",
+      "label": "flasks up",
+      "value": true,
+      "impactful": false,
+      "reversible": true
+    }
+  ],
+  "confidence": 0.8,
+  "preset": "mapping",
+  "compute_ms": 142
+}

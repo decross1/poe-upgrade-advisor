@@ -1,0 +1,27 @@
+{
+  "diff_id": "d-c47a1f55",
+  "verdict": "SIDEGRADE",
+  "offense_delta_pct": 1.1,
+  "defense_delta_pct": -0.9,
+  "sentence": "Comparable overall: a touch more cold damage for a touch less evasion. Flip an assumption if this looks off.",
+  "assumptions": [
+    {
+      "id": "main_skill.most_linked_highest_dps",
+      "label": "skill: Ice Shot",
+      "value": "Ice Shot",
+      "impactful": true,
+      "reversible": true
+    },
+    {
+      "id": "config.chill_from_setup",
+      "label": "enemy chilled",
+      "value": true,
+      "impactful": true,
+      "reversible": true,
+      "source_rule": "config.chill_from_setup"
+    }
+  ],
+  "confidence": 0.62,
+  "preset": "balanced",
+  "compute_ms": 158
+}

@@ -1,0 +1,28 @@
+{
+  "diff_id": "d-a51d02e9",
+  "verdict": "DOWNGRADE",
+  "offense_delta_pct": -18.2,
+  "defense_delta_pct": 3.1,
+  "sentence": "Losing +2 arrows outweighs the armour gain; clear DPS drops 18.2%.",
+  "assumptions": [
+    {
+      "id": "main_skill.most_linked_highest_dps",
+      "label": "skill: Tornado Shot",
+      "value": "Tornado Shot",
+      "impactful": true,
+      "reversible": true,
+      "source_rule": "main_skill.most_linked_highest_dps"
+    },
+    {
+      "id": "config.flasks_up",
+      "label": "flasks up",
+      "value": true,
+      "impactful": true,
+      "reversible": true,
+      "source_rule": "config.flasks_up"
+    }
+  ],
+  "confidence": 0.8,
+  "preset": "mapping",
+  "compute_ms": 133
+}

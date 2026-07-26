@@ -1,0 +1,10 @@
+{
+  "diff_id": "d-00000000",
+  "verdict": "CANT_EVALUATE",
+  "offense_delta_pct": 0,
+  "defense_delta_pct": 0,
+  "sentence": "Unrecognised item class: the engine could not derive any assumptions or compute deltas. Open details for the raw parse and report this item.",
+  "assumptions": [],
+  "confidence": 0,
+  "preset": "mapping"
+}
