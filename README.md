@@ -47,6 +47,22 @@ tasks/BACKLOG.md         Phased backlog with acceptance criteria (TASK-ids)
 scripts/                 CI checks incl. doctrine invariant checker
 ```
 
+## Building the tester distributable (TASK-208)
+
+One command produces `dist/poe-upgrade-advisor-v0-<sha>.tar.gz` — the web
+bundle, local API, real PoB engine (vendored PathOfBuilding + prebuilt
+pinned LuaJIT runtime), and the `run.sh` / `run.command` / `run.bat`
+entrypoints:
+
+```sh
+scripts/package_mvp.sh
+```
+
+Packaging-machine prerequisites: `npm`, `git`, `cc`+`make` (the Lua runtime
+is compiled once here and shipped prebuilt — testers need none of these).
+Tester prerequisites and install steps live in `packaging/README.txt`
+(ships in the tarball) and `docs/announcements/mvp_launch.md`.
+
 ## Boot sequence (one-time human setup, ~1 evening)
 
 1. **Repo**: create a GitHub repo, push this scaffold. Add the PoB engine:
