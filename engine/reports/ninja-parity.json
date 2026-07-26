@@ -32,9 +32,9 @@
     },
     "imported_builds": 15,
     "failed_imports": 0,
-    "warm_p95_ms": 765.870522,
-    "warm_p95_limit_ms": 150,
-    "warm_p95_pass": false,
+    "build_import_p95_ms": 624.569215,
+    "build_import_p95_limit_ms": 2000,
+    "build_import_p95_pass": true,
     "over_band_pass": false,
     "over_cell_classifications": {
       "our-bug": 0,
@@ -42,7 +42,8 @@
       "documented-limitation": 0,
       "unclassified": 0
     },
-    "classification_gate_pass": true
+    "classification_gate_pass": true,
+    "go_gate_pass": true
   },
   "builds": [
     {
@@ -55,7 +56,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 0.389344,
+      "warm_latency_ms": 0.303184,
       "band_counts": {
         "exact": 93,
         "<=0.1%": 0,
@@ -820,7 +821,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 461.855639,
+      "warm_latency_ms": 510.094347,
       "band_counts": {
         "exact": 97,
         "<=0.1%": 0,
@@ -1617,7 +1618,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 507.481871,
+      "warm_latency_ms": 339.750071,
       "band_counts": {
         "exact": 102,
         "<=0.1%": 0,
@@ -2454,7 +2455,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 419.476372,
+      "warm_latency_ms": 381.903899,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -3259,7 +3260,7 @@
         "level": 100
       },
       "engine_error": null,
-      "warm_latency_ms": 504.2039,
+      "warm_latency_ms": 487.994696,
       "band_counts": {
         "exact": 92,
         "<=0.1%": 0,
@@ -4016,7 +4017,7 @@
         "level": 98
       },
       "engine_error": null,
-      "warm_latency_ms": 493.546675,
+      "warm_latency_ms": 437.708556,
       "band_counts": {
         "exact": 91,
         "<=0.1%": 0,
@@ -4765,7 +4766,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 410.260556,
+      "warm_latency_ms": 362.408043,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -5570,7 +5571,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 349.134952,
+      "warm_latency_ms": 320.060646,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -6343,7 +6344,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 427.452027,
+      "warm_latency_ms": 409.897988,
       "band_counts": {
         "exact": 101,
         "<=0.1%": 0,
@@ -7172,7 +7173,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 404.410983,
+      "warm_latency_ms": 443.973282,
       "band_counts": {
         "exact": 97,
         "<=0.1%": 0,
@@ -7969,7 +7970,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 765.870522,
+      "warm_latency_ms": 624.569215,
       "band_counts": {
         "exact": 98,
         "<=0.1%": 0,
@@ -8798,7 +8799,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 439.767317,
+      "warm_latency_ms": 396.22364,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -9571,7 +9572,7 @@
         "level": 97
       },
       "engine_error": null,
-      "warm_latency_ms": 472.273473,
+      "warm_latency_ms": 436.69278,
       "band_counts": {
         "exact": 94,
         "<=0.1%": 0,
@@ -10344,7 +10345,7 @@
         "level": 96
       },
       "engine_error": null,
-      "warm_latency_ms": 462.636601,
+      "warm_latency_ms": 437.642124,
       "band_counts": {
         "exact": 93,
         "<=0.1%": 0,
@@ -11109,7 +11110,7 @@
         "level": 96
       },
       "engine_error": null,
-      "warm_latency_ms": 560.548267,
+      "warm_latency_ms": 538.582148,
       "band_counts": {
         "exact": 89,
         "<=0.1%": 0,

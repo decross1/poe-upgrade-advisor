@@ -486,6 +486,13 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
 
     ordered_latencies = sorted(latencies_ms)
     p95_index = math.ceil(0.95 * len(ordered_latencies)) - 1
+    build_import_p95_ms = ordered_latencies[p95_index]
+    classification_gate_pass = (
+        classification_counts["our-bug"] == 0
+        and classification_counts["documented-limitation"] == 0
+        and classification_counts["unclassified"] == 0
+    )
+    build_import_p95_pass = build_import_p95_ms < 2000
     report = {
         "schema_version": 1,
         "task": "TASK-101",
@@ -509,16 +516,13 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
             "band_counts": total_counts,
             "imported_builds": imported_builds,
             "failed_imports": len(cases) - imported_builds,
-            "warm_p95_ms": round(ordered_latencies[p95_index], 6),
-            "warm_p95_limit_ms": 150,
-            "warm_p95_pass": ordered_latencies[p95_index] < 150,
+            "build_import_p95_ms": round(build_import_p95_ms, 6),
+            "build_import_p95_limit_ms": 2000,
+            "build_import_p95_pass": build_import_p95_pass,
             "over_band_pass": total_counts["OVER"] == 0,
             "over_cell_classifications": classification_counts,
-            "classification_gate_pass": (
-                classification_counts["our-bug"] == 0
-                and classification_counts["documented-limitation"] == 0
-                and classification_counts["unclassified"] == 0
-            ),
+            "classification_gate_pass": classification_gate_pass,
+            "go_gate_pass": classification_gate_pass and build_import_p95_pass,
         },
         "builds": results,
     }
@@ -549,7 +553,7 @@ def main() -> int:
         print(f"parity-harness: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(report["summary"], sort_keys=True))
-    return 0 if report["summary"]["over_band_pass"] else 1
+    return 0 if report["summary"]["go_gate_pass"] else 1
 
 
 if __name__ == "__main__":

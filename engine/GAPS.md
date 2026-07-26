@@ -74,5 +74,7 @@ parity.
 - The persistent worker caches the upstream calculator for byte-identical
   build XML plus preset. On the current aarch64 runner, 100 warm Lightning
   Arrow mapping diffs measured 4.301 ms p95 against the 150 ms budget
-  (`engine/bench/benchmark_worker.py`, 5 warmups). Release promotion must
-  repeat the benchmark on designated reference hardware.
+  (`engine/bench/benchmark_worker.py`, 5 warmups). ADR-0006 separately budgets
+  one-time build imports at 2,000 ms; the 15-build harness passes that budget.
+  Release promotion must repeat both measurements on designated reference
+  hardware.

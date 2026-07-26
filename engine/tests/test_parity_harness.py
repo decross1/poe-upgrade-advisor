@@ -121,6 +121,9 @@ class ParityHarnessTest(unittest.TestCase):
             },
         )
         self.assertTrue(report["summary"]["classification_gate_pass"])
+        self.assertTrue(report["summary"]["build_import_p95_pass"])
+        self.assertEqual(report["summary"]["build_import_p95_limit_ms"], 2000)
+        self.assertTrue(report["summary"]["go_gate_pass"])
 
     def test_over_cells_require_an_explicit_adr_classification(self):
         known = [{"stat": "ManaCost", "band": "OVER"}]
