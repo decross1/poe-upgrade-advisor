@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "spell-freezing-pulse",
+  "title": "Overloaded Intensity Freezing Pulse Assassin",
+  "class": "Shadow",
+  "ascendancy": "Assassin",
+  "level": 53,
+  "representative_skills": [
+    "Freezing Pulse",
+    "Overloaded Intensity",
+    "Pinpoint"
+  ],
+  "archetypes": [
+    "spell"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.28_Mirage/Overloaded Intensity Freezing Pulse Assassin.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

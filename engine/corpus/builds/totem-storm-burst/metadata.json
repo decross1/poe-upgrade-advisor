@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "totem-storm-burst",
+  "title": "Storm Burst Totems",
+  "class": "Templar",
+  "ascendancy": "Hierophant",
+  "level": 18,
+  "representative_skills": [
+    "Storm Burst",
+    "Increased Critical Damage",
+    "Increased Critical Strikes"
+  ],
+  "archetypes": [
+    "totem"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.28_Mirage/Storm Burst Totems.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

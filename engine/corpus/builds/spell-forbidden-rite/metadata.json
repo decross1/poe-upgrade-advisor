@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "spell-forbidden-rite",
+  "title": "Forbidden Rite of Soul Sacrifice",
+  "class": "Shadow",
+  "ascendancy": "Trickster",
+  "level": 93,
+  "representative_skills": [
+    "Forbidden Rite of Soul Sacrifice",
+    "Greater Multiple Projectiles",
+    "Intensify"
+  ],
+  "archetypes": [
+    "spell"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.26_Mercenary/Forbidden Rite of Soul Sacrifice.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "minion-herald-agony",
+  "title": "Herald Agony Crawler Ivory Tower",
+  "class": "Witch",
+  "ascendancy": "Elementalist",
+  "level": 93,
+  "representative_skills": [
+    "Herald of Agony",
+    "Minion Damage",
+    "Arrogance"
+  ],
+  "archetypes": [
+    "minion",
+    "low-life"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.27_Phrecia/Herald Agony Crawler Ivory Tower.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

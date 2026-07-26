@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "attack-molten-strike",
+  "title": "Molten Strike Reliquarian Nameless",
+  "class": "Scion",
+  "ascendancy": "Reliquarian",
+  "level": 88,
+  "representative_skills": [
+    "Molten Strike",
+    "Returning Projectiles",
+    "Slower Projectiles"
+  ],
+  "archetypes": [
+    "attack"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.28_Mirage/Molten Strike Reliquarian Nameless.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

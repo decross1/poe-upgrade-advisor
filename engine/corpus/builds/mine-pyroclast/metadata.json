@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "mine-pyroclast",
+  "title": "Pyroclast Mine Polythiest",
+  "class": "Templar",
+  "ascendancy": "None",
+  "level": 91,
+  "representative_skills": [
+    "Pyroclast Mine",
+    "Minefield",
+    "Fire Penetration"
+  ],
+  "archetypes": [
+    "mine"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.25.5_Legacy_of_Phrecia/Pyroclast Mine Polythiest.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

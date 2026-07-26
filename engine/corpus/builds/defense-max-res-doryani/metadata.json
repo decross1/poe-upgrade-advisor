@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "id": "defense-max-res-doryani",
+  "title": "Max Res Doryani Merc",
+  "class": "Scion",
+  "ascendancy": "None",
+  "level": 1,
+  "representative_skills": [
+    "Purity of Lightning"
+  ],
+  "archetypes": [
+    "defense"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.26_Mercenary/Max Res Doryani Merc.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

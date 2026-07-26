@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "spell-blade-vortex",
+  "title": "Blade Vortex Bog Shaman",
+  "class": "Witch",
+  "ascendancy": "Necromancer",
+  "level": 100,
+  "representative_skills": [
+    "Ethereal Knives",
+    "Arcane Surge",
+    "Added Lightning Damage"
+  ],
+  "archetypes": [
+    "spell"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.27_Phrecia/Blade Vortex Bog Shaman.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

@@ -1,0 +1,12 @@
+The build XML files under builds/ are redistributed from:
+
+  https://github.com/WillsApps/random_work
+  commit 49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee
+
+That repository declares the GNU General Public License v3.0. Its license text
+is available at:
+
+  https://github.com/WillsApps/random_work/blob/49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee/LICENSE
+
+No upstream build XML was modified.
+

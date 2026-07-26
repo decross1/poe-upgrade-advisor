@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "totem-kinetic-fusillade",
+  "title": "Kinetic Fusillade Totem",
+  "class": "Scion",
+  "ascendancy": "None",
+  "level": 18,
+  "representative_skills": [
+    "Kinetic Fusillade",
+    "Ballista Totem",
+    "Greater Multiple Projectiles"
+  ],
+  "archetypes": [
+    "totem"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.28_Mirage/Kinetic Fusillade Totem.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

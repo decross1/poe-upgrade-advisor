@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "attack-boneshatter-jugg",
+  "title": "Boneshatter Jugg",
+  "class": "Marauder",
+  "ascendancy": "Juggernaut",
+  "level": 100,
+  "representative_skills": [
+    "Boneshatter",
+    "Trinity",
+    "Faster Attacks"
+  ],
+  "archetypes": [
+    "attack"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.27_keepers_of_the_flame/Boneshatter Jugg.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

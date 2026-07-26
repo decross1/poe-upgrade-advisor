@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "stacker-energy-blade",
+  "title": "Energy Blade Life Stacking Inquis Poe Ninja",
+  "class": "Templar",
+  "ascendancy": "Inquisitor",
+  "level": 98,
+  "representative_skills": [
+    "Enlighten",
+    "Tempest Shield",
+    "Petrified Blood"
+  ],
+  "archetypes": [
+    "stacker"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.28_Mirage/Energy Blade Life Stacking Inquis Poe Ninja.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

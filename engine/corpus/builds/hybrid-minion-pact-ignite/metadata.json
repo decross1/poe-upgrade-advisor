@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "hybrid-minion-pact-ignite",
+  "title": "Ignite Elementalist Minion Pact",
+  "class": "Witch",
+  "ascendancy": "Elementalist",
+  "level": 67,
+  "representative_skills": [
+    "Purifying Flame of Revelations",
+    "Cruelty",
+    "Burning Damage"
+  ],
+  "archetypes": [
+    "minion",
+    "hybrid"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.28_Mirage/Ignite Elementalist Minion Pact.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

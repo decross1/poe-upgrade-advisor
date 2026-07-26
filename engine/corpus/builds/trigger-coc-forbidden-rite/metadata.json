@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "trigger-coc-forbidden-rite",
+  "title": "Unlimited regen shav coc forbidden rite",
+  "class": "Scion",
+  "ascendancy": "Scavenger",
+  "level": 93,
+  "representative_skills": [
+    "Forbidden Rite",
+    "Awakened Cast On Critical Strike",
+    "Lancing Steel of Spraying"
+  ],
+  "archetypes": [
+    "trigger",
+    "low-life"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.25.5_Legacy_of_Phrecia/Unlimited regen shav coc forbidden rite.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

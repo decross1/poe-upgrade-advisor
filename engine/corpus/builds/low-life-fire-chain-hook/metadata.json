@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "low-life-fire-chain-hook",
+  "title": "Fire Chain Hook Rage Vortex Low Life Inquis",
+  "class": "Templar",
+  "ascendancy": "Inquisitor",
+  "level": 90,
+  "representative_skills": [
+    "Chain Hook",
+    "Bloodthirst",
+    "Fire Penetration"
+  ],
+  "archetypes": [
+    "low-life"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.16/Fire Chain Hook Rage Vortex Low Life Inquis.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

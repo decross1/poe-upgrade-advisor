@@ -1,0 +1,1410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PathOfBuilding>
+	<Build ascendClassName="Elementalist" pantheonMajorGod="None" pantheonMinorGod="None" mainSocketGroup="1" level="67" characterLevelAutoMode="true" targetVersion="3_0" viewMode="SKILLS" bandit="None" className="Witch">
+		<PlayerStat value="82370.633305637" stat="AverageHit"/>
+		<PlayerStat value="82370.633305637" stat="AverageBurstDamage"/>
+		<PlayerStat value="1.8166666666667" stat="Speed"/>
+		<PlayerStat value="5.5" stat="PreEffectiveCritChance"/>
+		<PlayerStat value="5.5" stat="CritChance"/>
+		<PlayerStat value="1.5" stat="CritMultiplier"/>
+		<PlayerStat value="100" stat="HitChance"/>
+		<PlayerStat value="149639.98383857" stat="TotalDPS"/>
+		<PlayerStat value="0" stat="TotalDot"/>
+		<PlayerStat value="149639.98383857" stat="WithBleedDPS"/>
+		<PlayerStat value="1572175.2846442" stat="IgniteDPS"/>
+		<PlayerStat value="1721815.2684828" stat="WithIgniteDPS"/>
+		<PlayerStat value="149639.98383857" stat="WithPoisonDPS"/>
+		<PlayerStat value="1572175.2846442" stat="TotalDotDPS"/>
+		<PlayerStat value="0" stat="CullingDPS"/>
+		<PlayerStat value="0" stat="ReservationDPS"/>
+		<PlayerStat value="1721815.2684828" stat="CombinedDPS"/>
+		<PlayerStat value="2.1" stat="AreaOfEffectRadiusMetres"/>
+		<PlayerStat value="71" stat="ManaCost"/>
+		<PlayerStat value="0" stat="ManaPercentCost"/>
+		<PlayerStat value="128.98333333333" stat="ManaPerSecondCost"/>
+		<PlayerStat value="0" stat="ManaPercentPerSecondCost"/>
+		<PlayerStat value="0" stat="LifeCost"/>
+		<PlayerStat value="0" stat="LifePercentCost"/>
+		<PlayerStat value="0" stat="LifePerSecondCost"/>
+		<PlayerStat value="0" stat="LifePercentPerSecondCost"/>
+		<PlayerStat value="0" stat="ESCost"/>
+		<PlayerStat value="0" stat="ESPerSecondCost"/>
+		<PlayerStat value="0" stat="ESPercentPerSecondCost"/>
+		<PlayerStat value="0" stat="RageCost"/>
+		<PlayerStat value="0" stat="SoulCost"/>
+		<PlayerStat value="111" stat="Str"/>
+		<PlayerStat value="136" stat="ReqStr"/>
+		<PlayerStat value="37" stat="Dex"/>
+		<PlayerStat value="94" stat="ReqDex"/>
+		<PlayerStat value="295" stat="Int"/>
+		<PlayerStat value="222" stat="ReqInt"/>
+		<PlayerStat value="0" stat="Devotion"/>
+		<PlayerStat value="2049.5102117733" stat="TotalEHP"/>
+		<PlayerStat value="2195" stat="PhysicalMaximumHitTaken"/>
+		<PlayerStat value="1693" stat="LightningMaximumHitTaken"/>
+		<PlayerStat value="2121" stat="FireMaximumHitTaken"/>
+		<PlayerStat value="1693" stat="ColdMaximumHitTaken"/>
+		<PlayerStat value="1100" stat="ChaosMaximumHitTaken"/>
+		<PlayerStat value="1760" stat="Life"/>
+		<PlayerStat value="42" stat="Spec:LifeInc"/>
+		<PlayerStat value="1760" stat="LifeUnreserved"/>
+		<PlayerStat value="1760" stat="LifeRecoverable"/>
+		<PlayerStat value="100" stat="LifeUnreservedPercent"/>
+		<PlayerStat value="35.2" stat="LifeRegenRecovery"/>
+		<PlayerStat value="0" stat="LifeLeechGainRate"/>
+		<PlayerStat value="647" stat="Mana"/>
+		<PlayerStat value="8" stat="Spec:ManaInc"/>
+		<PlayerStat value="137" stat="ManaUnreserved"/>
+		<PlayerStat value="21.174652241113" stat="ManaUnreservedPercent"/>
+		<PlayerStat value="17.8" stat="ManaRegenRecovery"/>
+		<PlayerStat value="0" stat="ManaLeechGainRate"/>
+		<PlayerStat value="85" stat="EnergyShield"/>
+		<PlayerStat value="85" stat="EnergyShieldRecoveryCap"/>
+		<PlayerStat value="0" stat="Spec:EnergyShieldInc"/>
+		<PlayerStat value="0" stat="EnergyShieldRegenRecovery"/>
+		<PlayerStat value="0" stat="EnergyShieldLeechGainRate"/>
+		<PlayerStat value="0" stat="Ward"/>
+		<PlayerStat value="0" stat="RageRegenRecovery"/>
+		<PlayerStat value="1687" stat="Evasion"/>
+		<PlayerStat value="0" stat="Spec:EvasionInc"/>
+		<PlayerStat value="7" stat="MeleeEvadeChance"/>
+		<PlayerStat value="7" stat="ProjectileEvadeChance"/>
+		<PlayerStat value="2083" stat="Armour"/>
+		<PlayerStat value="0" stat="Spec:ArmourInc"/>
+		<PlayerStat value="15" stat="PhysicalDamageReduction"/>
+		<PlayerStat value="22" stat="EffectiveBlockChance"/>
+		<PlayerStat value="0" stat="EffectiveSpellBlockChance"/>
+		<PlayerStat value="0" stat="AttackDodgeChance"/>
+		<PlayerStat value="0" stat="SpellDodgeChance"/>
+		<PlayerStat value="0" stat="EffectiveSpellSuppressionChance"/>
+		<PlayerStat value="16" stat="FireResist"/>
+		<PlayerStat value="0" stat="FireResistOverCap"/>
+		<PlayerStat value="-6" stat="ColdResist"/>
+		<PlayerStat value="0" stat="ColdResistOverCap"/>
+		<PlayerStat value="-6" stat="LightningResist"/>
+		<PlayerStat value="0" stat="LightningResistOverCap"/>
+		<PlayerStat value="-60" stat="ChaosResist"/>
+		<PlayerStat value="0" stat="ChaosResistOverCap"/>
+		<PlayerStat value="0.94" stat="EffectiveMovementSpeedMod"/>
+		<PlayerStat value="0" stat="FullDPS"/>
+		<PlayerStat value="0" stat="FullDotDPS"/>
+		<PlayerStat value="0" stat="PowerCharges"/>
+		<PlayerStat value="3" stat="PowerChargesMax"/>
+		<PlayerStat value="0" stat="FrenzyCharges"/>
+		<PlayerStat value="3" stat="FrenzyChargesMax"/>
+		<PlayerStat value="0" stat="EnduranceCharges"/>
+		<PlayerStat value="3" stat="EnduranceChargesMax"/>
+		<TimelessData searchListFallback="" devotionVariant1="1" devotionVariant2="1" searchList=""/>
+	</Build>
+	<Calcs>
+		<Input number="1" name="skill_number"/>
+		<Input boolean="true" name="showMinion"/>
+		<Input string="EFFECTIVE" name="misc_buffMode"/>
+		<Section collapsed="false" id="SkillSelect" subsection="ViewSkillDetails"/>
+		<Section collapsed="false" id="HitDamage" subsection="SkillHitDamage"/>
+		<Section collapsed="false" id="Warcries" subsection="ExertingWarcries"/>
+		<Section collapsed="false" id="Dot" subsection="SkillDamageoverTime"/>
+		<Section collapsed="false" id="Speed" subsection="AttackCastRate"/>
+		<Section collapsed="false" id="Crit" subsection="Crits"/>
+		<Section collapsed="false" id="Impale" subsection="Impale"/>
+		<Section collapsed="false" id="SkillTypeStats" subsection="SkilltypespecificStats"/>
+		<Section collapsed="false" id="HitChance" subsection="Accuracy"/>
+		<Section collapsed="false" id="Bleed" subsection="Bleed"/>
+		<Section collapsed="false" id="Poison" subsection="Poison"/>
+		<Section collapsed="false" id="Ignite" subsection="Ignite"/>
+		<Section collapsed="false" id="Decay" subsection="Decay"/>
+		<Section collapsed="false" id="LeechGain" subsection="LeechGainonHit"/>
+		<Section collapsed="false" id="EleAilments" subsection="NonDamagingAilments"/>
+		<Section collapsed="false" id="MiscEffects" subsection="OtherEffects"/>
+		<Section collapsed="false" id="Attributes" subsection="Attributes"/>
+		<Section collapsed="false" id="Life" subsection="Life"/>
+		<Section collapsed="false" id="Mana" subsection="Mana"/>
+		<Section collapsed="false" id="EnergyShield" subsection="EnergyShield"/>
+		<Section collapsed="false" id="Ward" subsection="Ward"/>
+		<Section collapsed="false" id="Resist" subsection="Resists"/>
+		<Section collapsed="false" id="Armour" subsection="Armour"/>
+		<Section collapsed="false" id="Evasion" subsection="Evasion"/>
+		<Section collapsed="false" id="DamageAvoidance" subsection="DamageAvoidance"/>
+		<Section collapsed="false" id="DamageAvoidance" subsection="Block"/>
+		<Section collapsed="false" id="DamageAvoidance" subsection="Dodge"/>
+		<Section collapsed="false" id="DamageAvoidance" subsection="SpellSuppression"/>
+		<Section collapsed="false" id="Flasks" subsection="Flasks"/>
+		<Section collapsed="true" id="Flasks" subsection="UtilityFlasks"/>
+		<Section collapsed="true" id="Flasks" subsection="LifeFlasks"/>
+		<Section collapsed="true" id="Flasks" subsection="ManaFlasks"/>
+		<Section collapsed="true" id="Flasks" subsection="Tinctures"/>
+		<Section collapsed="true" id="Rage" subsection="Rage"/>
+		<Section collapsed="true" id="Charges" subsection="Charges"/>
+		<Section collapsed="true" id="Charges" subsection="Endurance"/>
+		<Section collapsed="true" id="Charges" subsection="Frenzy"/>
+		<Section collapsed="true" id="Charges" subsection="Power"/>
+		<Section collapsed="false" id="MiscDefences" subsection="OtherDefences"/>
+		<Section collapsed="false" id="MiscDefences" subsection="Fortification"/>
+		<Section collapsed="false" id="MiscDefences" subsection="StunDuration"/>
+		<Section collapsed="true" id="MiscDefences" subsection="OtherAvoidance"/>
+		<Section collapsed="true" id="MiscDefences" subsection="OtherAilmentDefences"/>
+		<Section collapsed="false" id="DamageTaken" subsection="DamageTaken"/>
+		<Section collapsed="false" id="DamageTaken" subsection="DamagingHits"/>
+		<Section collapsed="false" id="DamageTaken" subsection="EffectiveHealthPool"/>
+		<Section collapsed="false" id="DamageTaken" subsection="MaximumHitTaken"/>
+		<Section collapsed="true" id="DamageTaken" subsection="RecoupandHitTakenOverTime"/>
+		<Section collapsed="false" id="DamageTaken" subsection="DotsandBuildDegens"/>
+		<Section collapsed="true" id="DamageTaken" subsection="EnemyDegens"/>
+	</Calcs>
+	<Party destination="All" append="false" ShowAdvanceTools="false"/>
+	<Tree activeSpec="1">
+		<Spec classId="3" masteryEffects="" nodes="7388,39841,7444,19103,54447,60472,15167,9408,36634,21984,32024,4177,65573,26481,33310,63447,36915,30658,49605,7960,9797,22618,11420,60554,38176,65570,61419,65574,37569,46340,54279,31875,31103,66899,66579,5296,65555,65898,35260,65561,12613,65881,2311,34880,66576,66905,29712,66585,21033,44184,65875,26270,36542,56461,52412,65872,66896,59585,65893,26196,10904,57264,52502,65578,65552,4397,13170,13009,65888,41190,65890,17412,4247,64583,63630,29171,37114,53123,65568,19501,61259,12738,64210,27611,65894,16023,17735,42760,15117,36678,34506,24872,49651,4367,34171,60398,20987" secondaryAscendClassId="13" ascendClassId="2" treeVersion="3_28">
+			<URL>
+				https://www.pathofexile.com/passive-skill-tree/AAAABgM2SBzcm6EdFEqf7Dg7PyTAjxpV4H0YEFFncYIe99eQM3fCwcUfGCZFWFosnOyKlSDv65LBtQTUB3yDeX8UsIm8MUUJB4hAdBBSKayYZp6OvtyNzLzowWZUKpjfsM0WES0zcjLRoOZEBBCX_Edx85D6z4NMLe9LMcL60mvbRUenCDsNj0aGymEowfMRD4V76-5R-xYAJQAiACYFUwQTABMBagAZAVkEEAVZBBkBUwFQBVABZQAqABABYAFiACABZgA=
+			</URL>
+			<Sockets>
+				<Socket itemId="5" nodeId="64583"/>
+				<Socket itemId="5" nodeId="9408"/>
+				<Socket itemId="7" nodeId="36634"/>
+				<Socket itemId="7" nodeId="12613"/>
+				<Socket itemId="7" nodeId="59585"/>
+				<Socket itemId="5" nodeId="13170"/>
+				<Socket itemId="7" nodeId="26196"/>
+				<Socket itemId="7" nodeId="61419"/>
+				<Socket itemId="5" nodeId="29712"/>
+				<Socket itemId="3" nodeId="7960"/>
+				<Socket itemId="3" nodeId="21984"/>
+				<Socket itemId="7" nodeId="9797"/>
+			</Sockets>
+			<Overrides/>
+		</Spec>
+	</Tree>
+	<TreeView showStatDifferences="true" zoomLevel="12" zoomX="-1994.544216576" zoomY="3325.535358464" searchStr=""/>
+	<Skills activeSkillSet="1" showAltQualityGems="false" showLegacyGems="false" defaultGemLevel="normalMaximum" defaultGemQuality="0" showSupportGemTypes="ALL" sortGemsByDPS="true" sortGemsByDPSField="IgniteDPS">
+		<SkillSet id="1">
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" label="" includeInFullDPS="nil" enabled="true">
+				<Gem level="20" gemId="Metadata/Items/Gems/SkillGemSanctify" qualityId="Default" quality="20" enabled="true" nameSpec="Purifying Flame of Revelations" skillPart="2" enableGlobal1="true" skillId="PurifyingFlameAltX" variantId="PurifyingFlameAltX" count="1" enableGlobal2="true" skillPartCalcs="1"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SupportGemCruelty" qualityId="Default" quality="20" enabled="true" nameSpec="Cruelty" enableGlobal1="true" skillId="SupportCruelty" variantId="SupportCruelty" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SupportGemIncreasedBurningDamage" qualityId="Default" quality="20" enabled="true" nameSpec="Burning Damage" enableGlobal1="true" skillId="SupportBurningDamage" variantId="SupportBurningDamage" count="1" enableGlobal2="true"/>
+				<Gem level="3" gemId="Metadata/Items/Gems/SupportGemMinionPact" qualityId="Default" quality="20" enabled="true" nameSpec="Minion Pact" enableGlobal1="true" skillId="SupportMinionPact" variantId="SupportMinionPact" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SupportGemDeadlyAilments" qualityId="Default" quality="0" enabled="true" nameSpec="Deadly Ailments" enableGlobal1="true" skillId="SupportDeadlyAilments" variantId="SupportDeadlyAilments" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SupportGemRapidDecay" qualityId="Default" quality="0" enabled="true" nameSpec="Swift Affliction" enableGlobal1="true" skillId="SupportSwiftAffliction" variantId="SupportSwiftAffliction" count="1" enableGlobal2="true"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="1" mainActiveSkill="1" slot="Helmet" label="" includeInFullDPS="nil" enabled="true">
+				<Gem skillMinionCalcs="SummonedFlameGolem" skillMinion="SummonedFlameGolem" level="21" gemId="Metadata/Items/Gems/SkillGemSummonFlameGolem" skillMinionSkillCalcs="1" qualityId="Default" skillMinionSkill="1" quality="20" enabled="true" nameSpec="Summon Flame Golem" enableGlobal1="true" skillId="SummonFlameGolem" variantId="SummonFlameGolem" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SupportGemMinionLife" qualityId="Default" quality="20" enabled="true" nameSpec="Minion Life" enableGlobal1="true" skillId="SupportMinionLife" variantId="SupportMinionLife" count="1" enableGlobal2="true"/>
+				<Gem level="3" gemId="Metadata/Items/Gems/SupportGemAdditionalLevel" qualityId="Default" quality="20" enabled="true" nameSpec="Empower" enableGlobal1="true" skillId="SupportEmpower" variantId="SupportEmpower" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SupportGemSummonElementalResistance" qualityId="Default" quality="20" enabled="true" nameSpec="Elemental Army" enableGlobal1="true" skillId="SupportElementalArmy" variantId="SupportElementalArmy" count="1" enableGlobal2="true"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="nil" mainActiveSkill="nil" label="" includeInFullDPS="nil" enabled="true">
+				<Gem level="20" gemId="Metadata/Items/Gems/SkillGemFireResistAura" qualityId="Default" quality="20" enabled="true" nameSpec="Purity of Fire" enableGlobal1="true" skillId="PurityOfFire" variantId="PurityOfFire" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SkillGemPurity" qualityId="Default" quality="20" enabled="true" nameSpec="Purity of Elements" enableGlobal1="true" skillId="PurityOfElements" variantId="PurityOfElements" count="1" enableGlobal2="true"/>
+			</Skill>
+			<Skill mainActiveSkillCalcs="nil" mainActiveSkill="nil" label="" includeInFullDPS="nil" enabled="true">
+				<Gem level="20" gemId="Metadata/Items/Gems/SkillGemFlammability" qualityId="Default" quality="20" enabled="true" nameSpec="Flammability" enableGlobal1="true" skillId="Flammability" variantId="Flammability" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SkillGemElementalWeakness" qualityId="Default" quality="20" enabled="true" nameSpec="Elemental Weakness" enableGlobal1="true" skillId="ElementalWeakness" variantId="ElementalWeakness" count="1" enableGlobal2="true"/>
+				<Gem level="20" gemId="Metadata/Items/Gems/SkillGemPurge" qualityId="Default" quality="20" enabled="true" nameSpec="Wave of Conviction" enableGlobal1="true" skillId="WaveOfConviction" variantId="WaveOfConviction" count="1" enableGlobal2="true"/>
+			</Skill>
+		</SkillSet>
+	</Skills>
+	<Import exportParty="false"/>
+	<Config activeConfigSet="1">
+		<ConfigSet id="1">
+			<Input string="Fire" name="waveOfConvictionExposureType"/>
+			<Input boolean="true" name="conditionEnemyFireExposure"/>
+			<Input number="300000" name="minionPactLife"/>
+			<Input string="Fire" name="elementalArmyExposureType"/>
+			<Placeholder number="40" name="projectileDistance"/>
+			<Placeholder number="700" name="enemySpeed"/>
+			<Placeholder number="5" name="enemyCritChance"/>
+			<Placeholder number="30" name="enemyCritDamage"/>
+			<Placeholder number="50" name="enemyFireResist"/>
+			<Placeholder number="1" name="multiplierEnemyHallowingFlame"/>
+			<Placeholder number="50" name="enemyColdResist"/>
+			<Placeholder number="2241" name="enemyPhysicalDamage"/>
+			<Placeholder number="50" name="enemyLightningResist"/>
+			<Placeholder number="1" name="multiplierHallowingFlameStacksRemovedByAlly"/>
+			<Placeholder number="30" name="enemyChaosResist"/>
+			<Placeholder number="896" name="enemyChaosDamage"/>
+			<Placeholder number="3" name="enemyColdPen"/>
+			<Placeholder number="3" name="enemyLightningPen"/>
+			<Placeholder number="15" name="multiplierWitheredStackCountSelf"/>
+			<Placeholder number="3" name="enemyFirePen"/>
+			<Placeholder number="61989" name="enemyArmour"/>
+			<Placeholder number="10143" name="enemyEvasion"/>
+			<Placeholder number="2241" name="enemyFireDamage"/>
+			<Placeholder number="1" name="sigilOfPowerStages"/>
+			<Placeholder number="70" name="enemyDamageRollRange"/>
+			<Placeholder number="2241" name="enemyColdDamage"/>
+			<Placeholder number="2241" name="enemyLightningDamage"/>
+			<Placeholder number="84" name="enemyLevel"/>
+			<Placeholder number="1" name="ShockStacks"/>
+			<Placeholder number="1" name="ScorchStacks"/>
+			<Placeholder number="15" name="meleeDistance"/>
+			<Placeholder number="5" name="configSpectralTigerCount"/>
+		</ConfigSet>
+	</Config>
+	<Items useSecondWeaponSet="nil" showStatDifferences="true" activeItemSet="1">
+		<Item variantAlt="248" variant="2" id="1">
+			Rarity: UNIQUE
+Replica Dragonfang&apos;s Flight
+Onyx Amulet
+Variant: Pre 3.23.0
+Variant: Current
+Variant: Absolution
+Variant: Alchemist&apos;s Mark
+Variant: Ambush
+Variant: Ancestral Cry
+Variant: Anger
+Variant: Animate Guardian
+Variant: Animate Weapon
+Variant: Arc
+Variant: Arcane Cloak
+Variant: Arcanist Brand
+Variant: Arctic Armour
+Variant: Armageddon Brand
+Variant: Artillery Ballista
+Variant: Assassin&apos;s Mark
+Variant: Autoexertion
+Variant: Automation
+Variant: Ball Lightning
+Variant: Bane
+Variant: Barrage
+Variant: Battlemage&apos;s Cry
+Variant: Bear Trap
+Variant: Berserk
+Variant: Blade Blast
+Variant: Blade Flurry
+Variant: Blade Trap
+Variant: Blade Vortex
+Variant: Bladefall
+Variant: Bladefall of Trarthus
+Variant: Bladestorm
+Variant: Blast Rain
+Variant: Blazing Salvo
+Variant: Blight
+Variant: Blink Arrow
+Variant: Blood Rage
+Variant: Blood and Sand
+Variant: Bodyswap
+Variant: Bone Offering
+Variant: Boneshatter
+Variant: Brand Recall
+Variant: Burning Arrow
+Variant: Caustic Arrow
+Variant: Chain Hook
+Variant: Charged Dash
+Variant: Clarity
+Variant: Cleave
+Variant: Cobra Lash
+Variant: Cold Snap
+Variant: Conductivity
+Variant: Conflagration
+Variant: Consecrated Path
+Variant: Contagion
+Variant: Conversion Trap
+Variant: Convocation
+Variant: Corrupting Fever
+Variant: Crackling Lance
+Variant: Creeping Frost
+Variant: Cremation
+Variant: Crushing Fist
+Variant: Cyclone
+Variant: Dark Pact
+Variant: Dash
+Variant: Decoy Totem
+Variant: Defiance Banner
+Variant: Desecrate
+Variant: Despair
+Variant: Destructive Link
+Variant: Determination
+Variant: Detonate Dead
+Variant: Detonate Mines
+Variant: Devouring Totem
+Variant: Discharge
+Variant: Discipline
+Variant: Divine Blast
+Variant: Divine Ire
+Variant: Divine Retribution
+Variant: Dominating Blow
+Variant: Double Strike
+Variant: Dread Banner
+Variant: Dual Strike
+Variant: Earthquake
+Variant: Earthshatter
+Variant: Elemental Hit
+Variant: Elemental Weakness
+Variant: Enduring Cry
+Variant: Energy Blade
+Variant: Enfeeble
+Variant: Ensnaring Arrow
+Variant: Essence Drain
+Variant: Ethereal Knives
+Variant: Eviscerate
+Variant: Explosive Arrow
+Variant: Explosive Concoction
+Variant: Explosive Trap
+Variant: Exsanguinate
+Variant: Eye of Winter
+Variant: Fire Trap
+Variant: Fireball
+Variant: Firestorm
+Variant: Flame Dash
+Variant: Flame Link
+Variant: Flame Surge
+Variant: Flame Wall
+Variant: Flameblast
+Variant: Flamethrower Trap
+Variant: Flammability
+Variant: Flesh Offering
+Variant: Flesh and Stone
+Variant: Flicker Strike
+Variant: Forbidden Rite
+Variant: Freezing Pulse
+Variant: Frenzy
+Variant: Frost Blades
+Variant: Frost Bomb
+Variant: Frost Shield
+Variant: Frost Wall
+Variant: Frostbite
+Variant: Frostblink
+Variant: Frostbolt
+Variant: Frozen Legion
+Variant: Galvanic Arrow
+Variant: Galvanic Field
+Variant: General&apos;s Cry
+Variant: Glacial Cascade
+Variant: Glacial Hammer
+Variant: Glacial Shield Swipe
+Variant: Grace
+Variant: Ground Slam
+Variant: Haste
+Variant: Hatred
+Variant: Heavy Strike
+Variant: Herald of Agony
+Variant: Herald of Ash
+Variant: Herald of Ice
+Variant: Herald of Purity
+Variant: Herald of Thunder
+Variant: Hexblast
+Variant: Holy Flame Totem
+Variant: Holy Hammers
+Variant: Holy Strike
+Variant: Holy Sweep
+Variant: Hydrosphere
+Variant: Ice Crash
+Variant: Ice Nova
+Variant: Ice Shot
+Variant: Ice Spear
+Variant: Ice Trap
+Variant: Icicle Mine
+Variant: Immortal Call
+Variant: Incinerate
+Variant: Infernal Blow
+Variant: Infernal Cry
+Variant: Intimidating Cry
+Variant: Intuitive Link
+Variant: Kinetic Blast
+Variant: Kinetic Bolt
+Variant: Kinetic Fusillade
+Variant: Kinetic Rain
+Variant: Lacerate
+Variant: Lancing Steel
+Variant: Leap Slam
+Variant: Lightning Arrow
+Variant: Lightning Conduit
+Variant: Lightning Spire Trap
+Variant: Lightning Strike
+Variant: Lightning Tendrils
+Variant: Lightning Trap
+Variant: Lightning Warp
+Variant: Malevolence
+Variant: Manabond
+Variant: Mirror Arrow
+Variant: Molten Shell
+Variant: Molten Strike
+Variant: Orb of Storms
+Variant: Penance Brand
+Variant: Perforate
+Variant: Pestilent Strike
+Variant: Petrified Blood
+Variant: Phase Run
+Variant: Plague Bearer
+Variant: Poacher&apos;s Mark
+Variant: Poisonous Concoction
+Variant: Portal
+Variant: Power Siphon
+Variant: Precision
+Variant: Pride
+Variant: Protective Link
+Variant: Puncture
+Variant: Punishment
+Variant: Purifying Flame
+Variant: Purity of Elements
+Variant: Purity of Fire
+Variant: Purity of Ice
+Variant: Purity of Lightning
+Variant: Pyroclast Mine
+Variant: Quickstep
+Variant: Rage Vortex
+Variant: Rain of Arrows
+Variant: Raise Spectre
+Variant: Raise Zombie
+Variant: Rallying Cry
+Variant: Reap
+Variant: Reave
+Variant: Rejuvenation Totem
+Variant: Righteous Fire
+Variant: Rolling Magma
+Variant: Scorching Ray
+Variant: Scourge Arrow
+Variant: Searing Bond
+Variant: Seismic Cry
+Variant: Seismic Trap
+Variant: Shattering Steel
+Variant: Shield Charge
+Variant: Shield Crush
+Variant: Shield of Light
+Variant: Shock Nova
+Variant: Shockwave Totem
+Variant: Shrapnel Ballista
+Variant: Siege Ballista
+Variant: Sigil of Power
+Variant: Siphoning Trap
+Variant: Smite
+Variant: Smoke Mine
+Variant: Snipe
+Variant: Sniper&apos;s Mark
+Variant: Somatic Shell
+Variant: Soul Link
+Variant: Soulrend
+Variant: Spark
+Variant: Spectral Helix
+Variant: Spectral Shield Throw
+Variant: Spectral Throw
+Variant: Spellslinger
+Variant: Spirit Offering
+Variant: Split Arrow
+Variant: Splitting Steel
+Variant: Static Strike
+Variant: Steelskin
+Variant: Storm Brand
+Variant: Storm Burst
+Variant: Storm Call
+Variant: Storm Rain
+Variant: Stormbind
+Variant: Stormblast Mine
+Variant: Summon Carrion Golem
+Variant: Summon Chaos Golem
+Variant: Summon Flame Golem
+Variant: Summon Holy Relic
+Variant: Summon Ice Golem
+Variant: Summon Lightning Golem
+Variant: Summon Raging Spirit
+Variant: Summon Reaper
+Variant: Summon Skeletons
+Variant: Summon Skitterbots
+Variant: Summon Stone Golem
+Variant: Sunder
+Variant: Swordstorm
+Variant: Tectonic Slam
+Variant: Tempest Shield
+Variant: Temporal Chains
+Variant: Temporal Rift
+Variant: Thunderstorm
+Variant: Tornado
+Variant: Tornado Shot
+Variant: Toxic Rain
+Variant: Unearth
+Variant: Vampiric Link
+Variant: Vengeful Cry
+Variant: Venom Gyre
+Variant: Vigilant Strike
+Variant: Viper Strike
+Variant: Vitality
+Variant: Void Sphere
+Variant: Volatile Dead
+Variant: Volcanic Fissure
+Variant: Voltaxic Burst
+Variant: Vortex
+Variant: Vulnerability
+Variant: Wall of Force
+Variant: War Banner
+Variant: Warlord&apos;s Mark
+Variant: Wave of Conviction
+Variant: Whirling Blades
+Variant: Wild Strike
+Variant: Winter Orb
+Variant: Wintertide Brand
+Variant: Wither
+Variant: Withering Step
+Variant: Wrath
+Variant: Zealotry
+Selected Variant: 2
+Has Alt Variant: true
+Selected Alt Variant: 248
+LevelReq: 56
+Implicits: 1
+{tags:jewellery_attribute}{range:0.5}+(10-16) to all Attributes
+{tags:jewellery_resistance}{variant:1}{range:0.5}+(10-15)% to all Elemental Resistances
+{tags:jewellery_resistance}{variant:2}{range:0.5}+(5-10)% to all Elemental Resistances
+{variant:3}+3 to Level of all Absolution Gems
+{variant:4}+3 to Level of all Alchemist&apos;s Mark Gems
+{variant:5}+3 to Level of all Ambush Gems
+{variant:6}+3 to Level of all Ancestral Cry Gems
+{variant:7}+3 to Level of all Anger Gems
+{variant:8}+3 to Level of all Animate Guardian Gems
+{variant:9}+3 to Level of all Animate Weapon Gems
+{variant:10}+3 to Level of all Arc Gems
+{variant:11}+3 to Level of all Arcane Cloak Gems
+{variant:12}+3 to Level of all Arcanist Brand Gems
+{variant:13}+3 to Level of all Arctic Armour Gems
+{variant:14}+3 to Level of all Armageddon Brand Gems
+{variant:15}+3 to Level of all Artillery Ballista Gems
+{variant:16}+3 to Level of all Assassin&apos;s Mark Gems
+{variant:17}+3 to Level of all Autoexertion Gems
+{variant:18}+3 to Level of all Automation Gems
+{variant:19}+3 to Level of all Ball Lightning Gems
+{variant:20}+3 to Level of all Bane Gems
+{variant:21}+3 to Level of all Barrage Gems
+{variant:22}+3 to Level of all Battlemage&apos;s Cry Gems
+{variant:23}+3 to Level of all Bear Trap Gems
+{variant:24}+3 to Level of all Berserk Gems
+{variant:25}+3 to Level of all Blade Blast Gems
+{variant:26}+3 to Level of all Blade Flurry Gems
+{variant:27}+3 to Level of all Blade Trap Gems
+{variant:28}+3 to Level of all Blade Vortex Gems
+{variant:29}+3 to Level of all Bladefall Gems
+{variant:30}+3 to Level of all Bladefall of Trarthus Gems
+{variant:31}+3 to Level of all Bladestorm Gems
+{variant:32}+3 to Level of all Blast Rain Gems
+{variant:33}+3 to Level of all Blazing Salvo Gems
+{variant:34}+3 to Level of all Blight Gems
+{variant:35}+3 to Level of all Blink Arrow Gems
+{variant:36}+3 to Level of all Blood Rage Gems
+{variant:37}+3 to Level of all Blood and Sand Gems
+{variant:38}+3 to Level of all Bodyswap Gems
+{variant:39}+3 to Level of all Bone Offering Gems
+{variant:40}+3 to Level of all Boneshatter Gems
+{variant:41}+3 to Level of all Brand Recall Gems
+{variant:42}+3 to Level of all Burning Arrow Gems
+{variant:43}+3 to Level of all Caustic Arrow Gems
+{variant:44}+3 to Level of all Chain Hook Gems
+{variant:45}+3 to Level of all Charged Dash Gems
+{variant:46}+3 to Level of all Clarity Gems
+{variant:47}+3 to Level of all Cleave Gems
+{variant:48}+3 to Level of all Cobra Lash Gems
+{variant:49}+3 to Level of all Cold Snap Gems
+{variant:50}+3 to Level of all Conductivity Gems
+{variant:51}+3 to Level of all Conflagration Gems
+{variant:52}+3 to Level of all Consecrated Path Gems
+{variant:53}+3 to Level of all Contagion Gems
+{variant:54}+3 to Level of all Conversion Trap Gems
+{variant:55}+3 to Level of all Convocation Gems
+{variant:56}+3 to Level of all Corrupting Fever Gems
+{variant:57}+3 to Level of all Crackling Lance Gems
+{variant:58}+3 to Level of all Creeping Frost Gems
+{variant:59}+3 to Level of all Cremation Gems
+{variant:60}+3 to Level of all Crushing Fist Gems
+{variant:61}+3 to Level of all Cyclone Gems
+{variant:62}+3 to Level of all Dark Pact Gems
+{variant:63}+3 to Level of all Dash Gems
+{variant:64}+3 to Level of all Decoy Totem Gems
+{variant:65}+3 to Level of all Defiance Banner Gems
+{variant:66}+3 to Level of all Desecrate Gems
+{variant:67}+3 to Level of all Despair Gems
+{variant:68}+3 to Level of all Destructive Link Gems
+{variant:69}+3 to Level of all Determination Gems
+{variant:70}+3 to Level of all Detonate Dead Gems
+{variant:71}+3 to Level of all Detonate Mines Gems
+{variant:72}+3 to Level of all Devouring Totem Gems
+{variant:73}+3 to Level of all Discharge Gems
+{variant:74}+3 to Level of all Discipline Gems
+{variant:75}+3 to Level of all Divine Blast Gems
+{variant:76}+3 to Level of all Divine Ire Gems
+{variant:77}+3 to Level of all Divine Retribution Gems
+{variant:78}+3 to Level of all Dominating Blow Gems
+{variant:79}+3 to Level of all Double Strike Gems
+{variant:80}+3 to Level of all Dread Banner Gems
+{variant:81}+3 to Level of all Dual Strike Gems
+{variant:82}+3 to Level of all Earthquake Gems
+{variant:83}+3 to Level of all Earthshatter Gems
+{variant:84}+3 to Level of all Elemental Hit Gems
+{variant:85}+3 to Level of all Elemental Weakness Gems
+{variant:86}+3 to Level of all Enduring Cry Gems
+{variant:87}+3 to Level of all Energy Blade Gems
+{variant:88}+3 to Level of all Enfeeble Gems
+{variant:89}+3 to Level of all Ensnaring Arrow Gems
+{variant:90}+3 to Level of all Essence Drain Gems
+{variant:91}+3 to Level of all Ethereal Knives Gems
+{variant:92}+3 to Level of all Eviscerate Gems
+{variant:93}+3 to Level of all Explosive Arrow Gems
+{variant:94}+3 to Level of all Explosive Concoction Gems
+{variant:95}+3 to Level of all Explosive Trap Gems
+{variant:96}+3 to Level of all Exsanguinate Gems
+{variant:97}+3 to Level of all Eye of Winter Gems
+{variant:98}+3 to Level of all Fire Trap Gems
+{variant:99}+3 to Level of all Fireball Gems
+{variant:100}+3 to Level of all Firestorm Gems
+{variant:101}+3 to Level of all Flame Dash Gems
+{variant:102}+3 to Level of all Flame Link Gems
+{variant:103}+3 to Level of all Flame Surge Gems
+{variant:104}+3 to Level of all Flame Wall Gems
+{variant:105}+3 to Level of all Flameblast Gems
+{variant:106}+3 to Level of all Flamethrower Trap Gems
+{variant:107}+3 to Level of all Flammability Gems
+{variant:108}+3 to Level of all Flesh Offering Gems
+{variant:109}+3 to Level of all Flesh and Stone Gems
+{variant:110}+3 to Level of all Flicker Strike Gems
+{variant:111}+3 to Level of all Forbidden Rite Gems
+{variant:112}+3 to Level of all Freezing Pulse Gems
+{variant:113}+3 to Level of all Frenzy Gems
+{variant:114}+3 to Level of all Frost Blades Gems
+{variant:115}+3 to Level of all Frost Bomb Gems
+{variant:116}+3 to Level of all Frost Shield Gems
+{variant:117}+3 to Level of all Frost Wall Gems
+{variant:118}+3 to Level of all Frostbite Gems
+{variant:119}+3 to Level of all Frostblink Gems
+{variant:120}+3 to Level of all Frostbolt Gems
+{variant:121}+3 to Level of all Frozen Legion Gems
+{variant:122}+3 to Level of all Galvanic Arrow Gems
+{variant:123}+3 to Level of all Galvanic Field Gems
+{variant:124}+3 to Level of all General&apos;s Cry Gems
+{variant:125}+3 to Level of all Glacial Cascade Gems
+{variant:126}+3 to Level of all Glacial Hammer Gems
+{variant:127}+3 to Level of all Glacial Shield Swipe Gems
+{variant:128}+3 to Level of all Grace Gems
+{variant:129}+3 to Level of all Ground Slam Gems
+{variant:130}+3 to Level of all Haste Gems
+{variant:131}+3 to Level of all Hatred Gems
+{variant:132}+3 to Level of all Heavy Strike Gems
+{variant:133}+3 to Level of all Herald of Agony Gems
+{variant:134}+3 to Level of all Herald of Ash Gems
+{variant:135}+3 to Level of all Herald of Ice Gems
+{variant:136}+3 to Level of all Herald of Purity Gems
+{variant:137}+3 to Level of all Herald of Thunder Gems
+{variant:138}+3 to Level of all Hexblast Gems
+{variant:139}+3 to Level of all Holy Flame Totem Gems
+{variant:140}+3 to Level of all Holy Hammers Gems
+{variant:141}+3 to Level of all Holy Strike Gems
+{variant:142}+3 to Level of all Holy Sweep Gems
+{variant:143}+3 to Level of all Hydrosphere Gems
+{variant:144}+3 to Level of all Ice Crash Gems
+{variant:145}+3 to Level of all Ice Nova Gems
+{variant:146}+3 to Level of all Ice Shot Gems
+{variant:147}+3 to Level of all Ice Spear Gems
+{variant:148}+3 to Level of all Ice Trap Gems
+{variant:149}+3 to Level of all Icicle Mine Gems
+{variant:150}+3 to Level of all Immortal Call Gems
+{variant:151}+3 to Level of all Incinerate Gems
+{variant:152}+3 to Level of all Infernal Blow Gems
+{variant:153}+3 to Level of all Infernal Cry Gems
+{variant:154}+3 to Level of all Intimidating Cry Gems
+{variant:155}+3 to Level of all Intuitive Link Gems
+{variant:156}+3 to Level of all Kinetic Blast Gems
+{variant:157}+3 to Level of all Kinetic Bolt Gems
+{variant:158}+3 to Level of all Kinetic Fusillade Gems
+{variant:159}+3 to Level of all Kinetic Rain Gems
+{variant:160}+3 to Level of all Lacerate Gems
+{variant:161}+3 to Level of all Lancing Steel Gems
+{variant:162}+3 to Level of all Leap Slam Gems
+{variant:163}+3 to Level of all Lightning Arrow Gems
+{variant:164}+3 to Level of all Lightning Conduit Gems
+{variant:165}+3 to Level of all Lightning Spire Trap Gems
+{variant:166}+3 to Level of all Lightning Strike Gems
+{variant:167}+3 to Level of all Lightning Tendrils Gems
+{variant:168}+3 to Level of all Lightning Trap Gems
+{variant:169}+3 to Level of all Lightning Warp Gems
+{variant:170}+3 to Level of all Malevolence Gems
+{variant:171}+3 to Level of all Manabond Gems
+{variant:172}+3 to Level of all Mirror Arrow Gems
+{variant:173}+3 to Level of all Molten Shell Gems
+{variant:174}+3 to Level of all Molten Strike Gems
+{variant:175}+3 to Level of all Orb of Storms Gems
+{variant:176}+3 to Level of all Penance Brand Gems
+{variant:177}+3 to Level of all Perforate Gems
+{variant:178}+3 to Level of all Pestilent Strike Gems
+{variant:179}+3 to Level of all Petrified Blood Gems
+{variant:180}+3 to Level of all Phase Run Gems
+{variant:181}+3 to Level of all Plague Bearer Gems
+{variant:182}+3 to Level of all Poacher&apos;s Mark Gems
+{variant:183}+3 to Level of all Poisonous Concoction Gems
+{variant:184}+3 to Level of all Portal Gems
+{variant:185}+3 to Level of all Power Siphon Gems
+{variant:186}+3 to Level of all Precision Gems
+{variant:187}+3 to Level of all Pride Gems
+{variant:188}+3 to Level of all Protective Link Gems
+{variant:189}+3 to Level of all Puncture Gems
+{variant:190}+3 to Level of all Punishment Gems
+{variant:191}+3 to Level of all Purifying Flame Gems
+{variant:192}+3 to Level of all Purity of Elements Gems
+{variant:193}+3 to Level of all Purity of Fire Gems
+{variant:194}+3 to Level of all Purity of Ice Gems
+{variant:195}+3 to Level of all Purity of Lightning Gems
+{variant:196}+3 to Level of all Pyroclast Mine Gems
+{variant:197}+3 to Level of all Quickstep Gems
+{variant:198}+3 to Level of all Rage Vortex Gems
+{variant:199}+3 to Level of all Rain of Arrows Gems
+{variant:200}+3 to Level of all Raise Spectre Gems
+{variant:201}+3 to Level of all Raise Zombie Gems
+{variant:202}+3 to Level of all Rallying Cry Gems
+{variant:203}+3 to Level of all Reap Gems
+{variant:204}+3 to Level of all Reave Gems
+{variant:205}+3 to Level of all Rejuvenation Totem Gems
+{variant:206}+3 to Level of all Righteous Fire Gems
+{variant:207}+3 to Level of all Rolling Magma Gems
+{variant:208}+3 to Level of all Scorching Ray Gems
+{variant:209}+3 to Level of all Scourge Arrow Gems
+{variant:210}+3 to Level of all Searing Bond Gems
+{variant:211}+3 to Level of all Seismic Cry Gems
+{variant:212}+3 to Level of all Seismic Trap Gems
+{variant:213}+3 to Level of all Shattering Steel Gems
+{variant:214}+3 to Level of all Shield Charge Gems
+{variant:215}+3 to Level of all Shield Crush Gems
+{variant:216}+3 to Level of all Shield of Light Gems
+{variant:217}+3 to Level of all Shock Nova Gems
+{variant:218}+3 to Level of all Shockwave Totem Gems
+{variant:219}+3 to Level of all Shrapnel Ballista Gems
+{variant:220}+3 to Level of all Siege Ballista Gems
+{variant:221}+3 to Level of all Sigil of Power Gems
+{variant:222}+3 to Level of all Siphoning Trap Gems
+{variant:223}+3 to Level of all Smite Gems
+{variant:224}+3 to Level of all Smoke Mine Gems
+{variant:225}+3 to Level of all Snipe Gems
+{variant:226}+3 to Level of all Sniper&apos;s Mark Gems
+{variant:227}+3 to Level of all Somatic Shell Gems
+{variant:228}+3 to Level of all Soul Link Gems
+{variant:229}+3 to Level of all Soulrend Gems
+{variant:230}+3 to Level of all Spark Gems
+{variant:231}+3 to Level of all Spectral Helix Gems
+{variant:232}+3 to Level of all Spectral Shield Throw Gems
+{variant:233}+3 to Level of all Spectral Throw Gems
+{variant:234}+3 to Level of all Spellslinger Gems
+{variant:235}+3 to Level of all Spirit Offering Gems
+{variant:236}+3 to Level of all Split Arrow Gems
+{variant:237}+3 to Level of all Splitting Steel Gems
+{variant:238}+3 to Level of all Static Strike Gems
+{variant:239}+3 to Level of all Steelskin Gems
+{variant:240}+3 to Level of all Storm Brand Gems
+{variant:241}+3 to Level of all Storm Burst Gems
+{variant:242}+3 to Level of all Storm Call Gems
+{variant:243}+3 to Level of all Storm Rain Gems
+{variant:244}+3 to Level of all Stormbind Gems
+{variant:245}+3 to Level of all Stormblast Mine Gems
+{variant:246}+3 to Level of all Summon Carrion Golem Gems
+{variant:247}+3 to Level of all Summon Chaos Golem Gems
+{variant:248}+3 to Level of all Summon Flame Golem Gems
+{variant:249}+3 to Level of all Summon Holy Relic Gems
+{variant:250}+3 to Level of all Summon Ice Golem Gems
+{variant:251}+3 to Level of all Summon Lightning Golem Gems
+{variant:252}+3 to Level of all Summon Raging Spirit Gems
+{variant:253}+3 to Level of all Summon Reaper Gems
+{variant:254}+3 to Level of all Summon Skeletons Gems
+{variant:255}+3 to Level of all Summon Skitterbots Gems
+{variant:256}+3 to Level of all Summon Stone Golem Gems
+{variant:257}+3 to Level of all Sunder Gems
+{variant:258}+3 to Level of all Swordstorm Gems
+{variant:259}+3 to Level of all Tectonic Slam Gems
+{variant:260}+3 to Level of all Tempest Shield Gems
+{variant:261}+3 to Level of all Temporal Chains Gems
+{variant:262}+3 to Level of all Temporal Rift Gems
+{variant:263}+3 to Level of all Thunderstorm Gems
+{variant:264}+3 to Level of all Tornado Gems
+{variant:265}+3 to Level of all Tornado Shot Gems
+{variant:266}+3 to Level of all Toxic Rain Gems
+{variant:267}+3 to Level of all Unearth Gems
+{variant:268}+3 to Level of all Vampiric Link Gems
+{variant:269}+3 to Level of all Vengeful Cry Gems
+{variant:270}+3 to Level of all Venom Gyre Gems
+{variant:271}+3 to Level of all Vigilant Strike Gems
+{variant:272}+3 to Level of all Viper Strike Gems
+{variant:273}+3 to Level of all Vitality Gems
+{variant:274}+3 to Level of all Void Sphere Gems
+{variant:275}+3 to Level of all Volatile Dead Gems
+{variant:276}+3 to Level of all Volcanic Fissure Gems
+{variant:277}+3 to Level of all Voltaxic Burst Gems
+{variant:278}+3 to Level of all Vortex Gems
+{variant:279}+3 to Level of all Vulnerability Gems
+{variant:280}+3 to Level of all Wall of Force Gems
+{variant:281}+3 to Level of all War Banner Gems
+{variant:282}+3 to Level of all Warlord&apos;s Mark Gems
+{variant:283}+3 to Level of all Wave of Conviction Gems
+{variant:284}+3 to Level of all Whirling Blades Gems
+{variant:285}+3 to Level of all Wild Strike Gems
+{variant:286}+3 to Level of all Winter Orb Gems
+{variant:287}+3 to Level of all Wintertide Brand Gems
+{variant:288}+3 to Level of all Wither Gems
+{variant:289}+3 to Level of all Withering Step Gems
+{variant:290}+3 to Level of all Wrath Gems
+{variant:291}+3 to Level of all Zealotry Gems
+{variant:1}{range:0.5}(10-15)% increased Reservation Efficiency of Skills
+{variant:2}{range:0.5}(5-10)% increased Reservation Efficiency of Skills
+{variant:1}{range:0.5}Items and Gems have (10-15)% reduced Attribute Requirements
+{variant:2}{range:0.5}Items and Gems have (5-10)% reduced Attribute Requirements
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+			<ModRange id="6" range="0.5"/>
+			<ModRange id="7" range="0.5"/>
+			<ModRange id="8" range="0.5"/>
+			<ModRange id="9" range="0.5"/>
+			<ModRange id="10" range="0.5"/>
+			<ModRange id="11" range="0.5"/>
+			<ModRange id="12" range="0.5"/>
+			<ModRange id="13" range="0.5"/>
+			<ModRange id="14" range="0.5"/>
+			<ModRange id="15" range="0.5"/>
+			<ModRange id="16" range="0.5"/>
+			<ModRange id="17" range="0.5"/>
+			<ModRange id="18" range="0.5"/>
+			<ModRange id="19" range="0.5"/>
+			<ModRange id="20" range="0.5"/>
+			<ModRange id="21" range="0.5"/>
+			<ModRange id="22" range="0.5"/>
+			<ModRange id="23" range="0.5"/>
+			<ModRange id="24" range="0.5"/>
+			<ModRange id="25" range="0.5"/>
+			<ModRange id="26" range="0.5"/>
+			<ModRange id="27" range="0.5"/>
+			<ModRange id="28" range="0.5"/>
+			<ModRange id="29" range="0.5"/>
+			<ModRange id="30" range="0.5"/>
+			<ModRange id="31" range="0.5"/>
+			<ModRange id="32" range="0.5"/>
+			<ModRange id="33" range="0.5"/>
+			<ModRange id="34" range="0.5"/>
+			<ModRange id="35" range="0.5"/>
+			<ModRange id="36" range="0.5"/>
+			<ModRange id="37" range="0.5"/>
+			<ModRange id="38" range="0.5"/>
+			<ModRange id="39" range="0.5"/>
+			<ModRange id="40" range="0.5"/>
+			<ModRange id="41" range="0.5"/>
+			<ModRange id="42" range="0.5"/>
+			<ModRange id="43" range="0.5"/>
+			<ModRange id="44" range="0.5"/>
+			<ModRange id="45" range="0.5"/>
+			<ModRange id="46" range="0.5"/>
+			<ModRange id="47" range="0.5"/>
+			<ModRange id="48" range="0.5"/>
+			<ModRange id="49" range="0.5"/>
+			<ModRange id="50" range="0.5"/>
+			<ModRange id="51" range="0.5"/>
+			<ModRange id="52" range="0.5"/>
+			<ModRange id="53" range="0.5"/>
+			<ModRange id="54" range="0.5"/>
+			<ModRange id="55" range="0.5"/>
+			<ModRange id="56" range="0.5"/>
+			<ModRange id="57" range="0.5"/>
+			<ModRange id="58" range="0.5"/>
+			<ModRange id="59" range="0.5"/>
+			<ModRange id="60" range="0.5"/>
+			<ModRange id="61" range="0.5"/>
+			<ModRange id="62" range="0.5"/>
+			<ModRange id="63" range="0.5"/>
+			<ModRange id="64" range="0.5"/>
+			<ModRange id="65" range="0.5"/>
+			<ModRange id="66" range="0.5"/>
+			<ModRange id="67" range="0.5"/>
+			<ModRange id="68" range="0.5"/>
+			<ModRange id="69" range="0.5"/>
+			<ModRange id="70" range="0.5"/>
+			<ModRange id="71" range="0.5"/>
+			<ModRange id="72" range="0.5"/>
+			<ModRange id="73" range="0.5"/>
+			<ModRange id="74" range="0.5"/>
+			<ModRange id="75" range="0.5"/>
+			<ModRange id="76" range="0.5"/>
+			<ModRange id="77" range="0.5"/>
+			<ModRange id="78" range="0.5"/>
+			<ModRange id="79" range="0.5"/>
+			<ModRange id="80" range="0.5"/>
+			<ModRange id="81" range="0.5"/>
+			<ModRange id="82" range="0.5"/>
+			<ModRange id="83" range="0.5"/>
+			<ModRange id="84" range="0.5"/>
+			<ModRange id="85" range="0.5"/>
+			<ModRange id="86" range="0.5"/>
+			<ModRange id="87" range="0.5"/>
+			<ModRange id="88" range="0.5"/>
+			<ModRange id="89" range="0.5"/>
+			<ModRange id="90" range="0.5"/>
+			<ModRange id="91" range="0.5"/>
+			<ModRange id="92" range="0.5"/>
+			<ModRange id="93" range="0.5"/>
+			<ModRange id="94" range="0.5"/>
+			<ModRange id="95" range="0.5"/>
+			<ModRange id="96" range="0.5"/>
+			<ModRange id="97" range="0.5"/>
+			<ModRange id="98" range="0.5"/>
+			<ModRange id="99" range="0.5"/>
+			<ModRange id="100" range="0.5"/>
+			<ModRange id="101" range="0.5"/>
+			<ModRange id="102" range="0.5"/>
+			<ModRange id="103" range="0.5"/>
+			<ModRange id="104" range="0.5"/>
+			<ModRange id="105" range="0.5"/>
+			<ModRange id="106" range="0.5"/>
+			<ModRange id="107" range="0.5"/>
+			<ModRange id="108" range="0.5"/>
+			<ModRange id="109" range="0.5"/>
+			<ModRange id="110" range="0.5"/>
+			<ModRange id="111" range="0.5"/>
+			<ModRange id="112" range="0.5"/>
+			<ModRange id="113" range="0.5"/>
+			<ModRange id="114" range="0.5"/>
+			<ModRange id="115" range="0.5"/>
+			<ModRange id="116" range="0.5"/>
+			<ModRange id="117" range="0.5"/>
+			<ModRange id="118" range="0.5"/>
+			<ModRange id="119" range="0.5"/>
+			<ModRange id="120" range="0.5"/>
+			<ModRange id="121" range="0.5"/>
+			<ModRange id="122" range="0.5"/>
+			<ModRange id="123" range="0.5"/>
+			<ModRange id="124" range="0.5"/>
+			<ModRange id="125" range="0.5"/>
+			<ModRange id="126" range="0.5"/>
+			<ModRange id="127" range="0.5"/>
+			<ModRange id="128" range="0.5"/>
+			<ModRange id="129" range="0.5"/>
+			<ModRange id="130" range="0.5"/>
+			<ModRange id="131" range="0.5"/>
+			<ModRange id="132" range="0.5"/>
+			<ModRange id="133" range="0.5"/>
+			<ModRange id="134" range="0.5"/>
+			<ModRange id="135" range="0.5"/>
+			<ModRange id="136" range="0.5"/>
+			<ModRange id="137" range="0.5"/>
+			<ModRange id="138" range="0.5"/>
+			<ModRange id="139" range="0.5"/>
+			<ModRange id="140" range="0.5"/>
+			<ModRange id="141" range="0.5"/>
+			<ModRange id="142" range="0.5"/>
+			<ModRange id="143" range="0.5"/>
+			<ModRange id="144" range="0.5"/>
+			<ModRange id="145" range="0.5"/>
+			<ModRange id="146" range="0.5"/>
+			<ModRange id="147" range="0.5"/>
+			<ModRange id="148" range="0.5"/>
+			<ModRange id="149" range="0.5"/>
+			<ModRange id="150" range="0.5"/>
+			<ModRange id="151" range="0.5"/>
+			<ModRange id="152" range="0.5"/>
+			<ModRange id="153" range="0.5"/>
+			<ModRange id="154" range="0.5"/>
+			<ModRange id="155" range="0.5"/>
+			<ModRange id="156" range="0.5"/>
+			<ModRange id="157" range="0.5"/>
+			<ModRange id="158" range="0.5"/>
+			<ModRange id="159" range="0.5"/>
+			<ModRange id="160" range="0.5"/>
+			<ModRange id="161" range="0.5"/>
+			<ModRange id="162" range="0.5"/>
+			<ModRange id="163" range="0.5"/>
+			<ModRange id="164" range="0.5"/>
+			<ModRange id="165" range="0.5"/>
+			<ModRange id="166" range="0.5"/>
+			<ModRange id="167" range="0.5"/>
+			<ModRange id="168" range="0.5"/>
+			<ModRange id="169" range="0.5"/>
+			<ModRange id="170" range="0.5"/>
+			<ModRange id="171" range="0.5"/>
+			<ModRange id="172" range="0.5"/>
+			<ModRange id="173" range="0.5"/>
+			<ModRange id="174" range="0.5"/>
+			<ModRange id="175" range="0.5"/>
+			<ModRange id="176" range="0.5"/>
+			<ModRange id="177" range="0.5"/>
+			<ModRange id="178" range="0.5"/>
+			<ModRange id="179" range="0.5"/>
+			<ModRange id="180" range="0.5"/>
+			<ModRange id="181" range="0.5"/>
+			<ModRange id="182" range="0.5"/>
+			<ModRange id="183" range="0.5"/>
+			<ModRange id="184" range="0.5"/>
+			<ModRange id="185" range="0.5"/>
+			<ModRange id="186" range="0.5"/>
+			<ModRange id="187" range="0.5"/>
+			<ModRange id="188" range="0.5"/>
+			<ModRange id="189" range="0.5"/>
+			<ModRange id="190" range="0.5"/>
+			<ModRange id="191" range="0.5"/>
+			<ModRange id="192" range="0.5"/>
+			<ModRange id="193" range="0.5"/>
+			<ModRange id="194" range="0.5"/>
+			<ModRange id="195" range="0.5"/>
+			<ModRange id="196" range="0.5"/>
+			<ModRange id="197" range="0.5"/>
+			<ModRange id="198" range="0.5"/>
+			<ModRange id="199" range="0.5"/>
+			<ModRange id="200" range="0.5"/>
+			<ModRange id="201" range="0.5"/>
+			<ModRange id="202" range="0.5"/>
+			<ModRange id="203" range="0.5"/>
+			<ModRange id="204" range="0.5"/>
+			<ModRange id="205" range="0.5"/>
+			<ModRange id="206" range="0.5"/>
+			<ModRange id="207" range="0.5"/>
+			<ModRange id="208" range="0.5"/>
+			<ModRange id="209" range="0.5"/>
+			<ModRange id="210" range="0.5"/>
+			<ModRange id="211" range="0.5"/>
+			<ModRange id="212" range="0.5"/>
+			<ModRange id="213" range="0.5"/>
+			<ModRange id="214" range="0.5"/>
+			<ModRange id="215" range="0.5"/>
+			<ModRange id="216" range="0.5"/>
+			<ModRange id="217" range="0.5"/>
+			<ModRange id="218" range="0.5"/>
+			<ModRange id="219" range="0.5"/>
+			<ModRange id="220" range="0.5"/>
+			<ModRange id="221" range="0.5"/>
+			<ModRange id="222" range="0.5"/>
+			<ModRange id="223" range="0.5"/>
+			<ModRange id="224" range="0.5"/>
+			<ModRange id="225" range="0.5"/>
+			<ModRange id="226" range="0.5"/>
+			<ModRange id="227" range="0.5"/>
+			<ModRange id="228" range="0.5"/>
+			<ModRange id="229" range="0.5"/>
+			<ModRange id="230" range="0.5"/>
+			<ModRange id="231" range="0.5"/>
+			<ModRange id="232" range="0.5"/>
+			<ModRange id="233" range="0.5"/>
+			<ModRange id="234" range="0.5"/>
+			<ModRange id="235" range="0.5"/>
+			<ModRange id="236" range="0.5"/>
+			<ModRange id="237" range="0.5"/>
+			<ModRange id="238" range="0.5"/>
+			<ModRange id="239" range="0.5"/>
+			<ModRange id="240" range="0.5"/>
+			<ModRange id="241" range="0.5"/>
+			<ModRange id="242" range="0.5"/>
+			<ModRange id="243" range="0.5"/>
+			<ModRange id="244" range="0.5"/>
+			<ModRange id="245" range="0.5"/>
+			<ModRange id="246" range="0.5"/>
+			<ModRange id="247" range="0.5"/>
+			<ModRange id="248" range="0.5"/>
+			<ModRange id="249" range="0.5"/>
+			<ModRange id="250" range="0.5"/>
+			<ModRange id="251" range="0.5"/>
+			<ModRange id="252" range="0.5"/>
+			<ModRange id="253" range="0.5"/>
+			<ModRange id="254" range="0.5"/>
+			<ModRange id="255" range="0.5"/>
+			<ModRange id="256" range="0.5"/>
+			<ModRange id="257" range="0.5"/>
+			<ModRange id="258" range="0.5"/>
+			<ModRange id="259" range="0.5"/>
+			<ModRange id="260" range="0.5"/>
+			<ModRange id="261" range="0.5"/>
+			<ModRange id="262" range="0.5"/>
+			<ModRange id="263" range="0.5"/>
+			<ModRange id="264" range="0.5"/>
+			<ModRange id="265" range="0.5"/>
+			<ModRange id="266" range="0.5"/>
+			<ModRange id="267" range="0.5"/>
+			<ModRange id="268" range="0.5"/>
+			<ModRange id="269" range="0.5"/>
+			<ModRange id="270" range="0.5"/>
+			<ModRange id="271" range="0.5"/>
+			<ModRange id="272" range="0.5"/>
+			<ModRange id="273" range="0.5"/>
+			<ModRange id="274" range="0.5"/>
+			<ModRange id="275" range="0.5"/>
+			<ModRange id="276" range="0.5"/>
+			<ModRange id="277" range="0.5"/>
+			<ModRange id="278" range="0.5"/>
+			<ModRange id="279" range="0.5"/>
+			<ModRange id="280" range="0.5"/>
+			<ModRange id="281" range="0.5"/>
+			<ModRange id="282" range="0.5"/>
+			<ModRange id="283" range="0.5"/>
+			<ModRange id="284" range="0.5"/>
+			<ModRange id="285" range="0.5"/>
+			<ModRange id="286" range="0.5"/>
+			<ModRange id="287" range="0.5"/>
+			<ModRange id="288" range="0.5"/>
+			<ModRange id="289" range="0.5"/>
+			<ModRange id="290" range="0.5"/>
+			<ModRange id="291" range="0.5"/>
+			<ModRange id="292" range="0.5"/>
+			<ModRange id="293" range="0.5"/>
+			<ModRange id="294" range="0.5"/>
+			<ModRange id="295" range="0.5"/>
+			<ModRange id="296" range="0.5"/>
+		</Item>
+		<Item variant="3" id="2">
+			Rarity: UNIQUE
+The Formless Inferno
+Royal Burgonet
+Armour: 521
+ArmourBasePercentile: 1
+League: Breach
+Variant: Pre 3.16.0
+Variant: Pre 3.21.0
+Variant: Current
+Selected Variant: 3
+Quality: 20
+Sockets: R-R-R-R
+LevelReq: 65
+Implicits: 0
+{variant:3}Socketed Gems are supported by level 30 Infernal Legion
+{variant:1,2}{range:0.5}(80-120)% increased Armour
+{variant:1,2}{range:0.5}+(40-50) to maximum Life
+{variant:3}{range:0.5}+(60-100) to maximum Life
+-30% to Fire Resistance
+{variant:1,2}8% of Physical Damage from Hits taken as Fire Damage
+{variant:1}Armour is increased by Uncapped Fire Resistance
+{variant:2}Armour is increased by Overcapped Fire Resistance
+{variant:3}Minion Life is increased by their Overcapped Fire Resistance
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+			<ModRange id="6" range="0.5"/>
+			<ModRange id="7" range="0.5"/>
+			<ModRange id="8" range="0.5"/>
+			<ModRange id="9" range="0.5"/>
+		</Item>
+		<Item id="4">
+			Rarity: UNIQUE
+Rigwald&apos;s Hunt
+General&apos;s Brigandine
+Armour: 1562
+ArmourBasePercentile: 1
+Evasion: 1562
+EvasionBasePercentile: 1
+Quality: 20
+Sockets: G-G-G-G-G-G
+LevelReq: 66
+Implicits: 0
+{range:0.5}(160-200)% increased Armour and Evasion
+{range:0.5}Minions have (20-30)% increased Movement Speed
+Minions have 1% chance to deal Double Damage per Fortification on you
+{range:0.5}(30-40)% increased Fortification Duration
+{range:0.5}Minions have (6-12)% increased Attack Speed
+Increases and Reductions to Minion Maximum Life also apply to you at 15% of their value
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+			<ModRange id="6" range="0.5"/>
+		</Item>
+		<Item id="7">
+			Rarity: RARE
+Jewel
+Cobalt Jewel
+Crafted: true
+Prefix: None
+Prefix: {range:1}MinionLifeJewel
+Suffix: {range:1}MinionElementalResistancesJewel
+Suffix: None
+LevelReq: 0
+Implicits: 0
+Minions have 12% increased maximum Life
+Minions have +15% to all Elemental Resistances
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+		</Item>
+		<Item id="8">
+			Rarity: RARE
+Minion Wand
+Convoking Wand
+Crafted: true
+Prefix: {range:0.5}MinionGemLevel1h1
+Prefix: {range:0.688}GlobalSpellGemsLevel1
+Prefix: None
+Suffix: None
+Suffix: None
+Suffix: None
+Quality: 20
+Sockets: B-B-B
+LevelReq: 72
+Implicits: 1
+{tags:damage,minion}{range:0.5}Minions deal (26-30)% increased Damage
++1 to Level of all Spell Skill Gems
++1 to Level of all Minion Skill Gems
+{tags:resource,unveiled_mod,life,damage,minion}{crafted}{range:0.5}Minions have (25-28)% increased maximum Life
+{tags:resource,unveiled_mod,life,damage,minion}{crafted}{range:0.5}Minions deal (25-28)% increased Damage
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+		</Item>
+		<Item id="9">
+			Rarity: RARE
++Minion Shield
+Fossilised Spirit Shield
+Energy Shield: 66
+EnergyShieldBasePercentile: 1
+Crafted: true
+Prefix: {range:0.5}MinionGemLevel1h1
+Prefix: {range:0.5}MinionDamageOnWeapon5
+Prefix: None
+Suffix: {range:0.493}MinionLifeWeapon6_
+Suffix: {range:0.577}MinionResistancesWeapon5
+Suffix: None
+Quality: 20
+Sockets: B-B-B
+LevelReq: 65
+Implicits: 1
+{tags:damage,minion}{range:0.5}Minions deal (5-10)% increased Damage
++1 to Level of all Minion Skill Gems
+Minions have 38% increased maximum Life
+Minions deal 62% increased Damage
+Minions have +29% to all Elemental Resistances
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+		</Item>
+		<Item id="3">
+			Rarity: RARE
+Cluster Jewel
+Large Cluster Jewel
+Crafted: true
+Prefix: {range:0.5}AfflictionJewelSmallPassivesHaveIncreasedEffect2
+Prefix: {range:0.5}AfflictionNotableFeastingFiends
+Suffix: {range:0.5}AfflictionNotablePrimordialBond
+Suffix: {range:0.5}AfflictionJewelSmallPassivesGrantStr3_
+Cluster Jewel Skill: affliction_minion_damage
+Cluster Jewel Node Count: 8
+LevelReq: 67
+Implicits: 3
+{crafted}Adds 8 Passive Skills
+{crafted}2 Added Passive Skills are Jewel Sockets
+{crafted}Added Small Passive Skills grant: Minions deal 10% increased Damage
+Added Small Passive Skills also grant: +7 to Strength
+Added Small Passive Skills have 35% increased Effect
+1 Added Passive Skill is Feasting Fiends
+1 Added Passive Skill is Primordial Bond
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+			<ModRange id="6" range="0.5"/>
+			<ModRange id="7" range="0.5"/>
+		</Item>
+		<Item id="5">
+			Rarity: RARE
+Cluster Jewel
+Medium Cluster Jewel
+Crafted: true
+Prefix: {range:0.5}AfflictionJewelSmallPassivesHaveIncreasedEffect2
+Prefix: {range:0.5}AfflictionJewelSmallPassivesGrantLife3
+Suffix: None
+Suffix: None
+Cluster Jewel Skill: affliction_minion_life
+Cluster Jewel Node Count: 4
+LevelReq: 67
+Implicits: 3
+{crafted}Adds 4 Passive Skills
+{crafted}1 Added Passive Skill is a Jewel Socket
+{crafted}Added Small Passive Skills grant: Minions have 12% increased maximum Life
+Added Small Passive Skills also grant: +9 to Maximum Life
+Added Small Passive Skills have 35% increased Effect
+			<ModRange id="1" range="0.5"/>
+			<ModRange id="2" range="0.5"/>
+			<ModRange id="3" range="0.5"/>
+			<ModRange id="4" range="0.5"/>
+			<ModRange id="5" range="0.5"/>
+		</Item>
+		<ItemSet useSecondWeaponSet="nil" id="1">
+			<Slot itemId="0" itemPbURL="" name="Belt Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Belt Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Belt Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Belt Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Belt Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Belt Abyssal Socket 6"/>
+			<SocketIdURL nodeId="2311" itemPbURL="" name="Jewel 2311"/>
+			<SocketIdURL nodeId="7960" itemPbURL="" name="Jewel 7960"/>
+			<SocketIdURL nodeId="9408" itemPbURL="" name="Jewel 9408"/>
+			<SocketIdURL nodeId="9797" itemPbURL="" name="Jewel 9797"/>
+			<SocketIdURL nodeId="12613" itemPbURL="" name="Jewel 12613"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap"/>
+			<SocketIdURL nodeId="21984" itemPbURL="" name="Jewel 21984"/>
+			<Slot itemId="0" itemPbURL="" name="Graft 2"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Boots Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Boots Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Boots Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Boots Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Boots Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Boots Abyssal Socket 6"/>
+			<Slot itemId="8" itemPbURL="" name="Weapon 1"/>
+			<Slot itemId="1" itemPbURL="" name="Amulet"/>
+			<Slot itemId="2" itemPbURL="" name="Helmet"/>
+			<Slot itemId="9" itemPbURL="" name="Weapon 2"/>
+			<Slot itemId="4" itemPbURL="" name="Body Armour"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves"/>
+			<Slot itemId="0" itemPbURL="" name="Boots"/>
+			<Slot itemId="0" itemPbURL="" name="Ring 1"/>
+			<Slot itemId="0" itemPbURL="" name="Ring 2"/>
+			<Slot itemId="0" itemPbURL="" name="Ring 3"/>
+			<Slot itemId="0" itemPbURL="" name="Flask 2"/>
+			<Slot itemId="0" itemPbURL="" name="Flask 3"/>
+			<Slot itemId="0" itemPbURL="" name="Flask 4"/>
+			<Slot itemId="0" itemPbURL="" name="Flask 1"/>
+			<Slot itemId="0" itemPbURL="" name="Graft 1"/>
+			<SocketIdURL nodeId="64583" itemPbURL="" name="Jewel 64583"/>
+			<SocketIdURL nodeId="61419" itemPbURL="" name="Jewel 61419"/>
+			<SocketIdURL nodeId="59585" itemPbURL="" name="Jewel 59585"/>
+			<Slot itemId="0" itemPbURL="" name="Belt"/>
+			<SocketIdURL nodeId="13170" itemPbURL="" name="Jewel 13170"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Gloves Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Body Armour Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Body Armour Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Body Armour Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Body Armour Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Body Armour Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Body Armour Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Helmet Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Helmet Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Helmet Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Swap Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 1 Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap Abyssal Socket 3"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Swap Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Flask 5"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Abyssal Socket 4"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Abyssal Socket 5"/>
+			<Slot itemId="0" itemPbURL="" name="Weapon 2 Abyssal Socket 6"/>
+			<Slot itemId="0" itemPbURL="" name="Helmet Abyssal Socket 1"/>
+			<Slot itemId="0" itemPbURL="" name="Helmet Abyssal Socket 2"/>
+			<Slot itemId="0" itemPbURL="" name="Helmet Abyssal Socket 3"/>
+			<SocketIdURL nodeId="26196" itemPbURL="" name="Jewel 26196"/>
+			<SocketIdURL nodeId="29712" itemPbURL="" name="Jewel 29712"/>
+			<SocketIdURL nodeId="36634" itemPbURL="" name="Jewel 36634"/>
+		</ItemSet>
+	</Items>
+	<Notes>
+		
+	</Notes>
+</PathOfBuilding>

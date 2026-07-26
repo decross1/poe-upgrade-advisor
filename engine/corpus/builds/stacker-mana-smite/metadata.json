@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "stacker-mana-smite",
+  "title": "Mana Stacking Smite Hiero",
+  "class": "Templar",
+  "ascendancy": "Hierophant",
+  "level": 100,
+  "representative_skills": [
+    "Smite",
+    "Precision",
+    "Arrogance"
+  ],
+  "archetypes": [
+    "stacker"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.26_Mercenary/Mana Stacking Smite Hiero.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}

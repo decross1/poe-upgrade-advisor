@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "attack-lightning-arrow-deadeye",
+  "title": "Lightning Arrow Deadeye",
+  "class": "Ranger",
+  "ascendancy": "Deadeye",
+  "level": 84,
+  "representative_skills": [
+    "Lightning Arrow",
+    "Volatility",
+    "Elemental Damage with Attacks"
+  ],
+  "archetypes": [
+    "attack"
+  ],
+  "source": {
+    "repository": "https://github.com/WillsApps/random_work",
+    "commit": "49e9f5c2ee5f81fc3063ad579c56e47a1b3fcaee",
+    "path": "src/poe_builds/archived/3.26_Mercenary/Lightning Arrow Deadeye.xml",
+    "license": "GPL-3.0"
+  },
+  "preset": "bossing",
+  "candidate_item": null,
+  "oracle": {
+    "status": "pending",
+    "file": null,
+    "captured_with": null
+  }
+}
