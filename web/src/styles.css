@@ -44,6 +44,37 @@ body {
   padding: 0.75rem;
 }
 
+/* ---- Tier-2 drivers (TASK-301) ---- */
+
+.tier2-drivers table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.tier2-drivers th,
+.tier2-drivers td {
+  text-align: left;
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  vertical-align: top;
+}
+
+.driver-contribution--positive { color: var(--green); }
+.driver-contribution--negative { color: var(--red); }
+.driver-contribution--neutral { color: var(--muted); }
+
+.driver-track {
+  display: inline-block;
+  width: 72px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.drivers-empty,
+.breakdown-empty {
+  color: var(--muted);
+}
+
 /* ---- The card: exactly five elements (Doctrine I2) ---- */
 
 .verdict-card {

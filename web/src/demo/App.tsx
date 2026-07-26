@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { SessionCard } from "../session/SessionCard";
 import { useCardSession } from "../session/useCardSession";
 import { BuildImport } from "../components/BuildImport";
+import { DetailsPanel } from "../components/DetailsPanel";
 import { importBuildViaClient } from "./importBuildClient";
+import { loadBreakdownViaClient } from "./detailsClient";
 
 /**
  * Demo harness (npm run mock + npm run dev): every picker entry is a "hotkey
@@ -73,8 +75,9 @@ export function App() {
         detailsHref="#details"
       />
 
-      {/* Details affordance → Tier-2 preview. cant_evaluate_reasons appear ONLY
-          here, never on the card. [RULING-3; PM-REFINEMENT on #25] */}
+      {/* Details affordance → Tier-2 drivers + Tier-3 raw breakdown (TASK-301).
+          cant_evaluate_reasons appear ONLY here, never on the card.
+          [RULING-3; PM-REFINEMENT on #25] */}
       {card && (
         <p>
           <a
@@ -84,24 +87,11 @@ export function App() {
               setDetailsOpen((open) => !open);
             }}
           >
-            {detailsOpen ? "Hide details" : "Open details (Tier-2 preview)"}
+            {detailsOpen ? "Hide details" : "Open details (Tier 2/3)"}
           </a>
         </p>
       )}
-      {card && detailsOpen && (
-        <section className="details-panel" aria-label="Details">
-          <h2>Details (diff {card.diff_id})</h2>
-          {card.cant_evaluate_reasons && card.cant_evaluate_reasons.length > 0 ? (
-            <ul>
-              {card.cant_evaluate_reasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No can't-evaluate reasons for this verdict.</p>
-          )}
-        </section>
-      )}
+      {card && detailsOpen && <DetailsPanel card={card} loadBreakdown={loadBreakdownViaClient} />}
 
       <h2>Session</h2>
       <pre className="payload-preview">

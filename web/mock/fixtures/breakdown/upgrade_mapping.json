@@ -1,0 +1,27 @@
+{
+  "diff_id": "d-8f2c41a7",
+  "drivers": [
+    { "mod_text": "+1 to Level of all Cold Skill Gems", "contribution_pct": 5.6, "stat": "total_dps" },
+    { "mod_text": "Adds 24 to 41 Cold Damage to Spells", "contribution_pct": 4.9, "stat": "total_dps" },
+    { "mod_text": "38% increased Cold Damage", "contribution_pct": 1.9, "stat": "total_dps" },
+    { "mod_text": "+62 to maximum Life (equipped has +89)", "contribution_pct": -1.8, "stat": "ehp" }
+  ],
+  "pob_breakdown": {
+    "skill": { "name": "Vortex", "source": "main_skill.most_linked_highest_dps" },
+    "offense": {
+      "total_dps": { "equipped": 841200, "candidate": 945500, "delta_pct": 12.4 },
+      "stages": [
+        { "name": "base cold damage", "equipped": 1120, "candidate": 1453 },
+        { "name": "gem level multiplier", "equipped": 1.0, "candidate": 1.12 },
+        { "name": "increased cold damage", "equipped": 214, "candidate": 252 }
+      ]
+    },
+    "defense": {
+      "ehp": { "equipped": 52300, "candidate": 51360, "delta_pct": -1.8 },
+      "stages": [
+        { "name": "maximum life", "equipped": 4210, "candidate": 4183 }
+      ]
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "diff_id": "d-a51d02e9",
+  "drivers": [
+    { "mod_text": "Bow Attacks fire 2 additional Arrows (lost)", "contribution_pct": -21.5, "stat": "total_dps" },
+    { "mod_text": "34% increased Elemental Damage with Attack Skills", "contribution_pct": 3.3, "stat": "total_dps" },
+    { "mod_text": "+841 Armour", "contribution_pct": 3.1, "stat": "ehp" }
+  ],
+  "pob_breakdown": {
+    "skill": { "name": "Tornado Shot", "source": "main_skill.most_linked_highest_dps" },
+    "offense": {
+      "total_dps": { "equipped": 1532000, "candidate": 1253200, "delta_pct": -18.2 },
+      "stages": [
+        { "name": "projectile count", "equipped": 7, "candidate": 5 },
+        { "name": "increased elemental damage with attacks", "equipped": 188, "candidate": 222 }
+      ]
+    },
+    "defense": {
+      "ehp": { "equipped": 44100, "candidate": 45470, "delta_pct": 3.1 },
+      "stages": [
+        { "name": "armour", "equipped": 9200, "candidate": 10041 }
+      ]
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}

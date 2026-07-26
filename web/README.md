@@ -51,14 +51,16 @@ One-command startup (no dependency on `engine/` or `server/`):
 
 ```bash
 cd web && npm install && npm run mock
-# mock POST /api/v0/diff + GET/POST /api/v0/build on http://127.0.0.1:47791
+# mock POST /api/v0/diff + GET/POST /api/v0/build + GET /api/v0/breakdown/{id}
+# on http://127.0.0.1:47791
 ```
 
-It implements three routes at the exact server URL from
-`contracts/openapi.yaml`: `POST /api/v0/diff` (TASK-206) and
-`GET`/`POST /api/v0/build` (TASK-207). Responses are JSON loaded from disk at
+It implements four routes at the exact server URL from
+`contracts/openapi.yaml`: `POST /api/v0/diff` (TASK-206),
+`GET`/`POST /api/v0/build` (TASK-207), and `GET /api/v0/breakdown/{diff_id}`
+(TASK-301). Responses are JSON loaded from disk at
 startup out of `contracts/fixtures/` (golden VerdictCards) and
-`web/mock/fixtures/` (FE-local BuildSummary) — fixtures are never inlined in
+`web/mock/fixtures/` (FE-local BuildSummary + Breakdowns) — fixtures are never inlined in
 code, and the mock never modifies anything under `contracts/`.
 
 ### Build import (TASK-207)
@@ -122,6 +124,15 @@ Two contract conveniences on `200` responses:
   ignored. This proves the re-diff shape end to end; it does not re-run
   inference (that is TASK-202's engine).
 
+### Breakdown (TASK-301)
+
+`GET /api/v0/breakdown/{diff_id}` serves the FE-local fixture from
+`web/mock/fixtures/breakdown/<name>.json` whose `<name>` matches the golden
+verdict fixture owning that `diff_id`. A `#ovr-…` suffixed id (a post-tap
+re-diff) resolves to its base fixture's breakdown — fixture-land re-diffs
+don't recompute drivers — with the response's `diff_id` echoing the
+requested id. Unknown ids are a bare `404` (RULING-20).
+
 ### Tests
 
 ```bash
@@ -138,8 +149,24 @@ account+character imports return a schema-valid BuildSummary served verbatim
 from disk and stored (GET before import is a bare 404, checked on a fresh
 ephemeral-port server so test order can't matter), invalid imports are bare
 422s, and the generated client round-trips `importBuild`/`getActiveBuild`
-with `ApiError` on 422. `mock/renderSmoke.mjs` is a wire-smoke renderer only —
+with `ApiError` on 422. The TASK-301 block covers `/breakdown`: every verdict
+fixture's `diff_id` returns a schema-valid Breakdown, `#ovr-…` ids resolve to
+the base fixture, unknown ids are bare 404s, and the generated client
+round-trips `getBreakdown` with `ApiError` on 404.
+`mock/renderSmoke.mjs` is a wire-smoke renderer only —
 the product verdict card is TASK-205's.
+
+## Tier-2/3 details UI (TASK-301)
+
+`src/components/DetailsPanel.tsx` sits behind the card's one details
+affordance: Tier-2 ranked drivers (`Tier2Drivers.tsx`) plus the Tier-3 raw
+engine tree (`Tier3Breakdown.tsx`), fetched once per open from
+`GET /breakdown/{diff_id}` — the contract's Tier-2/3 surface, keyed by the
+`/diff` response's `diff_id` (issue #13's "no extra engine calls": the UI
+talks to the contract server only, never to `engine/`). `cant_evaluate_reasons`
+still render here and only here (RULING-3). Like every component it does no
+network I/O: `loadBreakdown` is injected (`src/demo/detailsClient.ts` adapts
+the generated client's `getBreakdown`).
 
 ## Build import UI (TASK-207)
 

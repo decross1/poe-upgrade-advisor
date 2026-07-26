@@ -1,0 +1,25 @@
+{
+  "diff_id": "d-c47a1f55",
+  "drivers": [
+    { "mod_text": "Adds 25 to 44 Cold Damage to Attacks", "contribution_pct": 2.0, "stat": "total_dps" },
+    { "mod_text": "9% increased Attack Speed (vs 12% equipped)", "contribution_pct": -0.9, "stat": "total_dps" },
+    { "mod_text": "+312 Evasion (vs +520 equipped)", "contribution_pct": -0.9, "stat": "ehp" }
+  ],
+  "pob_breakdown": {
+    "skill": { "name": "Ice Shot", "source": "main_skill.most_linked_highest_dps" },
+    "offense": {
+      "total_dps": { "equipped": 754000, "candidate": 762300, "delta_pct": 1.1 },
+      "stages": [
+        { "name": "base cold damage", "equipped": 388, "candidate": 422 },
+        { "name": "attack speed", "equipped": 1.94, "candidate": 1.88 }
+      ]
+    },
+    "defense": {
+      "ehp": { "equipped": 40200, "candidate": 39840, "delta_pct": -0.9 },
+      "stages": [
+        { "name": "evasion", "equipped": 12400, "candidate": 12192 }
+      ]
+    },
+    "engine": { "name": "pobcalc", "version": "0.1.0-fixture" }
+  }
+}
