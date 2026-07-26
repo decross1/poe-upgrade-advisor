@@ -4,16 +4,24 @@ PoE Upgrade Advisor — MVP v0 (test build)
 WHAT THIS IS
   A local tool: hover an item in Path of Exile, and get an honest
   UPGRADE / SIDEGRADE / DOWNGRADE / CAN'T EVALUATE verdict against the
-  build you imported. Everything runs on your own machine (127.0.0.1);
-  nothing you do in the tool leaves your computer.
+  build you imported. Verdicts are LIVE calculations — the real Path of
+  Building engine is bundled inside (engine/), not canned answers.
+  Everything runs on your own machine (127.0.0.1); nothing you do in
+  the tool leaves your computer.
 
 REQUIREMENTS
+  - Linux x86-64 for this v0 build: the bundled engine's runtime is
+    compiled for it. On macOS/Windows the launcher stops with an honest
+    "engine cannot start" message rather than guessing — report your OS
+    in #poe; that decides which platform ships next.
   - Python 3.10 or newer: https://www.python.org/downloads/
     (macOS: the system python3 works; Windows: the python.org
     installer's "py" launcher is what run.bat looks for first)
+  - ~400 MB free disk (the engine unpacks a one-time data cache on
+    first launch, which is also why first launch takes tens of seconds).
   - An internet connection ONCE, on first run only, to fetch one small
-    Python dependency into a private folder (.venv/). No other tooling,
-    no npm, no dev environment.
+    Python dependency into a private folder (.venv/) if your Python
+    doesn't have it already. No other tooling, no npm, no compiler.
 
 RUN
   Windows: double-click "run.bat"

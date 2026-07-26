@@ -29,32 +29,47 @@ That's the whole card. No settings screen, no config wizard, nothing to fill in 
 ## Install & run
 
 > **DO NOT POST YET — release guard (TASK-208).** The steps below are real and
-> match the packaged build, but this announcement stays blocked until ALL of:
-> (1) TASK-103 GO decision and the real PoB engine in the package (today's
-> build answers from canned fixtures — fine for install testing, NOT for
-> announcing); (2) clean-machine install test on a non-dev box (done so far:
-> clean-dir test on the dev box only); (3) the download link below is live.
+> match the packaged build (the real PoB engine is IN the package — verdicts
+> are live calcs, not canned fixtures, proven by the clean-room transcript on
+> issue #36). This announcement stays blocked until ALL of: (1) TASK-103 GO
+> decision; (2) clean-machine install test on a non-dev box (done so far:
+> clean-dir tests on the dev box only); (3) the download link below is live.
 > If you are reading this guard in #poe, something went wrong — call it out.
 
-1. **Download** `poe-upgrade-advisor-v0.tar.gz` — link posted in this thread
-   **(LINK TBD until the release task attaches the build)**.
-2. **Extract it anywhere** (double-click the archive).
+1. **Download** `poe-upgrade-advisor-v0-<sha>.tar.gz` (~63 MB) — link posted
+   in this thread **(LINK TBD until the release task attaches the build)**.
+2. **Extract it anywhere:**
+   - Linux: `tar -xzf poe-upgrade-advisor-v0-*.tar.gz && cd poe-upgrade-advisor-v0`
+   - macOS / Windows: double-click the archive, then open the
+     `poe-upgrade-advisor-v0` folder.
 3. **Run it:**
-   - Windows: double-click `run.bat`.
+   - Linux: `./run.sh`
    - macOS: double-click `run.command` (if Gatekeeper complains: right-click →
-     Open → Open).
-   - Linux: open a terminal in the folder and run `./run.sh`.
+     Open → Open)
+   - Windows: double-click `run.bat`
 4. Your browser opens `http://127.0.0.1:47791/` — that page **is** the whole
    app. Paste your Path of Building code into the import box, pick an item,
    read the verdict. Tap any assumption chip to flip it and recompute.
 5. Stop it with `Ctrl+C` in the terminal window.
 
-**You need:** Python 3.10+ (macOS already has it; Linux almost certainly does;
-on Windows grab it from python.org — the installer's `py` launcher is what
-`run.bat` looks for first). First run uses the internet once to fetch one small
-Python dependency into a private folder — no npm, no dev tools, nothing
-installed system-wide. Everything runs on `127.0.0.1`; nothing leaves your
-machine.
+**First launch is the slow one** (tens of seconds): the engine unpacks its
+one-time data cache. Every launch after that is a few seconds.
+
+**You need:**
+- **Linux x86-64** for this v0 build — the bundled calc engine's runtime is
+  compiled for it. On macOS/Windows the launcher starts but stops with an
+  honest "engine cannot start on this machine" message instead of guessing
+  (that's deliberate: a wrong verdict is worse than none). Tell us your OS
+  in #poe — that report decides which platform ships next.
+- **Python 3.10+** (`python3 --version`; on Windows the python.org
+  installer's `py` launcher is what `run.bat` looks for first).
+- **~400 MB free disk** (63 MB download, ~320 MB extracted + first-run
+  engine cache).
+- **Internet once**, first run only, IF your Python doesn't already have
+  `pyyaml` — one small dependency fetched into a private folder (`.venv/`),
+  nothing installed system-wide. No npm, no compiler, no dev tools.
+
+Everything runs on `127.0.0.1`; nothing leaves your machine.
 
 ---
 
