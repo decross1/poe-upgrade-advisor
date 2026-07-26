@@ -9,6 +9,17 @@ from datetime import UTC, datetime, timedelta
 
 MAX_DISCORD_MESSAGE = 1900
 TASK_ID = re.compile(r"\bTASK-\d+[A-Z]?\b", re.IGNORECASE)
+INTERNAL_REFERENCE = re.compile(
+    r"\b(?:TASK|ADR|RFC)-\d+[A-Z]?\b", re.IGNORECASE
+)
+INTERNAL_REFERENCE_PARENTHETICAL = re.compile(
+    r"\s*\([^()]*\b(?:TASK|ADR|RFC)-\d+[A-Z]?\b[^()]*\)",
+    re.IGNORECASE,
+)
+INTERNAL_REFERENCE_SUFFIX = re.compile(
+    r"\s*\+\s*(?:ADR|RFC)-\d+[A-Z]?(?:\s*\([^()]*\))?",
+    re.IGNORECASE,
+)
 INTERNAL_WORDS = re.compile(
     r"\b(?:CI|PR|ADR|RFC|gate|backend|frontend|PM|merge robot)\b",
     re.IGNORECASE,
@@ -41,7 +52,9 @@ def _run_json(command: list[str]) -> object:
 
 
 def _player_text(value: str) -> str:
-    value = TASK_ID.sub("", value)
+    value = INTERNAL_REFERENCE_SUFFIX.sub("", value)
+    value = INTERNAL_REFERENCE_PARENTHETICAL.sub("", value)
+    value = INTERNAL_REFERENCE.sub("", value)
     value = INTERNAL_WORDS.sub("", value)
     value = re.sub(r"^[\s:—–-]+|[\s:—–-]+$", "", value)
     value = re.sub(r"\s+", " ", value)

@@ -97,3 +97,25 @@ def test_collection_deduplicates_tasks_and_filters_org_jargon():
     assert data.shipped == ("one-tap assumption override",)
     assert data.decided == ("Single-channel mode",)
     assert data.up_next == ("validate upgrade math",)
+
+
+def test_player_text_drops_internal_adr_suffix_without_marker_residue():
+    module = load_digest()
+
+    assert (
+        module._player_text(
+            "Overlay shell shipped + ADR-0004 (Tauri provisional fallback)"
+        )
+        == "Overlay shell shipped"
+    )
+
+
+def test_player_text_drops_parenthetical_task_reference_without_dangling_words():
+    module = load_digest()
+
+    assert (
+        module._player_text(
+            "Overlay shell shipped (Tauri leg of TASK-201)"
+        )
+        == "Overlay shell shipped"
+    )
