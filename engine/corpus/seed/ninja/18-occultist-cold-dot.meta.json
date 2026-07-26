@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:40.351824032Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=qwartus-3381&name=qwartus_niceboat&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:41 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=A7zvIRBl8d0%2BLHTGSV2vOCmblSHWhtX4NgO2Jjk2DWvAZIWW%2FN8D2gZarvaxVBzjxr70IpKgl1wK%2BsvnW%2BUF3qxpVvvFnnUGbb2A72qjEf774dDL7LQyumJ8tZg%2F%2B1IkMHgdkWxGxA%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:40 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=10,cfOrigin;dur=544",
+      "CF-RAY": "a21664768ec3eb4b-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 204065,
+    "sha256": "02c2d0fa0ef4a783698972338c5b8df02ed3d756003c391e04b1d79ce35f09a3"
+  },
+  "selection": {
+    "account": "qwartus-3381",
+    "character": "qwartus_niceboat",
+    "archetype": "cold-dot"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:51.904828011Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=tungjudwaifu-1412&name=%E0%B9%82%E0%B8%97%E0%B9%80%E0%B8%97%E0%B8%A1%E0%B8%84%E0%B8%B3%E0%B8%AA%E0%B8%B2%E0%B8%9B%E0%B9%81%E0%B8%AB%E0%B9%88%E0%B8%87%E0%B8%AD%E0%B8%AD%E0%B9%80%E0%B8%9F%E0%B8%A5%E0%B8%A1&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:52 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=Pkgy47SXV3DeuJeZjvXpr3Odav5luA22vV4vgwyC%2BJei2xQEsy6KIWK%2F5QKF0z5mTWrLETy7q%2FKUP5nCE5BptaY5hfySrUkYs5ZElU%2BasWKkjfgnMVoDdrQj590HiZeo8wVfcydlwQ%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:52 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=9,cfOrigin;dur=546",
+      "CF-RAY": "a21664bece6e74f9-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 188578,
+    "sha256": "ab969fca85b11006b600ebe808603822306dcd2fd3de46223e469a09c18236e4"
+  },
+  "selection": {
+    "account": "tungjudwaifu-1412",
+    "character": "โทเทมคำสาปแห่งออเฟลม",
+    "archetype": "shockwave-totem"
+  }
+}

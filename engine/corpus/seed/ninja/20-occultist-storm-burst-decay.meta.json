@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:46.300834618Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=sky6195-3963&name=%E5%92%92%E6%B5%B7%E6%84%8F%E6%84%8F%E5%95%8A&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:47 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=r%2FPMSHlSEuI1jIEh3Eb4Eor8HnswfTDkPOFTB61szH94vdW0KmSvfWLqWZTl9YzFw%2BnJfGCMmhhAalJPL7%2FBWUgmxdUMl8YpqDIDy%2F2yOM70WY75XkW2TzDVPiqwkn2XrY75S1jZHA%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,day-1,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:46 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=9,cfOrigin;dur=512",
+      "CF-RAY": "a216649bbb9cf457-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 240860,
+    "sha256": "7f1a9e09e01607b8c93c02c7700c8d505dcf51f6f7ae97b0bbcec5ba9c5dd3a6"
+  },
+  "selection": {
+    "account": "sky6195-3963",
+    "character": "咒海意意啊",
+    "archetype": "storm-burst-decay"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:11:00.983476874Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=TrIpLeR0-0432&name=%D0%B1%D0%B0%D1%82%D1%80%D0%B0%D1%85&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:11:01 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=xiOp70OHwG%2B98vXpe6cuKpqbHmBje6Fr6M8Fa3SU0lcvi3EQGWFlXx8qmBvZaHmX7tgfIs%2FpVulv6grctQnWTc3JeYAz%2FPXh49m8FYqi8Ps3jkEVwoUCHZFJha%2BFt7OkYB7na65YtA%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:11:01 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=10,cfOrigin;dur=541",
+      "CF-RAY": "a21664f77f4fee14-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 173437,
+    "sha256": "892561f1766a6747d53ebf20e014cd8897529b231f371a4c9bf6bc90f0572ff5"
+  },
+  "selection": {
+    "account": "TrIpLeR0-0432",
+    "character": "батрах",
+    "archetype": "aura-support-second-ascendancy"
+  }
+}

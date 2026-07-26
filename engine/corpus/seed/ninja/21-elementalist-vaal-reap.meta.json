@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:49.238934207Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=visionpepela-5207&name=Beton_Racsimeow_&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:49 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=lUtksTN4cwO1ZvjF4QE%2BmEbs4oNcEAfQYznSCZHrgEdo6L5fYvWVCsSBlYsxggICVq%2BXcr%2BgiNiuhyLGp7m0m7tf9Hl33BJK4lVMFpmerb6jg35iBgie8w%2Bt1FYagUi1%2BcpAOHQl7Q%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:49 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=8,cfOrigin;dur=194",
+      "CF-RAY": "a21664ae2e4dc52e-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 203254,
+    "sha256": "13931693a997630e76518f80bc3de8b0954c9931b15f037b0ecbb6ce23779c15"
+  },
+  "selection": {
+    "account": "visionpepela-5207",
+    "character": "Beton_Racsimeow_",
+    "archetype": "vaal-reap-ignite"
+  }
+}

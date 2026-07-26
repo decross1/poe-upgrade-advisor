@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:54.905503607Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=Ubuge-1302&name=OnkelSiw&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:55 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=X5A2mgoKPCjciYjUh1jumYZb%2FsNngWIXk5pjiNpfHNyZWLf5vHC1vnSUUML%2BA2O3Zjl3yS0v%2FQ%2BMigLKc2g3wu87FqRilBrXAB389TsCWAXy%2F07A5MpIAKjmzL8snoMIm4mOXza%2FRQ%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:55 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=18,cfOrigin;dur=569",
+      "CF-RAY": "a21664d17d959456-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 199347,
+    "sha256": "1ecdb8aca9751dcab92f4fd05d75276a8f3a8d051dbd9675e1cd5bc9724f4db2"
+  },
+  "selection": {
+    "account": "Ubuge-1302",
+    "character": "OnkelSiw",
+    "archetype": "spark-spell"
+  }
+}

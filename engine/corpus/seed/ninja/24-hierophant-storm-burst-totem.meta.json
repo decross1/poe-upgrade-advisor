@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:57.946948140Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=lunarana1-7016&name=OldDiver&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:58 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=5fTnUOF%2F58uVOp9pmwEbsnIl%2Bz%2FUd67fEpni6%2FSE2aCFpEgbJAWioGBL8Il2D67vyjaBVXPbNZNk7o2UkCTeHz6lOXF32T%2F55YnEx%2BzgyT%2FikQAWAMRT4HDTiApaSc5uxNnvQf6hRw%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:58 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=20,cfOrigin;dur=574",
+      "CF-RAY": "a21664e47a84fa22-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 170542,
+    "sha256": "d855b121f9204cf954e54897c8288a65c5ea1717e4ae06b6bd63f6021912ed87"
+  },
+  "selection": {
+    "account": "lunarana1-7016",
+    "character": "OldDiver",
+    "archetype": "storm-burst-totem"
+  }
+}

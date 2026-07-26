@@ -1,0 +1,38 @@
+{
+  "fetched_at_utc": "2026-07-26T21:19:45.110179243Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=NikitankBombas2003-6127&name=%D0%91%D0%A0%D0%AD%D0%9A_%D0%A0%D0%A3%D0%9A%D0%90_%D0%9A%D0%9E%D0%A0%D0%9E%D0%9B%D0%AF&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:19:45 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=qwn2C8ugJxa%2By2uI16EYlbJCvq8IYghgLno9eSoilGl1ajukR5cP0YYADGwjzlrqrL8TTpK%2BKW%2FRKh4jjd4fS2Ve2mgXb2SOHewtdaV%2BdPeiU7uVn815aAdjaFO99%2BCVWB7uPeL5zQ%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:19:45 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=10,cfOrigin;dur=184",
+      "CF-RAY": "a21671c3896ecf23-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 184833,
+    "sha256": "17023cb35b171d927ef4c537d46d8c4d5c1bb8a8ac7c4110f58cc2b302598ea7"
+  },
+  "selection": {
+    "account": "NikitankBombas2003-6127",
+    "character": "БРЭК_РУКА_КОРОЛЯ",
+    "archetype": "attack",
+    "replacement_for": "20-occultist-storm-burst-decay"
+  }
+}

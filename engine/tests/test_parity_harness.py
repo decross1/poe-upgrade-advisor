@@ -36,11 +36,20 @@ def runtime_is_available():
 class ParityHarnessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        _, cls.cases = HARNESS.load_cases()
+        cls.manifest, cls.cases = HARNESS.load_cases()
 
     def test_loads_all_frozen_cases_and_player_stats(self):
-        self.assertEqual(len(self.cases), 15)
+        self.assertEqual(len(self.cases), 25)
         self.assertTrue(all(len(case.expected_stats) > 80 for case in self.cases))
+
+    def test_retains_rejected_oracle_without_running_it(self):
+        rejected = self.manifest["oracle_failures"]
+        self.assertEqual(
+            [entry["id"] for entry in rejected],
+            ["20-occultist-storm-burst-decay"],
+        )
+        self.assertIn("not reproducible", rejected[0]["reason"])
+        self.assertNotIn(rejected[0]["id"], {case.case_id for case in self.cases})
 
     def test_corrupted_stat_self_test_fails_comparison(self):
         result = HARNESS.run_self_test(self.cases[0])
@@ -111,6 +120,10 @@ class ParityHarnessTest(unittest.TestCase):
             HARNESS.DEFAULT_REPORT.read_text(encoding="utf-8"),
             parse_constant=reject_non_standard_constant,
         )
+        self.assertEqual(report["task"], "TASK-102")
+        self.assertEqual(report["oracle"]["build_count"], 25)
+        self.assertEqual(report["summary"]["compared_cells"], 2381)
+        self.assertEqual(report["summary"]["imported_builds"], 25)
         self.assertEqual(
             report["summary"]["over_cell_classifications"],
             {

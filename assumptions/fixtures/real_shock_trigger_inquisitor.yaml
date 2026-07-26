@@ -1,0 +1,14 @@
+# Frozen poe.ninja Cast-on-Crit Inquisitor export with Skitterbots.
+# Fetch provenance and immutable hashes are recorded in the corpus manifest.
+build: engine/corpus/seed/ninja/06-inquisitor-coc-ice-spear.json
+preset: mapping
+expected:
+  - rule_id: config.shock_from_setup
+    fires: true
+  - rule_id: main_skill.trigger_ambiguity
+    fires: true
+  - rule_id: main_skill.user_override
+    fires: false
+  - rule_id: main_skill.most_linked_highest_dps
+    resolved: { main_skill: "Ice Spear" }
+min_confidence: 0.4

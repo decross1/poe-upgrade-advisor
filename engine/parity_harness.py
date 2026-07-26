@@ -139,39 +139,69 @@ def _validate_identity(
         )
 
 
+def _load_manifest_case(corpus: Path, entry: dict) -> CorpusCase:
+    case_id = entry["id"]
+    raw_path = corpus / entry["files"]["raw_response"]
+    metadata_path = corpus / entry["files"]["fetch_metadata"]
+    raw_bytes = raw_path.read_bytes()
+    if _sha256(raw_bytes) != entry["fetch"]["sha256"]:
+        raise HarnessError(f"{case_id}: raw response hash mismatch")
+    metadata = json.loads(metadata_path.read_bytes())
+    if metadata["response"]["sha256"] != entry["fetch"]["sha256"]:
+        raise HarnessError(f"{case_id}: fetch metadata hash mismatch")
+    raw = json.loads(raw_bytes)
+    encoded = raw.get("pathOfBuildingExport")
+    if not isinstance(encoded, str):
+        raise HarnessError(f"{case_id}: pathOfBuildingExport is missing")
+    if _sha256(encoded.encode()) != entry["export"]["encoded_sha256"]:
+        raise HarnessError(f"{case_id}: encoded export hash mismatch")
+    xml = _decode_export(encoded)
+    if _sha256(xml) != entry["parse"]["decoded_sha256"]:
+        raise HarnessError(f"{case_id}: decoded export hash mismatch")
+    identity, stats, config_sha256 = _export_data(xml)
+    _validate_identity(raw, identity, case_id)
+    return CorpusCase(
+        case_id,
+        raw_path,
+        raw,
+        xml,
+        stats,
+        identity,
+        config_sha256,
+    )
+
+
 def load_cases(corpus: Path = CORPUS) -> tuple[dict, list[CorpusCase]]:
     manifest = json.loads((corpus / "manifest.json").read_bytes())
-    cases = []
-    for entry in manifest["entries"]:
-        case_id = entry["id"]
-        raw_path = corpus / entry["files"]["raw_response"]
-        raw_bytes = raw_path.read_bytes()
-        if _sha256(raw_bytes) != entry["fetch"]["sha256"]:
-            raise HarnessError(f"{case_id}: raw response hash mismatch")
-        raw = json.loads(raw_bytes)
-        encoded = raw.get("pathOfBuildingExport")
-        if not isinstance(encoded, str):
-            raise HarnessError(f"{case_id}: pathOfBuildingExport is missing")
-        if _sha256(encoded.encode()) != entry["export"]["encoded_sha256"]:
-            raise HarnessError(f"{case_id}: encoded export hash mismatch")
-        xml = _decode_export(encoded)
-        if _sha256(xml) != entry["parse"]["decoded_sha256"]:
-            raise HarnessError(f"{case_id}: decoded export hash mismatch")
-        identity, stats, config_sha256 = _export_data(xml)
-        _validate_identity(raw, identity, case_id)
-        cases.append(
-            CorpusCase(
-                case_id,
-                raw_path,
-                raw,
-                xml,
-                stats,
-                identity,
-                config_sha256,
-            )
-        )
+    cases = [_load_manifest_case(corpus, entry) for entry in manifest["entries"]]
     if len(cases) != manifest["selection"]["count"]:
         raise HarnessError("manifest selection count does not match entries")
+    active_ids = {case.case_id for case in cases}
+    rejected_entries = manifest.get("oracle_failures", [])
+    rejected_ids = {entry["id"] for entry in rejected_entries}
+    if len(rejected_ids) != len(rejected_entries):
+        raise HarnessError("duplicate oracle failure id")
+    if active_ids & rejected_ids:
+        raise HarnessError("active and rejected corpus ids overlap")
+    for entry in rejected_entries:
+        if not entry.get("reason"):
+            raise HarnessError(f"{entry['id']}: oracle failure has no reason")
+        _load_manifest_case(corpus, entry)
+    numbered_responses = {
+        path.name
+        for path in corpus.glob("[0-9][0-9]-*.json")
+        if not path.name.endswith(".meta.json")
+    }
+    listed_responses = {
+        entry["files"]["raw_response"]
+        for entry in [*manifest["entries"], *rejected_entries]
+    }
+    if numbered_responses != listed_responses:
+        missing = sorted(numbered_responses - listed_responses)
+        absent = sorted(listed_responses - numbered_responses)
+        raise HarnessError(
+            f"manifest fetch inventory mismatch: unlisted={missing}, absent={absent}"
+        )
     return manifest, cases
 
 
@@ -495,7 +525,7 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
     build_import_p95_pass = build_import_p95_ms < 2000
     report = {
         "schema_version": 1,
-        "task": "TASK-101",
+        "task": "TASK-102",
         "adr": "ADR-0005",
         "oracle": {
             "provider": "poe.ninja frozen character exports",

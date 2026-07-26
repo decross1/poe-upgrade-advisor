@@ -1,0 +1,37 @@
+{
+  "fetched_at_utc": "2026-07-26T21:10:43.323635562Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=%EB%AC%B5%EC%9D%80%EC%A7%80%EA%B9%80%EC%B9%98%EC%B0%9C2-7878&name=Kimchi_Finale&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-102; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 21:10:44 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=eS7gxbizLMpDTK2U5%2BYtqnRbHBtCGX3Go2F%2B6SHlq1F2ZvCJJd%2FOXBYpvkKj0vFRn4POOlZJSVxoWcm5tR8RcK1%2F%2F500moPSb5bt%2BSThoZ0pxfybZu4F3auDHgqtGE%2Fumlum9gzzUQ%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12,day-2",
+      "last-modified": "Sun, 26 Jul 2026 21:10:43 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Server-Timing": "cfEdge;dur=13,cfOrigin;dur=538",
+      "CF-RAY": "a21664890fc32157-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 180670,
+    "sha256": "566a8fb0f02567a8cd93141859954df9bef625d38fa60c44d82bba0f492cc438"
+  },
+  "selection": {
+    "account": "묵은지김치찜2-7878",
+    "character": "Kimchi_Finale",
+    "archetype": "righteous-fire-trap"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "task": "TASK-101",
+  "task": "TASK-102",
   "adr": "ADR-0005",
   "source": {
     "provider": "poe.ninja",
@@ -17,24 +17,33 @@
     "request_cadence_seconds": 2.0
   },
   "selection": {
-    "count": 15,
-    "method": "Current Allflame experience snapshot search; chosen before detail fetch to cover distinct mechanics.",
+    "count": 25,
+    "method": "Original 15-case ADR-0005 selection plus ten TASK-102 Allflame experience-snapshot characters fixed from search results before detail fetch.",
     "required_mechanics": {
       "mine": [
         "13-ascendant-icicle-mine"
       ],
       "trigger": [
-        "06-inquisitor-coc-ice-spear"
+        "06-inquisitor-coc-ice-spear",
+        "23-inquisitor-spark"
       ],
       "minion": [
         "11-guardian-dominating-blow",
-        "15-guardian-absolution"
+        "15-guardian-absolution",
+        "22-hierophant-shockwave-totem"
       ],
       "ci_or_low_life": [
         "05-ascendant-ci-support",
-        "12-elementalist-ci-cold-snap"
+        "12-elementalist-ci-cold-snap",
+        "23-inquisitor-spark"
+      ],
+      "totem": [
+        "10-hierophant-kinetic-fusillade",
+        "22-hierophant-shockwave-totem",
+        "24-hierophant-storm-burst-totem"
       ]
-    }
+    },
+    "expansion": "Ten active TASK-102 cases were selected from the Allflame experience snapshot before detail fetch. One unreproducible embedded oracle is retained under oracle_failures and replaced by the next preselected search result."
   },
   "scenario_config_observation": {
     "mapping_and_bossing_config_diversity_observed": false,
@@ -801,6 +810,517 @@
           "kind": "input",
           "value": "1"
         }
+      }
+    },
+    {
+      "id": "16-elementalist-ethereal-knives",
+      "archetype": "ethereal-knives-spell",
+      "mechanics": [
+        "spell",
+        "projectile",
+        "secondary-ascendancy"
+      ],
+      "account": "heygyus-0416",
+      "character": "AAAAARESURRECTTTT",
+      "class": "Elementalist",
+      "level": 100,
+      "files": {
+        "raw_response": "16-elementalist-ethereal-knives.json",
+        "fetch_metadata": "16-elementalist-ethereal-knives.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 212000,
+        "sha256": "c14e50999b6f4526780fa5c526159b836e6eba8add58be9b977537f3eb7c92b1"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 13872,
+        "encoded_sha256": "bc309f3349cfc0f9748ff9858fb741d4f5bab18ef410ea34e641a4aa518f30c3"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 52693,
+        "decoded_sha256": "6494de0e232828236806324e99e0e74937cb0126cddf4cbba160d2790993aa57"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "17-ascendant-aura-support",
+      "archetype": "aura-support",
+      "mechanics": [
+        "support",
+        "aura-stacking"
+      ],
+      "account": "Gohaku-5483",
+      "character": "ВедьмаБезХлеба",
+      "class": "Ascendant",
+      "level": 100,
+      "files": {
+        "raw_response": "17-ascendant-aura-support.json",
+        "fetch_metadata": "17-ascendant-aura-support.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 154930,
+        "sha256": "276c49f2230ef9f2337d3d60ba5af30e9dd32b1cc57a2be274845720ae7e4327"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10312,
+        "encoded_sha256": "59d772e192a03ee388574eaae4b7f7497340f9b9ae68dba37eafd6a33c5e2ed2"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38892,
+        "decoded_sha256": "586a9d14a086571e1676efec4ef1dcb3685101eac7146f5d8b0d92c480e6e3de"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "18-occultist-cold-dot",
+      "archetype": "cold-dot",
+      "mechanics": [
+        "spell",
+        "cold-damage-over-time",
+        "secondary-ascendancy"
+      ],
+      "account": "qwartus-3381",
+      "character": "qwartus_niceboat",
+      "class": "Occultist",
+      "level": 100,
+      "files": {
+        "raw_response": "18-occultist-cold-dot.json",
+        "fetch_metadata": "18-occultist-cold-dot.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 204065,
+        "sha256": "02c2d0fa0ef4a783698972338c5b8df02ed3d756003c391e04b1d79ce35f09a3"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10852,
+        "encoded_sha256": "f0278450fd26396ceed65f834277a138123532b4f60df1a9ac52dbb48e3b1ac3"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38867,
+        "decoded_sha256": "24ca24c0861cd391401333c4ca2b53b848a42566fa7398ff61a139f6643d262a"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "19-chieftain-kimchi-finale",
+      "archetype": "righteous-fire-trap",
+      "mechanics": [
+        "righteous-fire",
+        "trap",
+        "damage-over-time"
+      ],
+      "account": "묵은지김치찜2-7878",
+      "character": "Kimchi_Finale",
+      "class": "Chieftain",
+      "level": 100,
+      "files": {
+        "raw_response": "19-chieftain-kimchi-finale.json",
+        "fetch_metadata": "19-chieftain-kimchi-finale.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 180670,
+        "sha256": "566a8fb0f02567a8cd93141859954df9bef625d38fa60c44d82bba0f492cc438"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 12104,
+        "encoded_sha256": "899221b8ca7554c7f26c1c35f1dcc92b305346d1b3391dfe015d0369ce723307"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 43026,
+        "decoded_sha256": "2044420c4f186562a60e112814235e9f9d7a63f3bfda1670e2ecdfc301fdb40c"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "20-break-king-hand",
+      "archetype": "kinetic-blast-attack",
+      "mechanics": [
+        "attack",
+        "projectile",
+        "secondary-skill"
+      ],
+      "account": "NikitankBombas2003-6127",
+      "character": "БРЭК_РУКА_КОРОЛЯ",
+      "class": "Deadeye",
+      "level": 100,
+      "files": {
+        "raw_response": "20-break-king-hand.json",
+        "fetch_metadata": "20-break-king-hand.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 184833,
+        "sha256": "17023cb35b171d927ef4c537d46d8c4d5c1bb8a8ac7c4110f58cc2b302598ea7"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 12652,
+        "encoded_sha256": "e1d578dc47e02c57a4003451ee419c7b5164bc51a5b1c6e97d3dce5131817736"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 47837,
+        "decoded_sha256": "425b81d93429c5417e7daa3b940fea08af91e3d72cf1a313e84557cfa8f5c361"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "21-elementalist-vaal-reap",
+      "archetype": "vaal-reap-ignite",
+      "mechanics": [
+        "spell",
+        "ignite",
+        "secondary-ascendancy"
+      ],
+      "account": "visionpepela-5207",
+      "character": "Beton_Racsimeow_",
+      "class": "Elementalist",
+      "level": 98,
+      "files": {
+        "raw_response": "21-elementalist-vaal-reap.json",
+        "fetch_metadata": "21-elementalist-vaal-reap.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 203254,
+        "sha256": "13931693a997630e76518f80bc3de8b0954c9931b15f037b0ecbb6ce23779c15"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 13296,
+        "encoded_sha256": "657bc8d316139a1831a844678819d448bd6b3f7589772af828a4c597f1f7c32a"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 50451,
+        "decoded_sha256": "612e55e2cd2441973a06eec05187a8a304a7e9588e82720abfec23e3ab1d1957"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "22-hierophant-shockwave-totem",
+      "archetype": "shockwave-totem",
+      "mechanics": [
+        "spell-totem",
+        "minion-support"
+      ],
+      "account": "tungjudwaifu-1412",
+      "character": "โทเทมคำสาปแห่งออเฟลม",
+      "class": "Hierophant",
+      "level": 98,
+      "files": {
+        "raw_response": "22-hierophant-shockwave-totem.json",
+        "fetch_metadata": "22-hierophant-shockwave-totem.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 188578,
+        "sha256": "ab969fca85b11006b600ebe808603822306dcd2fd3de46223e469a09c18236e4"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 13320,
+        "encoded_sha256": "13399d521d1f3076a591703acff47ca18d46952a6771142e6bb55ad49d54d5fe"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 51267,
+        "decoded_sha256": "4e5ea1d7a2eb2ddaf591b523865a3bd39355428503a493946c4d071002051545"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "23-inquisitor-spark",
+      "archetype": "spark-spell",
+      "mechanics": [
+        "spell",
+        "projectile",
+        "low-life",
+        "trigger"
+      ],
+      "account": "Ubuge-1302",
+      "character": "OnkelSiw",
+      "class": "Inquisitor",
+      "level": 98,
+      "files": {
+        "raw_response": "23-inquisitor-spark.json",
+        "fetch_metadata": "23-inquisitor-spark.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 199347,
+        "sha256": "1ecdb8aca9751dcab92f4fd05d75276a8f3a8d051dbd9675e1cd5bc9724f4db2"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 12180,
+        "encoded_sha256": "12f222f3c8fd32dd8ee34a453cdb2c3bff25c81a4aaf77503e4ce323a83dc649"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 46241,
+        "decoded_sha256": "b7a3ac19ab0ededfb0e1fb3af16f4dd770e3b91fdbc7a1e99a8095f515808dd4"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "24-hierophant-storm-burst-totem",
+      "archetype": "storm-burst-totem",
+      "mechanics": [
+        "spell-totem",
+        "mine",
+        "secondary-ascendancy"
+      ],
+      "account": "lunarana1-7016",
+      "character": "OldDiver",
+      "class": "Hierophant",
+      "level": 98,
+      "files": {
+        "raw_response": "24-hierophant-storm-burst-totem.json",
+        "fetch_metadata": "24-hierophant-storm-burst-totem.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 170542,
+        "sha256": "d855b121f9204cf954e54897c8288a65c5ea1717e4ae06b6bd63f6021912ed87"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 10744,
+        "encoded_sha256": "296095badc2eb3f90d3c68b572194c31f9d0784d2a1b19da0372447ba73a2fe3"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 38897,
+        "decoded_sha256": "46674028680b9360a1c3fc83965608d797f99544dd485520855f4b1ef5c93feb"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    },
+    {
+      "id": "25-luminary-aura-support",
+      "archetype": "aura-support-second-ascendancy",
+      "mechanics": [
+        "support",
+        "aura-stacking",
+        "second-ascendancy"
+      ],
+      "account": "TrIpLeR0-0432",
+      "character": "батрах",
+      "class": "Luminary",
+      "level": 98,
+      "files": {
+        "raw_response": "25-luminary-aura-support.json",
+        "fetch_metadata": "25-luminary-aura-support.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 173437,
+        "sha256": "892561f1766a6747d53ebf20e014cd8897529b231f371a4c9bf6bc90f0572ff5"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 11384,
+        "encoded_sha256": "5b1b38c7cefdf5d5de4730fb862e91f2b267b4fbd36ff1cb7ea50bbc1204c76c"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 42281,
+        "decoded_sha256": "bbc76c04c989419c4688f2222e7ce7d4443c51a2862a83b8886b5f8aee36b3ff"
+      },
+      "active_config_summary": {
+        "active_config_set": "1",
+        "enemy_is_boss": null,
+        "condition_in_map": null,
+        "enemy_level": {
+          "kind": "placeholder",
+          "value": "84"
+        },
+        "enemy_fire_resist": {
+          "kind": "placeholder",
+          "value": "50"
+        },
+        "nearby_enemies": null
+      }
+    }
+  ],
+  "oracle_failures": [
+    {
+      "id": "20-occultist-storm-burst-decay",
+      "files": {
+        "raw_response": "20-occultist-storm-burst-decay.json",
+        "fetch_metadata": "20-occultist-storm-burst-decay.meta.json"
+      },
+      "fetch": {
+        "status": 200,
+        "bytes": 240860,
+        "sha256": "7f1a9e09e01607b8c93c02c7700c8d505dcf51f6f7ae97b0bbcec5ba9c5dd3a6"
+      },
+      "export": {
+        "present": true,
+        "encoded_bytes": 13408,
+        "encoded_sha256": "3cbdc93d1e7cb6f5a56988ecb6b2169ac0de5917cb40c9f58e89b6f126b99dce"
+      },
+      "parse": {
+        "status": "parsed",
+        "encoding": "base64url+zlib",
+        "xml_root": "PathOfBuilding",
+        "decoded_bytes": 52504,
+        "decoded_sha256": "0452854e8023f25ecf1aeb7d60544e0a193a6bf00c46df7e31f740dca4b4ddba"
+      },
+      "reason": "Embedded PlayerStat DoT vector was not reproducible at pinned PoB e0cc037d8 or tested upstream revisions 961363511, f9905947b, d1e5dc6ab, f20cf78be, 9aad3c8bb, 3a73a54bd, 0120ad250, 3512f89a3, and 85f6fa0ba; retained but excluded from the strict oracle corpus.",
+      "observed_combined_dps": {
+        "embedded": 213827.36151742,
+        "pinned_e0cc037d8": 426307.95099021,
+        "upstream_961363511": 600000.59559671
       }
     }
   ]

@@ -43,11 +43,12 @@ pobcalc diff --build build.xml --item item.txt --preset bossing --json
 ```
 → stdout JSON: `{ baseline: {total_dps, ehp, ...}, candidate: {...}, deltas: {...},
    slot: "...", breakdown_ref: "..." }`
-ADR-0005 replaces the original five desktop captures with the 15 frozen
-poe.ninja exports under `corpus/seed/ninja/`. Every embedded PlayerStat must be
-within 1% or carry an accepted ADR-0005 classification, and output must be
-deterministic. ADR-0006 sets separate performance gates: same-build item diff
-warm p95 below 150 ms and one-time build import p95 below 2,000 ms.
+ADR-0005 replaces the original five desktop captures with frozen poe.ninja
+exports under `corpus/seed/ninja/`; TASK-102 expands that strict oracle from 15
+to 25 active builds. Every embedded PlayerStat must be within 1% or carry an
+accepted ADR-0005 classification, and output must be deterministic. ADR-0006
+sets separate performance gates: same-build item diff warm p95 below 150 ms and
+one-time build import p95 below 2,000 ms.
 
 For warm invocations, start `pobcalc serve` once and send one JSON-RPC 2.0
 request per line:
@@ -98,8 +99,8 @@ vector:
 engine/pobcalc stats --build build.xml --json
 python3 engine/parity_harness.py
 ```
-The parity harness is offline: it reads only the 15 frozen poe.ninja responses
-under `corpus/seed/ninja/`, runs its corrupted-stat and identity-mismatch
+The parity harness is offline: it reads only the 25 active frozen poe.ninja
+responses under `corpus/seed/ninja/`, runs its corrupted-stat and identity-mismatch
 canaries, checks 10 byte-identical runs in two locales, and writes
 `reports/ninja-parity.json`. Signed infinity in the PlayerStat vector is
 encoded as the strict-JSON string sentinel `"Infinity"` or `"-Infinity"` and
@@ -108,6 +109,13 @@ Every over-band report cell must carry one of ADR-0005's explicit
 classifications or the classification gate remains red. Its timed build
 switches are checked against ADR-0006's 2,000 ms import budget; the separate
 worker benchmark above gates the 150 ms same-build keypress path.
+
+Run the strict corpus gate with:
+```
+engine/corpus/run_corpus.sh
+```
+The manifest also inventories rejected fetches so an invalid or stale oracle
+cannot disappear through survivor-only selection.
 
 ## corpus/ — the differential oracle
 ~100 builds × swaps, including adversarial ones (mines, triggers, minion hybrids,
