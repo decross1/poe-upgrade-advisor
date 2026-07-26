@@ -50,20 +50,29 @@ local function applyConfig(config)
 	if type(config) ~= "table" then
 		error("configuration must be an object")
 	end
+	local changed = false
 	local input = build.configTab.configSets[build.configTab.activeConfigSetId].input
 	for key, value in pairs(config) do
 		if key == "flasks_active" then
 			for _, slot in ipairs(build.itemsTab.orderedSlots) do
 				if slot.slotName:match("^Flask %d+$") then
+					if slot.active ~= value then
+						changed = true
+					end
 					slot.active = value
 					build.itemsTab.activeItemSet[slot.slotName].active = value
 				end
 			end
 		else
+			if input[key] ~= value
+					and not (input[key] == nil and value == false) then
+				changed = true
+			end
 			input[key] = value
 		end
 	end
 	build.configTab.input = input
+	return changed
 end
 
 local function readAll(path)
@@ -163,8 +172,9 @@ local function prepareCalculation(requestBuildPath, requestConfig, requestConfig
 	end
 
 	loadBuild(buildXml, requestBuildPath)
-	applyConfig(requestConfig)
-	build.calcsTab:BuildOutput()
+	if applyConfig(requestConfig) then
+		build.calcsTab:BuildOutput()
+	end
 	local calculate, baselineOutput = build.calcsTab:GetMiscCalculator()
 	cachedBuildPath = requestBuildPath
 	cachedBuildXml = buildXml

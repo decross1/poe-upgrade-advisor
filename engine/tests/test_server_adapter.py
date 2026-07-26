@@ -5,6 +5,7 @@ import pathlib
 import time
 import unittest
 
+from engine.parity_harness import load_cases
 from server.app import BASE_PATH, ApiApplication
 from server.assumptions import AssumptionsEvaluator
 from server.calculator import PobCalculator
@@ -40,17 +41,17 @@ class RealServerAdapterTest(unittest.TestCase):
     def tearDown(self):
         self.calculator.close()
 
+    @staticmethod
+    def _build_xml():
+        _, cases = load_cases()
+        return next(
+            case.xml
+            for case in cases
+            if case.case_id == "12-elementalist-ci-cold-snap"
+        )
+
     def test_contract_card_comes_from_real_warm_engine(self):
-        build_xml = (
-            ROOT
-            / "engine"
-            / "vendor"
-            / "PathOfBuilding"
-            / "spec"
-            / "TestBuilds"
-            / "3.13"
-            / "OccVortex.xml"
-        ).read_text()
+        build_xml = self._build_xml().decode()
         started = time.perf_counter()
         status, build = self.app.dispatch(
             "POST", f"{BASE_PATH}/build", {"pob_code": build_xml}
@@ -58,9 +59,9 @@ class RealServerAdapterTest(unittest.TestCase):
         import_ms = (time.perf_counter() - started) * 1000
         self.assertEqual(status, 200)
         self.assertEqual(build["character_class"], "Witch")
-        self.assertEqual(build["ascendancy"], "Occultist")
-        self.assertEqual(build["level"], 99)
-        self.assertEqual(build["main_skill"]["name"], "Vortex")
+        self.assertEqual(build["ascendancy"], "Elementalist")
+        self.assertEqual(build["level"], 97)
+        self.assertIn("Cold Snap", build["main_skill"]["name"])
         self.assertLess(import_ms, 2000)
 
         item_text = (
@@ -115,32 +116,19 @@ class RealServerAdapterTest(unittest.TestCase):
             },
         )
 
-        build_xml = (
-            ROOT
-            / "engine"
-            / "vendor"
-            / "PathOfBuilding"
-            / "spec"
-            / "TestBuilds"
-            / "3.13"
-            / "OccVortex.xml"
-        ).read_text()
+        build_xml = self._build_xml().decode()
         imported = self.calculator.import_build(build_xml)
         evaluator = AssumptionsEvaluator(ROOT / "assumptions")
-        enabled = evaluator.evaluate(imported.facts, "mapping")
-        disabled = evaluator.evaluate(
-            imported.facts,
-            "mapping",
-            [{"assumption_id": "config.flasks_up", "value": False}],
-        )
+        mapping = evaluator.evaluate(imported.facts, "mapping")
+        bossing = evaluator.evaluate(imported.facts, "bossing")
         item_text = (
             ROOT / "engine" / "tests" / "fixtures" / "item.txt"
         ).read_text()
-        enabled_diff = self.calculator.diff(item_text, enabled.pob_config)
-        disabled_diff = self.calculator.diff(item_text, disabled.pob_config)
+        mapping_diff = self.calculator.diff(item_text, mapping.pob_config)
+        bossing_diff = self.calculator.diff(item_text, bossing.pob_config)
         self.assertNotEqual(
-            enabled_diff.payload["baseline"],
-            disabled_diff.payload["baseline"],
+            mapping_diff.payload["baseline"],
+            bossing_diff.payload["baseline"],
         )
 
 

@@ -211,6 +211,8 @@ class PobCalculator:
         self._build_path = session_root / "build.xml"
         self._item_path = session_root / "candidate.item.txt"
         self._active: ImportedBuild | None = None
+        self._original_xml: bytes | None = None
+        self._materialized_config_key: str | None = None
         self._lock = threading.RLock()
         self.worker = worker or JsonRpcWorker(
             [str(self.root / "engine" / "pobcalc"), "serve"], self.root
@@ -223,8 +225,9 @@ class PobCalculator:
         digest = hashlib.sha256(xml).hexdigest()
         imported = ImportedBuild(build_id=f"b-{digest[:12]}", facts=facts)
         with self._lock:
-            self._build_path.write_bytes(xml)
             self._active = imported
+            self._original_xml = xml
+            self._materialized_config_key = None
         return imported
 
     def configure_build(
@@ -233,6 +236,7 @@ class PobCalculator:
         with self._lock:
             self._require_active()
             config, config_key = self._compile_config(canonical_config)
+            self._materialize_build(config, config_key)
             started = time.perf_counter()
             try:
                 result = self.worker.call(
@@ -266,6 +270,7 @@ class PobCalculator:
         with self._lock:
             self._require_active()
             config, config_key = self._compile_config(canonical_config)
+            self._materialize_build(config, config_key)
             self._item_path.write_text(item_text, encoding="utf-8")
             started = time.perf_counter()
             try:
@@ -298,6 +303,18 @@ class PobCalculator:
             raise CalculatorError(f"invalid evaluator ConfigSet: {error}") from error
         encoded = json.dumps(config, sort_keys=True, separators=(",", ":"))
         return config, hashlib.sha256(encoded.encode()).hexdigest()
+
+    def _materialize_build(
+        self, config: Mapping[str, object], config_key: str
+    ) -> None:
+        if self._materialized_config_key == config_key:
+            return
+        if self._original_xml is None:
+            raise BuildImportError("no active build XML")
+        self._build_path.write_bytes(
+            materialize_config_set(self._original_xml, config)
+        )
+        self._materialized_config_key = config_key
 
     def _require_active(self) -> ImportedBuild:
         if self._active is None:
@@ -357,7 +374,24 @@ def extract_build_facts(xml: bytes) -> dict[str, Any]:
     active_skills: list[dict[str, Any]] = []
     has_trigger = False
     has_power_generation = False
-    for group_index, group in enumerate(root.findall("./Skills/Skill"), start=1):
+    skills = root.find("Skills")
+    skill_groups: list[ET.Element] = []
+    if skills is not None:
+        active_set_id = skills.attrib.get("activeSkillSet", "1")
+        active_set = next(
+            (
+                node
+                for node in skills.findall("SkillSet")
+                if node.attrib.get("id") == active_set_id
+            ),
+            None,
+        )
+        skill_groups = (
+            active_set.findall("Skill")
+            if active_set is not None
+            else skills.findall("Skill")
+        )
+    for group_index, group in enumerate(skill_groups, start=1):
         if group.attrib.get("enabled", "true").lower() == "false":
             continue
         enabled_gems = [
@@ -407,6 +441,63 @@ def extract_build_facts(xml: bytes) -> dict[str, Any]:
         "has_charge_generation": "power" if has_power_generation else None,
         "has_trigger_setup": has_trigger,
     }
+
+
+def materialize_config_set(
+    xml: bytes, config: Mapping[str, object]
+) -> bytes:
+    """Write translated evaluator values into the export before PoB imports it.
+
+    PoB calculates once during import. Materializing the active ConfigSet lets
+    the worker reuse that calculation instead of recalculating after import.
+    """
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as error:
+        raise BuildImportError("unparseable Path of Building XML") from error
+    config_root = root.find("Config")
+    if config_root is None:
+        config_root = ET.SubElement(root, "Config")
+    active_id = config_root.attrib.get("activeConfigSet", "1")
+    config_set = next(
+        (
+            node
+            for node in config_root.findall("ConfigSet")
+            if node.attrib.get("id") == active_id
+        ),
+        None,
+    )
+    target = config_set if config_set is not None else config_root
+
+    for key, value in sorted(config.items()):
+        if key == "flasks_active":
+            if not isinstance(value, bool):
+                raise CalculatorError("flasks_active must be boolean")
+            for slot in root.findall(".//Slot"):
+                if slot.attrib.get("name", "").startswith("Flask "):
+                    slot.attrib["active"] = "true" if value is True else "false"
+            continue
+        matching = [
+            node
+            for node in target.findall("Input")
+            if node.attrib.get("name") == key
+        ]
+        node = matching[0] if matching else ET.SubElement(target, "Input")
+        for duplicate in matching[1:]:
+            target.remove(duplicate)
+        node.attrib.clear()
+        node.attrib["name"] = key
+        if isinstance(value, bool):
+            node.attrib["boolean"] = "true" if value else "false"
+        elif isinstance(value, (int, float)):
+            node.attrib["number"] = str(value)
+        elif isinstance(value, str):
+            node.attrib["string"] = value
+        else:
+            raise CalculatorError(
+                f"unsupported ConfigSet value for {key}: {type(value).__name__}"
+            )
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
 def _conservative_skill_tags(name: str) -> list[str]:
