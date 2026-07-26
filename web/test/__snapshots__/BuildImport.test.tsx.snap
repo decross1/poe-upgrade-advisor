@@ -1,0 +1,151 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshot states (issue #29 acceptance criteria) > empty — initial render, submit disabled until something is pasted 1`] = `
+<div>
+  <section
+    aria-label="Import a build"
+    class="build-import"
+  >
+    <h2>
+      Import a build
+    </h2>
+    <form>
+      <label
+        class="build-import-label"
+        for="pob-code-input"
+      >
+        Path of Building code or XML
+      </label>
+      <textarea
+        class="build-import-input"
+        id="pob-code-input"
+        placeholder="Paste your PoB share code here"
+        rows="5"
+      />
+      <button
+        class="build-import-submit"
+        disabled=""
+        type="submit"
+      >
+        Import build
+      </button>
+    </form>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #29 acceptance criteria) > invalid-code — the contract 422 path renders an alert and keeps the paste 1`] = `
+<div>
+  <section
+    aria-label="Import a build"
+    class="build-import"
+  >
+    <h2>
+      Import a build
+    </h2>
+    <form>
+      <label
+        class="build-import-label"
+        for="pob-code-input"
+      >
+        Path of Building code or XML
+      </label>
+      <textarea
+        class="build-import-input"
+        id="pob-code-input"
+        placeholder="Paste your PoB share code here"
+        rows="5"
+      >
+        eNq1notARealCode
+      </textarea>
+      <p
+        class="build-import-error"
+        role="alert"
+      >
+        That build couldn't be parsed. Copy the full code from Path of Building (Import/Export → Share) and try again.
+      </p>
+      <button
+        class="build-import-submit"
+        type="submit"
+      >
+        Import build
+      </button>
+    </form>
+  </section>
+</div>
+`;
+
+exports[`snapshot states (issue #29 acceptance criteria) > success — the imported BuildSummary renders from the mock fixture 1`] = `
+<div>
+  <section
+    aria-label="Import a build"
+    class="build-import"
+  >
+    <h2>
+      Import a build
+    </h2>
+    <div
+      class="build-import-success"
+      role="status"
+    >
+      <p
+        class="build-import-success-word"
+      >
+        Build imported
+      </p>
+      <dl
+        class="build-summary"
+      >
+        <div
+          class="build-summary-row"
+        >
+          <dt>
+            Class
+          </dt>
+          <dd>
+            Witch
+             (Occultist)
+          </dd>
+        </div>
+        <div
+          class="build-summary-row"
+        >
+          <dt>
+            Level
+          </dt>
+          <dd>
+            90
+          </dd>
+        </div>
+        <div
+          class="build-summary-row"
+        >
+          <dt>
+            Main skill
+          </dt>
+          <dd>
+            Vortex
+             (inferred)
+          </dd>
+        </div>
+        <div
+          class="build-summary-row"
+        >
+          <dt>
+            Default preset
+          </dt>
+          <dd>
+            mapping
+          </dd>
+        </div>
+      </dl>
+    </div>
+    <button
+      class="build-import-reset"
+      type="button"
+    >
+      Import a different build
+    </button>
+  </section>
+</div>
+`;

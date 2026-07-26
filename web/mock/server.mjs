@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// TASK-206 fixture mock for POST /diff — lets the FE exercise the real HTTP
-// contract (generated client, real port, real error codes) before server/
-// exists. DELETED when TASK-202 lands (its DoD includes removing this server).
+// TASK-206 fixture mock for POST /diff (+ TASK-207: GET/POST /build) — lets
+// the FE exercise the real HTTP contract (generated client, real port, real
+// error codes) before server/ exists. DELETED when TASK-202 lands (its DoD
+// includes removing this server).
 //
-// Zero runtime dependencies. Fixtures are read from contracts/fixtures/ on
-// every server start — never inlined. Routing rules are documented in
-// web/README.md ("Fixture mock server"); keep that section in sync.
+// Zero runtime dependencies. Fixtures are read from contracts/fixtures/ (and
+// web/mock/fixtures/ for FE-local ones) on every server start — never
+// inlined. Routing rules are documented in web/README.md ("Fixture mock
+// server"); keep that section in sync.
 import http from 'node:http';
 import { readdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -24,6 +26,11 @@ export const DEFAULT_FIXTURES_DIR = path.resolve(HERE, '../../contracts/fixtures
 
 const DEFAULT_FIXTURE = 'upgrade_mapping';
 const VALID_PRESETS = ['mapping', 'bossing', 'balanced'];
+
+// TASK-207: the build-summary fixture is FE-local because contracts/ is a
+// protected path and issue #29 carries no protected-change label — see
+// web/mock/fixtures/README.md for the promotion path.
+export const BUILD_FIXTURE_PATH = path.resolve(HERE, 'fixtures/build_summary.json');
 
 /** Load every *.json fixture from dir, keyed by basename without extension. */
 export function loadFixtures(dir = DEFAULT_FIXTURES_DIR) {
@@ -84,12 +91,82 @@ export function route(body, fixtures) {
   return { status: 200, card };
 }
 
-export function createMockServer({ fixturesDir = DEFAULT_FIXTURES_DIR } = {}) {
+/** Load the FE-local BuildSummary fixture from disk (never inlined). */
+export function loadBuildSummary(file = BUILD_FIXTURE_PATH) {
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+/**
+ * TASK-207 — pure routing decision for POST /build. Accepts exactly the
+ * contract's oneOf request shape (a non-empty `pob_code`, or a non-empty
+ * `account` + `character` pair); anything else is the 422 path. oneOf means
+ * exactly one variant may match: a body satisfying BOTH required sets
+ * (pob_code AND account+character) matches both alternatives and is invalid
+ * (contracts/openapi.yaml:31-38; backend review PR #44 round 1). The marker
+ * `@error:422` inside pob_code forces the invalid-code path, mirroring the
+ * /diff marker table. On success the FE-local fixture is returned verbatim.
+ * @returns {{status: number, summary?: object}}
+ */
+export function routeBuild(body, summary) {
+  if (typeof body !== 'object' || body === null) return { status: 422 };
+  const hasCode = typeof body.pob_code === 'string' && body.pob_code.trim() !== '';
+  const hasAccount =
+    typeof body.account === 'string' && body.account.trim() !== '' &&
+    typeof body.character === 'string' && body.character.trim() !== '';
+  if (!hasCode && !hasAccount) return { status: 422 };
+  if (hasCode && hasAccount) return { status: 422 }; // oneOf: both variants matched → invalid
+  if (hasCode && body.pob_code.includes('@error:422')) return { status: 422 };
+  return { status: 200, summary: structuredClone(summary) };
+}
+
+export function createMockServer({ fixturesDir = DEFAULT_FIXTURES_DIR, buildFixture = BUILD_FIXTURE_PATH } = {}) {
   const fixtures = loadFixtures(fixturesDir);
+  const buildSummary = loadBuildSummary(buildFixture);
+  // TASK-207: the imported build is stored per server instance. Deliberately
+  // NOT coupled to POST /diff's 404 path — /diff stays fixture-routed so the
+  // TASK-205/206 harness needs no import step; the real no-build coupling
+  // lands with server/ in TASK-202.
+  let activeBuild = null;
   return http.createServer((req, res) => {
     const pathname = new URL(req.url, 'http://localhost').pathname;
+    const bare = (status) => res.writeHead(status).end(); // RULING-20: error states are status-code only
+
+    if (req.method === 'GET' && pathname === `${CONTRACT_BASE_PATH}/build`) {
+      if (activeBuild === null) {
+        bare(404); // no build imported (contract 404)
+      } else {
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(activeBuild));
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === `${CONTRACT_BASE_PATH}/build`) {
+      let raw = '';
+      req.on('data', (chunk) => {
+        raw += chunk;
+        if (raw.length > 1_000_000) req.destroy(); // PoB codes are large; still far above any real one
+      });
+      req.on('end', () => {
+        let body;
+        try {
+          body = JSON.parse(raw);
+        } catch {
+          bare(422);
+          return;
+        }
+        const { status, summary } = routeBuild(body, buildSummary);
+        if (status === 200) {
+          activeBuild = summary; // accepts and stores the fake summary (TASK-207 AC)
+          res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(summary));
+        } else {
+          bare(status);
+        }
+      });
+      return;
+    }
+
     if (req.method !== 'POST' || pathname !== `${CONTRACT_BASE_PATH}/diff`) {
-      res.writeHead(404).end(); // mock implements only POST /diff
+      bare(404); // mock implements only GET/POST /build and POST /diff
       return;
     }
     let raw = '';
@@ -102,15 +179,14 @@ export function createMockServer({ fixturesDir = DEFAULT_FIXTURES_DIR } = {}) {
       try {
         body = JSON.parse(raw);
       } catch {
-        res.writeHead(422).end();
+        bare(422);
         return;
       }
       const { status, card } = route(body, fixtures);
       if (status === 200) {
         res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(card));
       } else {
-        // RULING-20: error states are status-code only (bare body).
-        res.writeHead(status).end();
+        bare(status);
       }
     });
   });
@@ -122,6 +198,9 @@ if (isMain) {
   const port = Number(process.env.MOCK_PORT ?? CONTRACT_PORT);
   const server = createMockServer();
   server.listen(port, host, () => {
-    console.log(`mock POST ${CONTRACT_BASE_PATH}/diff on http://${host}:${port} (${loadFixtures().size} fixtures loaded)`);
+    console.log(
+      `mock POST ${CONTRACT_BASE_PATH}/diff + GET/POST ${CONTRACT_BASE_PATH}/build on http://${host}:${port} ` +
+        `(${loadFixtures().size} verdict fixtures + 1 build fixture loaded)`,
+    );
   });
 }
