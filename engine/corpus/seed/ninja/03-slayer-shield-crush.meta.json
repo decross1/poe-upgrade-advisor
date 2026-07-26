@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:11.601486Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=explosivebees-4852&name=rrrocas&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:12 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=FPCVeehBtK3BLXjpYTCaodqxKW3Let%2Fx2FX59r%2B9xHBdbcZ0CqOjIhkiD1QIYBf%2F1SEiTxGPCOPx6Ti%2F0WhAWskjdonBsBs%2BK9UsjIOTjagtFT0Ej3LsxkoOj78uAiXmnctrXi4w2A%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:11 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21183b6de2df8f3-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 180805,
+    "sha256": "82c24963d4b5e709715311405bfe126303a9f6d4332e21f81a88f520d50cb8ba"
+  },
+  "selection": {
+    "account": "explosivebees-4852",
+    "character": "rrrocas",
+    "archetype": "shield-attack"
+  }
+}

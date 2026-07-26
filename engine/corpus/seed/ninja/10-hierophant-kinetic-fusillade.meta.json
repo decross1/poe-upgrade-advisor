@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:31.551689Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=Botyara2-6364&name=wRunnflamewolyfombu&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:32 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=5sV1%2F6OnwzCpby8VabkMCASqMYdm29k8gQkmsZK%2BiKB71gB3LJlKlp1mDoESGBz2De8NgALLVd1rtSM21YhXq9R6kWCqZgetq49%2BQ8e7ZMRdrIxNVFgwMVpKjvzqNyrjFPR9CVXf0A%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:32 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21184338ecccf97-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 194800,
+    "sha256": "4e49b491d9a1b1940662a42e68e191025c14db93d11bc4cacb0c64cc9a886c40"
+  },
+  "selection": {
+    "account": "Botyara2-6364",
+    "character": "wRunnflamewolyfombu",
+    "archetype": "attack-totem"
+  }
+}

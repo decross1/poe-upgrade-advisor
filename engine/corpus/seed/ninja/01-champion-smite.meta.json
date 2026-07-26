@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:05.717986Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=Poteitik-3151&name=%D0%9F%D0%9E%D0%A2%D0%95%D0%99%D0%A2%D0%98%D0%9A&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:06 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=GuABk1%2Ft0cK07M0u2KUGfeF80K491rmXSdIpaVSc3CgwpFhFWWaQtx8GxVeTZeVBhAZwK84i2c8mMSkoMwSeapoCzoiSba768yVMbjNdfQ1k6BYhOzLLuVTDiZZFiK5m%2BgS%2FfFxo2g%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:06 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21183921c2458ac-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 185015,
+    "sha256": "411d36984687a10dca3ebad734dac81260256db5e2dac88b4de2183aa5017413"
+  },
+  "selection": {
+    "account": "Poteitik-3151",
+    "character": "ПОТЕЙТИК",
+    "archetype": "melee-smite"
+  }
+}

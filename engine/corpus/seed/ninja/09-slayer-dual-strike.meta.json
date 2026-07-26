@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:28.607498Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=ShinX_-4985&name=Dippiebeavermelon&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:29 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=5%2FQk8Pe8k73kR0ZtmmQ15IZJ66Cyw%2FtafVi13dKpR10u8uYKAzB%2BKORcjZqfwWYd85oWs933Pauc5uZ%2BSCfzVlS33n%2BkP6LubGiacgGpYpUMAFHvpK992%2FBd3LPn06Nmtm9Pdo441A%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:29 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21184213d72b8e7-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 149737,
+    "sha256": "d6807ed89cb528788f9bdec174c67e195ba4f88799a51ed37e99a5ac88ea4b7a"
+  },
+  "selection": {
+    "account": "ShinX_-4985",
+    "character": "Dippiebeavermelon",
+    "archetype": "dual-wield-melee"
+  }
+}

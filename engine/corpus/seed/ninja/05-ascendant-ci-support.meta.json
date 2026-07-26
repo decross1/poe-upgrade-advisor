@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:17.087640Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=Mikle-3761&name=Misha&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:17 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=nrM6RovYvDC8I1wmQFK%2FRy4R4as0JAoNvSItXVz02WxB2iCsHIuV32SdqvcWwWkFbTNbQWKcN6edpLdBC47z6BwpFkawkZ%2FG3U04UfmLnLaYM2c1ooNpwtQboAI%2FMpqAndBkz1qIYg%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest",
+      "last-modified": "Sun, 26 Jul 2026 06:58:17 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21183d94a74dc0d-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 168905,
+    "sha256": "1edb30bb2a7175099c66c66fa4c415788f47373713d831d8d93c0d7398040dd1"
+  },
+  "selection": {
+    "account": "Mikle-3761",
+    "character": "Misha",
+    "archetype": "ci-low-life-support"
+  }
+}

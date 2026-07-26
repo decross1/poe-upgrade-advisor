@@ -1,0 +1,31 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:05.599514Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/data/index-state",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:05 GMT",
+      "Content-Type": "application/json",
+      "Content-Length": "44200",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=300, stale-while-revalidate=300, stale-if-error=86400",
+      "etag": "W/ad9a8b56cab0c6a2b3718f597de09c6d",
+      "Server": "cloudflare",
+      "Age": "68",
+      "Accept-Ranges": "bytes",
+      "cf-cache-status": "HIT",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "Vary": "accept-encoding",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=36V8cNEw9B%2FDmh%2Bjfpvm2bCPNWRupVYTvq6%2FryIwc1HBV%2FhdTAgxnbGnhP3F%2FslWNV0%2FbJdkG9Jl68QULwdsmFD2zBbqqS6j%2BJqTBvnBN5KkcXYu3PtDYIzbGsj%2FTHSczwbtSIXmug%3D%3D\"}]}",
+      "CF-RAY": "a21183918c5b67b2-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 44200,
+    "sha256": "36bf65db545fe624791e13d5a44335a9a8ec1136949d3f911f0644ad769ddeff"
+  }
+}

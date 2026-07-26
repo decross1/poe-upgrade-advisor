@@ -1,0 +1,36 @@
+{
+  "fetched_at_utc": "2026-07-26T06:58:14.090257Z",
+  "request": {
+    "url": "https://poe.ninja/poe1/api/builds/0621-20260726-56012/character?account=fanfon3-0737&name=fanfon&overview=allflame&type=0",
+    "method": "GET",
+    "user_agent": "PoE-Upgrade-Advisor corpus research (TASK-101; https://github.com/decross1/poe-upgrade-advisor)"
+  },
+  "response": {
+    "status": 200,
+    "reason": "OK",
+    "headers": {
+      "Date": "Sun, 26 Jul 2026 06:58:14 GMT",
+      "Content-Type": "application/json",
+      "Transfer-Encoding": "chunked",
+      "Connection": "close",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=300, stale-if-error=86400",
+      "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=56Re7KuMxf6%2FuimEr0yfxLr12%2FyN93mz8pKKjvoT0BnK2XflraCsAHZVv1DpU5KujqUgD1KkFbUWZx%2FmM0I5vLTClAsjXsXmZKlASqrGA114eTG1QR7DKkrF0NcY292ZSpKnqj4QKw%3D%3D\"}]}",
+      "profile-visible": "true",
+      "Server": "cloudflare",
+      "tmz": "latest,hour-6,day-1,hour-3,hour-18,hour-12",
+      "last-modified": "Sun, 26 Jul 2026 06:58:14 GMT",
+      "cf-cache-status": "MISS",
+      "vary": "accept-encoding",
+      "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+      "CF-RAY": "a21183c67cdd46f8-SJC",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    },
+    "bytes": 215451,
+    "sha256": "cbeae2a4f04aa6f57787c599d8275d49375ee881e3d664ff868bddbf9cb26004"
+  },
+  "selection": {
+    "account": "fanfon3-0737",
+    "character": "fanfon",
+    "archetype": "projectile-attack"
+  }
+}
