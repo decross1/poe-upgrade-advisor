@@ -4,26 +4,43 @@
  * constants only: this module must stay importable from BOTH sides (no
  * electron, no generated-client value imports).
  *
- * REDIFFING / chip re-diff is TASK-204 (#12) and deliberately absent here.
+ * VERDICT/REDIFFING carry the session projection the card needs (§7): the
+ * accumulated overrides and the re-diff pending/transient markers. The
+ * session itself (itemText/preset) lives in the main-process flow
+ * (diffFlow.ts), which drives the SHARED state machine from
+ * web/src/lib/session.ts — the same source the web app uses (issue #64:
+ * reuse, never fork). Overrides cross the IPC bridge as OverrideEntry[]
+ * (JSON-safe); the renderer rehydrates them into the Map the shared card
+ * component consumes.
  */
+import type { OverrideEntry } from "../../web/src/lib/overrides";
 import type { VerdictCard } from "../../web/src/lib/verdictFormat";
 
 export type ShellState =
   | { kind: "HIDDEN" }
   | { kind: "LOADING" }
-  | { kind: "VERDICT"; card: VerdictCard }
+  | {
+      kind: "VERDICT";
+      card: VerdictCard;
+      /** Full accumulated session overrides (RULING-17); empty when none. */
+      appliedOverrides: OverrideEntry[];
+      /** §8.3 [RULING-21]: transient replacement for the sentence slot. */
+      transientMessage: string | null;
+    }
+  | {
+      kind: "REDIFFING";
+      card: VerdictCard;
+      appliedOverrides: OverrideEntry[];
+      /** §8.3: the tapped chip shows the inline spinner; strip disabled (S2). */
+      pendingChipId: string;
+    }
   | { kind: "ERROR_NO_BUILD" }
   | { kind: "ERROR_UNPARSEABLE" }
   | { kind: "ERROR_UNAVAILABLE" };
 
 /**
- * RULING-19: 3000 ms without a /diff response means something is wrong
- * (I6 targets 300 ms p95) -> ERROR_UNAVAILABLE.
+ * RULING-19 timings (3000 ms diff timeout -> ERROR_UNAVAILABLE; 120 ms
+ * LOADING flash guard) — re-exported from the shared session machine so
+ * shell and web read one source (web/src/lib/session.ts owns the literals).
  */
-export const DIFF_TIMEOUT_MS = 3000;
-
-/**
- * RULING-19: render nothing for the first 120 ms of LOADING to avoid a
- * flash of the "Evaluating…" line on fast responses.
- */
-export const LOADING_FLASH_GUARD_MS = 120;
+export { DIFF_TIMEOUT_MS, LOADING_FLASH_GUARD_MS } from "../../web/src/lib/session";
