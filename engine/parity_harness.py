@@ -218,7 +218,9 @@ def run_self_test(case: CorpusCase) -> dict[str, str]:
     corrupted = dict(case.expected_stats)
     stat = sorted(corrupted)[0]
     corrupted[stat] = str(Decimal(corrupted[stat]) + Decimal("1000000"))
-    _, counts, _ = compare_stats(corrupted, {stat: float(case.expected_stats[stat])})
+    _, counts, _ = compare_stats(
+        {stat: corrupted[stat]}, {stat: float(case.expected_stats[stat])}
+    )
     if counts["OVER"] == 0:
         raise HarnessError("corrupted-stat canary did not fail")
 
@@ -349,29 +351,59 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
         results = []
         total_counts = {"exact": 0, "<=0.1%": 0, "<=1%": 0, "OVER": 0}
         latencies_ms = []
-        with Worker("C") as worker:
+        imported_builds = 0
+        worker = Worker("C")
+        try:
             worker.stats(case_files[cases[0].case_id])
             for case in cases:
                 started = time.perf_counter_ns()
-                actual, _ = worker.stats(case_files[case.case_id])
+                try:
+                    actual, _ = worker.stats(case_files[case.case_id])
+                    engine_error = None
+                except HarnessError as exc:
+                    actual = None
+                    engine_error = str(exc)
                 elapsed_ms = (time.perf_counter_ns() - started) / 1_000_000
                 latencies_ms.append(elapsed_ms)
-                _assert_engine_identity(case, actual["identity"])
-                cells, counts, extras = compare_stats(
-                    case.expected_stats, actual["player_stats"]
-                )
+                if actual is None:
+                    import_status = "engine_error"
+                    engine_identity = None
+                    cells, counts, extras = compare_stats(case.expected_stats, {})
+                elif actual["identity"] != case.identity:
+                    import_status = "engine_identity_mismatch"
+                    engine_identity = actual["identity"]
+                    engine_error = (
+                        f"expected {case.identity!r}, got {engine_identity!r}"
+                    )
+                    cells, counts, extras = compare_stats(case.expected_stats, {})
+                else:
+                    import_status = "imported"
+                    imported_builds += 1
+                    engine_identity = actual["identity"]
+                    cells, counts, extras = compare_stats(
+                        case.expected_stats, actual["player_stats"]
+                    )
                 for band in total_counts:
                     total_counts[band] += counts[band]
                 results.append(
                     {
                         "id": case.case_id,
                         "config_set_sha256": case.config_sha256,
+                        "import_status": import_status,
+                        "engine_identity": engine_identity,
+                        "engine_error": engine_error,
                         "warm_latency_ms": round(elapsed_ms, 6),
                         "band_counts": counts,
                         "extra_engine_stats": extras,
                         "stats": cells,
                     }
                 )
+                if import_status != "imported":
+                    worker.close()
+                    worker = Worker("C")
+                    worker.stats(case_files[cases[0].case_id])
+        finally:
+            worker.close()
 
     ordered_latencies = sorted(latencies_ms)
     p95_index = math.ceil(0.95 * len(ordered_latencies)) - 1
@@ -395,6 +427,8 @@ def run_harness(report_path: Path = DEFAULT_REPORT) -> dict:
         "summary": {
             "compared_cells": sum(total_counts.values()),
             "band_counts": total_counts,
+            "imported_builds": imported_builds,
+            "failed_imports": len(cases) - imported_builds,
             "warm_p95_ms": round(ordered_latencies[p95_index], 6),
             "warm_p95_limit_ms": 150,
             "warm_p95_pass": ordered_latencies[p95_index] < 150,

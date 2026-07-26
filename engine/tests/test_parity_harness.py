@@ -1,6 +1,10 @@
 import copy
 import importlib.util
+import json
+import os
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 
@@ -11,6 +15,22 @@ SPEC = importlib.util.spec_from_file_location(
 HARNESS = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
 SPEC.loader.exec_module(HARNESS)
+
+
+def runtime_is_available():
+    runtime_root = Path(
+        os.environ.get("POBCALC_RUNTIME", ROOT / "engine" / ".runtime")
+    )
+    return bool(
+        (
+            os.environ.get("POBCALC_LUA")
+            and os.environ.get("POBCALC_LUA_CPATH")
+        )
+        or (
+            (runtime_root / "bin" / "luajit").is_file()
+            and (runtime_root / "lib" / "lua" / "5.1" / "lua-utf8.so").is_file()
+        )
+    )
 
 
 class ParityHarnessTest(unittest.TestCase):
@@ -27,6 +47,16 @@ class ParityHarnessTest(unittest.TestCase):
         self.assertEqual(
             result, {"corrupted_stat": "passed", "identity_mismatch": "passed"}
         )
+
+    def test_corrupted_stat_is_the_cell_that_fails(self):
+        case = self.cases[0]
+        stat = sorted(case.expected_stats)[0]
+        expected = str(float(case.expected_stats[stat]) + 1_000_000)
+        cells, counts, _ = HARNESS.compare_stats(
+            {stat: expected}, {stat: float(case.expected_stats[stat])}
+        )
+        self.assertEqual(len(cells), 1)
+        self.assertEqual(counts["OVER"], 1)
 
     def test_json_export_identity_mismatch_aborts(self):
         case = self.cases[0]
@@ -59,6 +89,33 @@ class ParityHarnessTest(unittest.TestCase):
             counts, {"exact": 1, "<=0.1%": 1, "<=1%": 1, "OVER": 1}
         )
         self.assertEqual(extras, ["Extra"])
+
+    def test_stats_cli_recalculates_frozen_player_stats(self):
+        if not runtime_is_available():
+            self.skipTest("run engine/runtime/build.sh for integration test")
+        case = self.cases[0]
+        with tempfile.TemporaryDirectory(prefix="pob-stats-test-") as temporary:
+            build = Path(temporary) / "build.xml"
+            build.write_bytes(case.xml)
+            result = subprocess.run(
+                [
+                    ROOT / "engine" / "pobcalc",
+                    "stats",
+                    "--build",
+                    build,
+                    "--json",
+                ],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        actual = json.loads(result.stdout)
+        self.assertEqual(actual["identity"], case.identity)
+        _, counts, _ = HARNESS.compare_stats(
+            case.expected_stats, actual["player_stats"]
+        )
+        self.assertEqual(counts["OVER"], 0)
 
 
 if __name__ == "__main__":

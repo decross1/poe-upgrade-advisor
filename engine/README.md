@@ -24,8 +24,9 @@ pobcalc diff --build build.xml --item item.txt --preset bossing --json
 ```
 → stdout JSON: `{ baseline: {total_dps, ehp, ...}, candidate: {...}, deltas: {...},
    slot: "...", breakdown_ref: "..." }`
-Acceptance: matches desktop PoB numbers exactly for 5 hand-verified build+item
-pairs committed to `corpus/seed/`; warm-run < 150 ms; deterministic across runs.
+ADR-0005 replaces the original five desktop captures with the 15 frozen
+poe.ninja exports under `corpus/seed/ninja/`. Every embedded PlayerStat must be
+within 1%, warm p95 must be below 150 ms, and output must be deterministic.
 
 For warm invocations, start `pobcalc serve` once and send one JSON-RPC 2.0
 request per line:
