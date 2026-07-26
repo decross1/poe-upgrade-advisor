@@ -1,0 +1,60 @@
+=== REVIEW EVIDENCE: TASK-202a / PR #42 (reviewer: frontend) ===
+branch-under-review: backend/task-202a-server-skeleton @ 1a5e180c6dfb6cdd1e40aa2baf387d3885666906
+review-branch: review/task-202a
+date: 2026-07-26T03:06:50Z
+
+=== [1/4] python3 -m pytest -q ===
+...........                                                              [100%]
+11 passed in 0.11s
+pytest-exit: 0
+
+=== [2/4] python3 scripts/check_invariants.py ===
+doctrine invariants: OK
+invariants-exit: 0
+
+=== [3/4] python3 scripts/check_fixture_coverage.py ===
+fixture coverage: OK (8 rules, all covered)
+coverage-exit: 0
+
+=== [4/4] generated-client vs real server: node --import tsx --test mock/review202a.backend.test.mjs ===
+TAP version 13
+# Subtest: importBuild -> BuildSummary shape; getActiveBuild round-trips; 422 validation
+ok 1 - importBuild -> BuildSummary shape; getActiveBuild round-trips; 422 validation
+  ---
+  duration_ms: 173.850003
+  type: 'test'
+  ...
+# Subtest: every contract fixture is reproduced verbatim by the real server and validates against verdict.schema.json
+ok 2 - every contract fixture is reproduced verbatim by the real server and validates against verdict.schema.json
+  ---
+  duration_ms: 8.116904
+  type: 'test'
+  ...
+# Subtest: all four verdict states reachable via generated client and render on the smoke card (I2)
+ok 3 - all four verdict states reachable via generated client and render on the smoke card (I2)
+  ---
+  duration_ms: 4.806213
+  type: 'test'
+  ...
+# Subtest: I3: one-tap override re-diff via generated client — fresh diff_id, values applied, deterministic
+ok 4 - I3: one-tap override re-diff via generated client — fresh diff_id, values applied, deterministic
+  ---
+  duration_ms: 4.152356
+  type: 'test'
+  ...
+# Subtest: error paths surface as ApiError with contract status; bare bodies (RULING-20)
+ok 5 - error paths surface as ApiError with contract status; bare bodies (RULING-20)
+  ---
+  duration_ms: 10.474699
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 386.609534
+generated-client-exit: 0
