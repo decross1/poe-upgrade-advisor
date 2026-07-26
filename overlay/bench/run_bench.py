@@ -109,17 +109,17 @@ class MemorySampler(threading.Thread):
         self.root_pid = root_pid
         self.interval_s = interval_s
         self.samples: list[tuple[float, int, int]] = []  # t, rss_kb, pss_kb
-        self._stop = threading.Event()
+        self._stop_sampling = threading.Event()
 
     def run(self) -> None:
-        while not self._stop.is_set():
+        while not self._stop_sampling.is_set():
             mem = tree_memory_kb(self.root_pid)
             if mem is not None:
                 self.samples.append((time.perf_counter(), mem[0], mem[1]))
             time.sleep(self.interval_s)
 
     def halt(self) -> None:
-        self._stop.set()
+        self._stop_sampling.set()
 
 
 # --------------------------------------------------------------------------
