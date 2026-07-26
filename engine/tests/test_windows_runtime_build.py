@@ -50,6 +50,7 @@ class WindowsRuntimeBuildTest(unittest.TestCase):
         self.assertIn("./engine/runtime/build-windows.ps1", workflow)
         self.assertIn("name: pobcalc-runtime-windows-x64", workflow)
         self.assertIn("path: engine/.runtime", workflow)
+        self.assertIn("include-hidden-files: true", workflow)
 
 
 if __name__ == "__main__":
