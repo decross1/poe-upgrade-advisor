@@ -53,6 +53,7 @@ invoke() {
 }
 
 fan_worker() { # $1 = full message_id
+  [ -f "$MAILROOM/effort.env" ] && . "$MAILROOM/effort.env"  # live effort/timeout tuning
   local id=$1 id8=${1:0:8}
   local lockf=$MAILROOM/locks/$ROLE-msg-$id8.lock
   exec 8>"$lockf"
@@ -79,6 +80,7 @@ export -f invoke fan_worker
 n=0
 echo "[$(date -Is)] loop v2 start role=$ROLE poll=${POLL}s max_parallel=$MAX_PARALLEL heartbeat_every=$HEARTBEAT_EVERY" | tee -a "$LOG"
 while true; do
+  [ -f "$MAILROOM/effort.env" ] && . "$MAILROOM/effort.env"  # live effort/timeout tuning
   if [ -f "$MAILROOM/HALT" ]; then
     echo "[$(date -Is)] HALT set — idle" >>"$LOG"
     sleep "$POLL"; continue
