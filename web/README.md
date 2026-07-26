@@ -40,6 +40,53 @@ Never edit files under `src/generated/`; change the contract (PM-owned, RFC)
 and regenerate. The client's default base URL is `servers[0].url` from the
 spec: `http://127.0.0.1:47791/api/v0`.
 
+## Choosing the API target (mock ↔ real server skeleton)
+
+One hand-written module, `src/lib/apiBase.ts`, decides which server the
+generated client talks to, and `src/main.tsx` applies that decision once at
+app entry — nothing else in the app picks a URL. Pointing the app at the
+real python skeleton (`server/`) instead of the fixture mock
+(`mock/server.mjs`) never touches generated code:
+
+- **Zero lines — both servers share the contract address.** The mock and the
+  skeleton both bind `http://127.0.0.1:47791/api/v0`, so the switch is: stop
+  the mock, start the skeleton from the repo root, reload the app.
+
+  ```bash
+  python3 -m server   # binds the contract address; fixture-backed TASK-202a calculator
+  ```
+
+- **One line — skeleton on any other address.** Create `web/.env.local`
+  (git-ignored; never commit a local override):
+
+  ```bash
+  VITE_API_BASE_URL=http://127.0.0.1:<port>/api/v0
+  ```
+
+  Vite inlines `VITE_*` vars at dev/build time, so restart `npm run dev` (or
+  rebuild) after editing. An empty/whitespace value falls back to the
+  contract default.
+
+`test/apiBase.test.ts` pins these resolution rules and asserts the default
+against the `contracts/openapi.yaml` text, so contract drift fails a test.
+`test/serverSkeleton.smoke.test.ts` proves the switch end to end: it boots
+the real `server/` skeleton on an ephemeral port and drives it through the
+generated client (build import, `/diff` verdict, chip-override re-diff,
+honest 404/422 codes).
+
+### Development-browser CORS caveat
+
+Neither the fixture mock nor the python skeleton sends CORS headers
+(`Access-Control-Allow-Origin`). During Vite development the app is served
+from its own origin (e.g. `http://localhost:5173`), so a dev **browser**
+treats the API calls as cross-origin and blocks the responses — the harness
+is server-side-test driven, and browser sessions against the mock or skeleton
+are not a supported development setup. This is deliberate: the packaged app
+(`packaging/run.sh`, TASK-208) serves the web bundle and the API same-origin
+on the contract address, so it is unaffected by CORS entirely. Do not "fix"
+this by adding CORS headers to the mock or skeleton — same-origin packaging
+is the supported surface (see `packaging/launch.py`).
+
 ## Fixture mock server (TASK-206 — temporary)
 
 **This server is deleted when TASK-202 lands** (deletion is part of TASK-202's
