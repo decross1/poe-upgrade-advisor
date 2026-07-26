@@ -24,4 +24,3 @@ POBCALC=./engine/pobcalc ./engine/corpus/run_corpus.sh
 
 Before changing a case to `captured`, add `candidate_item.txt` and
 `expected.json`, then set `candidate_item` and `oracle.file` in its metadata.
-

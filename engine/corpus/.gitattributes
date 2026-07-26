@@ -1,0 +1,2 @@
+# Preserve source-captured PoB XML byte-for-byte and suppress text whitespace checks.
+builds/**/build.xml binary
