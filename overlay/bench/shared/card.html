@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  Shared verdict card UI for the overlay stack benchmark.
+  This file is loaded byte-identically by both stacks (Electron and Tauri) so
+  the DOM/render work being timed is exactly the same. It is a faithful
+  Doctrine-I2 card: verdict word, two deltas (bar + direction + number, never
+  color alone), one <=140-char sentence, assumptions chips, one "open details"
+  affordance. Nothing else. No settings surface may ever appear here (I1).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+<title>verdict card (bench)</title>
+<link rel="stylesheet" href="card.css" />
+</head>
+<body>
+  <main id="card" class="card" aria-live="polite">
+    <div id="verdict" class="verdict">—</div>
+
+    <div class="deltas">
+      <div class="delta-row">
+        <span class="delta-label">Offense</span>
+        <span class="bar-track"><span id="bar-off" class="bar"></span></span>
+        <span id="num-off" class="delta-num">±0.0%</span>
+      </div>
+      <div class="delta-row">
+        <span class="delta-label">Defense</span>
+        <span class="bar-track"><span id="bar-def" class="bar"></span></span>
+        <span id="num-def" class="delta-num">±0.0%</span>
+      </div>
+    </div>
+
+    <p id="sentence" class="sentence"></p>
+
+    <div id="chips" class="chips" role="group" aria-label="assumptions"></div>
+
+    <button id="details" class="details" type="button">Open details ↗</button>
+  </main>
+
+  <!-- Stack adapters: normalize each host's events into one DOM CustomEvent.
+       card.js itself stays 100% stack-agnostic. -->
+  <script>
+    if (window.__BENCH_PRELOAD__) {
+      // Electron: preload forwards ipc as DOM events and exposes report().
+    } else if (window.__TAURI__) {
+      window.__TAURI__.event.listen('bench-trigger', function (e) {
+        window.dispatchEvent(new CustomEvent('bench-trigger', { detail: e.payload }));
+      });
+      window.__BENCH_REPORT__ = function (type, data) {
+        window.__TAURI__.event.emit('bench-report', Object.assign({ type: type }, data));
+      };
+    }
+  </script>
+  <script src="card.js"></script>
+</body>
+</html>

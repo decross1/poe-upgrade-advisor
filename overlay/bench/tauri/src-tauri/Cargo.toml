@@ -1,0 +1,19 @@
+[package]
+name = "verdict-overlay-bench"
+version = "0.1.0"
+description = "Tauri variant of the verdict-card overlay benchmark (TASK-201)"
+edition = "2021"
+license = "UNLICENSED"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-clipboard = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,0 +1,16 @@
+{
+  "diff_id": "bench-sidegrade-0001",
+  "verdict": "SIDEGRADE",
+  "offense_delta_pct": 0.3,
+  "defense_delta_pct": -0.2,
+  "sentence": "A wash: trades a sliver of defense for a sliver of damage. Keep whichever you prefer.",
+  "assumptions": [
+    "Main skill: Fireball",
+    "Preset: mapping",
+    "Enemy: standard pack",
+    "Flasks: up"
+  ],
+  "confidence": 0.85,
+  "preset": "mapping",
+  "compute_ms": 74
+}

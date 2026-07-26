@@ -1,0 +1,17 @@
+{
+  "diff_id": "bench-upgrade-0001",
+  "verdict": "UPGRADE",
+  "offense_delta_pct": 4.2,
+  "defense_delta_pct": 1.1,
+  "sentence": "Beats your helm: more energy shield and a damage mod your main skill fully scales.",
+  "assumptions": [
+    "Main skill: Fireball",
+    "Preset: mapping",
+    "Enemy: standard pack",
+    "Flasks: up",
+    "Power charges: 3"
+  ],
+  "confidence": 0.9,
+  "preset": "mapping",
+  "compute_ms": 87
+}
