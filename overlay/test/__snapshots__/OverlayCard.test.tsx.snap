@@ -1,0 +1,882 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshot matrix — fixture variants (§9 rows 5–8) > 5. CAN'T EVALUATE degraded minimal — edge_degraded_minimal.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--cant_evaluate"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--cant_evaluate"
+    >
+      CAN'T EVALUATE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--suppressed"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      />
+      <span
+        class="delta-value"
+      >
+        —
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--suppressed"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      />
+      <span
+        class="delta-value"
+      >
+        —
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Unrecognised item class: the engine could not derive any assumptions or compute deltas. Open details for the raw parse and report this item.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  />
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link details-link--emphasized"
+      href="/breakdown/d-00000000"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — fixture variants (§9 rows 5–8) > 6. UPGRADE + low-confidence badge + 6 chips — upgrade_rich_assumptions_chip.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--upgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--upgrade"
+    >
+      UPGRADE
+    </span>
+    <span
+      class="low-confidence-badge"
+    >
+      ◦ low confidence
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 39.2%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +9.8%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 0.8%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +0.2%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    More lightning damage and cast speed lift Arc DPS 9.8%; defences are effectively unchanged.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Arc
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      crit recently
+    </button>
+    <button
+      class="chip"
+      type="button"
+    >
+      enemy shocked
+    </button>
+    <button
+      class="chip"
+      type="button"
+    >
+      power charges
+    </button>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      enemy chilled
+    </button>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-59d0b8e2"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — fixture variants (§9 rows 5–8) > 7. balanced-preset tolerance — sidegrade_balanced_low_confidence.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--sidegrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--sidegrade"
+    >
+      SIDEGRADE
+    </span>
+    <span
+      class="low-confidence-badge"
+    >
+      ◦ low confidence
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 4.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +1.1%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 3.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −0.9%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Comparable overall: a touch more cold damage for a touch less evasion. Flip an assumption if this looks off.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Ice Shot
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      enemy chilled
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-c47a1f55"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — fixture variants (§9 rows 5–8) > 8. bar overflow » — local_bar_overflow.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--upgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--upgrade"
+    >
+      UPGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 100%;"
+        />
+        <span
+          class="delta-overflow"
+        >
+          »
+        </span>
+      </span>
+      <span
+        class="delta-value"
+      >
+        +312.0%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--neutral"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--neutral"
+          style="width: 0.2%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        0.0%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    FE-local fixture: exercises bar overflow, near-zero formatting, and a 40-char chip label until golden fixtures land for these cases.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <button
+      class="chip"
+      type="button"
+    >
+      1234567890123456789012345678901234567890
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-local-overflow"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — shell UI states (§9 row 10) > ERROR_NO_BUILD — exact §8.2 text + single import affordance 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card overlay-state"
+>
+  <p
+    class="overlay-state-line"
+  >
+    No build imported.
+  </p>
+  <a
+    class="details-link"
+    href="/build"
+  >
+    Import a build ▸
+  </a>
+</section>
+`;
+
+exports[`snapshot matrix — shell UI states (§9 row 10) > ERROR_UNAVAILABLE — exact §8.2 text, no affordance 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card overlay-state"
+>
+  <p
+    class="overlay-state-line"
+  >
+    Advisor engine isn't running.
+  </p>
+</section>
+`;
+
+exports[`snapshot matrix — shell UI states (§9 row 10) > ERROR_UNPARSEABLE — exact §8.2 text, no affordance 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card overlay-state"
+>
+  <p
+    class="overlay-state-line"
+  >
+    Couldn't read that item — copy it in game with Ctrl+C.
+  </p>
+</section>
+`;
+
+exports[`snapshot matrix — shell UI states (§9 row 10) > LOADING — nothing before the 120 ms flash guard, one line after (RULING-19) 1`] = `
+<section
+  aria-label="Advisor status"
+  class="verdict-card overlay-state"
+>
+  <p
+    class="overlay-state-line"
+    role="status"
+  >
+    Evaluating…
+  </p>
+</section>
+`;
+
+exports[`snapshot matrix — the four verdict states (§9 rows 1–4) > 1. UPGRADE — upgrade_mapping.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--upgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--upgrade"
+    >
+      UPGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 49.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +12.4%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 7.2%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −1.8%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    +1 to cold gems and higher flat cold beat the small life loss; clear DPS rises 12.4%.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Vortex
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      crit recently
+    </button>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-8f2c41a7"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — the four verdict states (§9 rows 1–4) > 2. SIDEGRADE — sidegrade_bossing.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--sidegrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--sidegrade"
+    >
+      SIDEGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 2.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +0.6%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 1.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −0.4%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Near-identical single-target output; you trade a sliver of armour for attack speed.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Boneshatter (yours)
+    </span>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-3b9e77c0"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — the four verdict states (§9 rows 1–4) > 3. DOWNGRADE — downgrade_mapping.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--downgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--downgrade"
+    >
+      DOWNGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 72.8%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −18.2%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 12.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +3.1%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Losing +2 arrows outweighs the armour gain; clear DPS drops 18.2%.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Tornado Shot
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-a51d02e9"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`snapshot matrix — the four verdict states (§9 rows 1–4) > 4. CAN'T EVALUATE — cant_evaluate_trigger_build.json 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--cant_evaluate"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--cant_evaluate"
+    >
+      CAN'T EVALUATE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--suppressed"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      />
+      <span
+        class="delta-value"
+      >
+        —
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--suppressed"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      />
+      <span
+        class="delta-value"
+      >
+        —
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Trigger setup makes the main skill ambiguous; open details and pick your skill to get a verdict.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <button
+      class="chip"
+      type="button"
+    >
+      trigger build
+    </button>
+    <span
+      class="chip"
+    >
+      skill: Cremation
+    </span>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link details-link--emphasized"
+      href="/breakdown/d-6efc9d24"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
