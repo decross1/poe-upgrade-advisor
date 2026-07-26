@@ -52,6 +52,8 @@ Coming next: the in-game overlay — hover an item, hit `Ctrl+C`, and the card a
 **First launch is the slow one** (tens of seconds): the engine unpacks its
 one-time data cache. Every launch after that is a few seconds.
 
+---
+
 **You need:**
 - **Linux x86-64** for this v0 build — the bundled calc engine's runtime is
   compiled for it. On macOS/Windows the launcher starts but stops with an
