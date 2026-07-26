@@ -12,13 +12,14 @@ WHAT THIS IS
   stands in for it.)
 
 REQUIREMENTS
-  - Linux x86-64 for this v0 build: the bundled engine's runtime is
-    compiled for it. On macOS/Windows the launcher stops with an honest
-    "engine cannot start" message rather than guessing — report your OS
-    in #poe; that decides which platform ships next.
+  - Windows 10/11 x86-64: the bundled engine's runtime is compiled for
+    it. On any other platform the launcher stops with an honest
+    "engine cannot start" message rather than guessing.
+    (Dev note: Linux x86-64 builds are for development/CI only and are
+    not a supported player platform.)
   - Python 3.10 or newer: https://www.python.org/downloads/
-    (macOS: the system python3 works; Windows: the python.org
-    installer's "py" launcher is what run.bat looks for first)
+    (the python.org installer's "py" launcher is what run.bat looks
+    for first)
   - ~400 MB free disk (the engine unpacks a one-time data cache on
     first launch, which is also why first launch takes tens of seconds).
   - An internet connection ONCE, on first run only, to fetch one small
@@ -27,9 +28,7 @@ REQUIREMENTS
 
 RUN
   Windows: double-click "run.bat"
-  macOS:   double-click "run.command"
-           (if Gatekeeper blocks it: right-click -> Open -> Open)
-  Linux:   ./run.sh
+  (Dev/CI only, Linux: ./run.sh)
 
   Your browser opens http://127.0.0.1:47791/ — that's the whole app.
   Stop it with Ctrl+C in the terminal window.
