@@ -15,6 +15,25 @@ LuaJIT and lua-utf8 revisions from source into ignored `engine/.runtime/`;
 be selected with `POBCALC_RUNTIME`, or its binary/module can be selected
 individually with `POBCALC_LUA` and `POBCALC_LUA_CPATH`.
 
+The Windows x86-64 runtime is built natively with the Visual Studio MSVC
+toolchain, rather than cross-compiled. From an x64 Developer PowerShell:
+```
+engine/runtime/build-windows.ps1
+```
+This produces `engine/.runtime/bin/{luajit.exe,lua51.dll}` and
+`engine/.runtime/lib/lua/5.1/lua-utf8.dll`. The `windows-runtime-build` CI job
+runs the same script on `windows-latest`, smoke-tests `require("lua-utf8")`,
+and publishes an artifact named
+`pobcalc-runtime-windows-x64-luajit-a471ab78c7b670b4f92dae111fc3c96fb824c768-luautf8-08b0fc930f5a52eff36348ed1ea39aadfc697fa6`.
+Both platform scripts fetch those same exact LuaJIT and lua-utf8 revisions,
+which are also recorded in the runtime manifest.
+
+CI also runs `engine/runtime_parity.py` against three frozen poe.ninja builds:
+CI/LL support, Cast on Critical Strike, and mines. Linux and Windows execute
+the same unmodified PoB adapter with their pinned native runtimes, upload the
+raw stat JSON reports, and a dependent job requires the report files to be
+byte-identical. The spot-check is offline and makes no live poe.ninja calls.
+
 Never patch vendored PoB code (see backend.md); wrap gaps and document them in
 `GAPS.md`.
 
