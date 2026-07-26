@@ -9,7 +9,7 @@
  * stub. Fixture content comes from disk (web/mock/fixtures/breakdown/ and
  * contracts/fixtures/) — the same files the mock serves — never copies.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DetailsPanel } from "../src/components/DetailsPanel";
 import { Tier2Drivers } from "../src/components/Tier2Drivers";
@@ -103,5 +103,22 @@ describe("fetch contract (S2: one panel open = one GET /breakdown)", () => {
     await screen.findByText(`Details (diff ${rediffed.diff_id})`);
     expect(load).toHaveBeenCalledTimes(2);
     expect(load).toHaveBeenLastCalledWith(rediffed.diff_id);
+  });
+});
+
+describe("backend review regressions", () => {
+  it("ranks drivers by absolute contribution instead of trusting server order", () => {
+    const drivers = [
+      { mod_text: "small", contribution_pct: 1, stat: "ehp" },
+      { mod_text: "largest", contribution_pct: -8, stat: "ehp" },
+      { mod_text: "middle", contribution_pct: 4, stat: "total_dps" },
+    ];
+
+    render(<Tier2Drivers drivers={drivers} />);
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(
+      rows.map((row) => within(row).getAllByRole("cell")[0].textContent),
+    ).toEqual(["largest", "middle", "small"]);
   });
 });
