@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: pip install ruff pyyaml jsonschema
-      - run: ruff check . || true   # ratchet to hard-fail in TASK-002
+      - run: ruff check --select E9,F63,F7,F82 --exclude engine/vendor .
   test:
     runs-on: ubuntu-latest
     steps:
@@ -20,7 +20,7 @@ jobs:
       - run: pip install pytest pytest-cov pyyaml jsonschema requests
       - name: run tests
         run: |
-          pytest --cov --cov-report=json -q || [ ! -d tests ]
+          pytest tests --cov --cov-report=json -q
           python - << 'PY'
           import json, os
           cov = 0.0
