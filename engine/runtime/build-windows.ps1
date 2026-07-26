@@ -104,7 +104,7 @@ try {
     Get-PinnedRevision $LuaJitRepository $LuaJitRevision $LuaJitSource
     Get-PinnedRevision $LuaUtf8Repository $LuaUtf8Revision $LuaUtf8Source
 
-    Push-Location $LuaJitSource
+    Push-Location (Join-Path $LuaJitSource "src")
     try {
         Invoke-Native "cmd.exe" @("/d", "/c", "call msvcbuild.bat")
     }
