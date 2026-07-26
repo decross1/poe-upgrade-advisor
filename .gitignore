@@ -1,10 +1,5 @@
 __pycache__/
 *.sqlite3
-.mailroom/outbox/*
-.mailroom/sent/*
-.mailroom/HALT
-!.mailroom/outbox/.gitkeep
-!.mailroom/sent/.gitkeep
 agents/postmaster/config.yaml
 node_modules/
 dist/
