@@ -188,6 +188,21 @@ def main() -> None:
             f"error: cannot bind {HOST} ({exc}). Is the app already running? "
             "Close the other window first, or pick another --port."
         )
+    except Exception as exc:
+        # Engine-start failures (worker won't exec on this platform, vendored
+        # tree missing) must be an honest dead stop, never a silent fallback
+        # to canned verdicts (doctrine I5).
+        from server.calculator import WorkerUnavailable
+
+        if isinstance(exc, WorkerUnavailable):
+            sys.exit(
+                "error: the calculation engine could not start on this "
+                f"machine ({exc}).\nThe v0 download ships a Linux x86-64 "
+                "engine runtime; on other platforms the engine cannot run "
+                "yet. Please report your OS in #poe — that report decides "
+                "which platform ships next."
+            )
+        raise
     url = f"http://{HOST}:{public.server_address[1]}/"
     print(f"PoE Upgrade Advisor (MVP v0) listening on {url}", flush=True)
     print("Ctrl+C to stop.", flush=True)

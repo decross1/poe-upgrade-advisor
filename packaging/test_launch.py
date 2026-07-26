@@ -26,7 +26,7 @@ pytest.importorskip("yaml", reason="server/assumptions.py requires pyyaml")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # for `import server`, mirroring launch.py
 
-from server.calculator import EngineDiff, ImportedBuild
+from server.calculator import EngineDiff, ImportedBuild, WorkerUnavailable
 
 _spec = importlib.util.spec_from_file_location("mvp_launch", ROOT / "packaging" / "launch.py")
 launch = importlib.util.module_from_spec(_spec)
@@ -193,3 +193,57 @@ def test_package_script_stages_all_launchers():
     script = (ROOT / "scripts" / "package_mvp.sh").read_text(encoding="utf-8")
     for artifact in ('"$STAGE/run.sh"', '"$STAGE/run.command"', '"$STAGE/run.bat"'):
         assert artifact in script, f"package_mvp.sh no longer stages {artifact}"
+
+
+def test_package_script_stages_real_engine():
+    """The bundle must contain the real engine (server+engine+web, I5).
+
+    A tester MUST get real PoB verdicts — never a silent fixture fallback —
+    and MUST NOT need dev tooling (the Lua runtime ships prebuilt).
+    """
+    script = (ROOT / "scripts" / "package_mvp.sh").read_text(encoding="utf-8")
+    # Worker entrypoint + the helpers server/calculator.py imports or shells.
+    for artifact in ("engine/pobcalc", "engine/pobcalc.lua",
+                     "engine/preset_config.py", "engine/timeless_cache.py"):
+        assert artifact in script, f"package_mvp.sh no longer stages {artifact}"
+    # Prebuilt pinned runtime ships (no cc/make/git on tester machines)...
+    assert "engine/.runtime/bin" in script
+    # ...but the local timeless-data cache must NOT ship (regenerated from
+    # the vendored zips on first run; ~67M decompressed otherwise).
+    assert "timeless-data" in script, "script must document the exclusion"
+    assert "engine/.runtime/share engine/.runtime/manifest" in script
+    # Vendored PoB source ships minus TreeData GUI sprites only.
+    for exclude in ("src/TreeData/*.png", "src/TreeData/*.jpg",
+                    "src/TreeData/*.webp", "src/TreeData/*/*.png",
+                    "src/TreeData/*/*.jpg", "src/TreeData/*/*.webp"):
+        assert exclude in script, f"TreeData sprite exclusion lost: {exclude}"
+    assert "runtime/lua" in script  # headless lua libs still ship
+    # Fixture-backed verdicts are gone from the tester artifact.
+    assert "contracts/fixtures" not in script
+
+
+def test_launch_exits_honestly_when_engine_unavailable(tmp_path, monkeypatch, capsys):
+    """Unsupported platform => honest dead stop, no traceback, no fallback."""
+    web = tmp_path / "web"
+    web.mkdir()
+    (web / "index.html").write_text("<h1>mvp</h1>", encoding="utf-8")
+
+    def boom(*_args, **_kwargs):
+        raise WorkerUnavailable("unable to start pobcalc: exec format error")
+
+    monkeypatch.setattr(launch, "serve", boom)
+    monkeypatch.setattr(
+        sys, "argv", ["launch.py", "--web-dir", str(web)]
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        launch.main()
+    message = str(excinfo.value)
+    assert "calculation engine could not start" in message
+    assert "#poe" in message  # tells the tester where to report
+
+    def boom_other(*_args, **_kwargs):
+        raise ValueError("unrelated bug")
+
+    monkeypatch.setattr(launch, "serve", boom_other)
+    with pytest.raises(ValueError):
+        launch.main()
