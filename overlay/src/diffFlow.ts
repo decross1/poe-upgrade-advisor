@@ -1,9 +1,10 @@
 /**
- * Hotkey → clipboard → /diff → state orchestration (docs/specs/verdict_card.md
- * §8.4) AND chip tap → re-diff (§7/§8.3, issue #64). Pure and
+ * Captured item text → /diff → state orchestration
+ * (docs/specs/verdict_card.md §8.4) AND chip tap → re-diff (§7/§8.3,
+ * issue #64). Pure and
  * dependency-injected: no electron imports, so the whole flow is
- * unit-testable headless. The thin electron adapters live in main.ts,
- * window.ts, hotkey.ts, clipboardText.ts.
+ * unit-testable headless. Clipboard detection and Electron wiring live in
+ * clipboardWatcher.ts, clipboardPipeline.ts, clipboardText.ts, and main.ts.
  *
  * The session logic is the SHARED state machine from web/src/lib/session.ts
  * (the same source the web app's useCardSession drives) — startSession /
@@ -13,20 +14,19 @@
  *
  * Doctrine trace:
  * - S1: the clipboard (populated by the game's own Ctrl+C) is the only game
- *   input; it is read here exactly once per explicit hotkey press.
- * - S2: one server action per explicit user action — every onHotkey() and
- *   every successful onChipTap() issues exactly one POST /diff. No polling,
- *   no auto-retry, no clipboard-change watchers. A tap outside the VERDICT
- *   phase (or on a display-only chip, RULING-14) is a no-op: NO request.
- * - RULING-4: the FE never judges item text locally; even an empty clipboard
- *   is sent to the server, which alone decides (422 -> ERROR_UNPARSEABLE).
- * - RULING-18: a new hotkey press starts a fresh session — overrides never
+ *   input. This flow accepts the exact text supplied by that adapter.
+ * - S2: one detected item capture or successful chip tap issues exactly one
+ *   POST /diff. There is no retry or request polling. A tap outside the
+ *   VERDICT phase (or on a display-only chip, RULING-14) is a no-op.
+ * - The watcher only recognizes the stable PoE header shape. Parsing and
+ *   canonicalization remain server-owned; this flow forwards text unchanged.
+ * - RULING-18: a new item capture starts a fresh session — overrides never
  *   leak across items (startSession resets appliedOverrides).
  * - RULING-20: errors are keyed off the HTTP status code ONLY; error bodies
  *   are never parsed or rendered.
  * - RULING-21: a failed re-diff reverts the override and shows the transient
  *   sentence-slot message for TRANSIENT_MESSAGE_MS, then restores it. At most
- *   ONE transient timer is ever live: a later tap or hotkey supersedes an
+ *   ONE transient timer is ever live: a later tap or item capture supersedes an
  *   earlier failure's message, so the earlier timer is cancelled and can
  *   never clear the newer message early (same ownership rule as the web
  *   app's useCardSession resetFlight).
@@ -54,8 +54,11 @@ import type { PostDiff } from "./diffRequest";
 import type { ShellState } from "./shellState";
 
 export interface DiffFlowDeps {
-  /** S1: read-only clipboard access, called once per hotkey press. */
-  readClipboard: () => string;
+  /**
+   * Deferred global-hotkey adapter. Production Stage 1 does not supply this;
+   * retained so the existing headless hotkey-flow contract stays testable.
+   */
+  readClipboard?: () => string;
   /** The generated-client /diff call (see diffRequest.ts). */
   postDiff: PostDiff;
   /** Receives every state transition (main forwards it to the renderer). */
@@ -67,7 +70,9 @@ export interface DiffFlowDeps {
 }
 
 export interface DiffFlow {
-  /** One explicit hotkey press = one fresh session = one /diff request. */
+  /** One detected PoE item capture = one fresh session = one /diff request. */
+  onItemText: (itemText: string) => Promise<void>;
+  /** Deferred hotkey entry point; a no-op when no hotkey clipboard is wired. */
   onHotkey: () => Promise<void>;
   /**
    * One chip tap = one re-diff with the accumulated overrides (I3). No-op —
@@ -125,9 +130,9 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
   const timeoutMs = deps.timeoutMs ?? DIFF_TIMEOUT_MS;
   const transientMs = deps.transientMs ?? TRANSIENT_MESSAGE_MS;
   let session: SessionState = INITIAL_SESSION;
-  // Generation counter: a newer keypress supersedes any in-flight request so
+  // Generation counter: a newer capture supersedes any in-flight request so
   // a late response can never overwrite a fresher session (§8.4: any state
-  // ──hotkey──▶ LOADING). Chip taps do NOT bump it — they belong to the
+  // ──capture──▶ LOADING). Chip taps do NOT bump it — they belong to the
   // current session — but they capture it to detect their own supersession.
   let generation = 0;
   // RULING-21: the single live transient-message timer (if any). The flow's
@@ -166,15 +171,15 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
     }
   }
 
-  async function onHotkey(): Promise<void> {
+  async function onItemText(itemText: string): Promise<void> {
     const gen = ++generation;
     cancelTransientTimer(); // the fresh session owns the card (RULING-18)
-    session = startSession(deps.readClipboard());
+    session = startSession(itemText);
     emit(); // LOADING
 
     try {
       const card = await request(initialDiffBody(session.itemText as string));
-      if (gen !== generation) return; // superseded by a newer keypress
+      if (gen !== generation) return; // superseded by a newer capture
       session = resolveInitial(session, card);
       emit(); // VERDICT
     } catch (err) {
@@ -186,17 +191,22 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
     }
   }
 
+  async function onHotkey(): Promise<void> {
+    if (deps.readClipboard === undefined) return;
+    await onItemText(deps.readClipboard());
+  }
+
   async function onChipTap(assumption: Assumption): Promise<void> {
     const begun = beginRediff(session, assumption);
     if (begun === null) return; // no state change, NO request (S2)
-    const gen = generation; // taps join the current session; hotkeys supersede
+    const gen = generation; // taps join the current session; captures supersede
     cancelTransientTimer(); // the new tap supersedes any earlier failure's message
     session = begun.state;
     emit(); // REDIFFING (pending chip, strip disabled)
 
     try {
       const card = await request(begun.body);
-      if (gen !== generation) return; // superseded by a newer keypress
+      if (gen !== generation) return; // superseded by a newer capture
       session = resolveRediff(session, card);
       emit(); // VERDICT — the pending mutation commits (§7.3)
     } catch {
@@ -214,5 +224,5 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
     }
   }
 
-  return { onHotkey, onChipTap };
+  return { onItemText, onHotkey, onChipTap };
 }

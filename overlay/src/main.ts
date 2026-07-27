@@ -1,15 +1,12 @@
 /**
  * Electron main-process entry — the thin wiring layer. All logic lives in the
- * injected, headless-tested modules (diffFlow, diffRequest, serverEndpoint);
- * this file only connects them to electron primitives. Native verification of
- * the wiring (real hotkey delivery, real always-on-top, game-focus hide)
- * happens on the provisioned box (issue #34).
+ * injected, headless-tested modules (clipboardPipeline, diffRequest,
+ * serverEndpoint); this file only connects them to Electron primitives.
  */
 import { app, ipcMain, shell } from "electron";
-import { readItemText } from "./clipboardText";
-import { createDiffFlow } from "./diffFlow";
+import { createClipboardPipeline } from "./clipboardPipeline";
+import { electronClipboardSource } from "./clipboardText";
 import { bindGeneratedDiff } from "./diffRequest";
-import { DEFAULT_HOTKEY, registerHotkey, unregisterAllHotkeys } from "./hotkey";
 import { resolveServerBaseUrl, resolveWebAppUrl } from "./serverEndpoint";
 import type { ShellState } from "./shellState";
 import { createOverlayWindow } from "./window";
@@ -17,8 +14,8 @@ import { createOverlayWindow } from "./window";
 app.whenReady().then(() => {
   const win = createOverlayWindow();
 
-  const flow = createDiffFlow({
-    readClipboard: readItemText,
+  const pipeline = createClipboardPipeline({
+    clipboard: electronClipboardSource,
     postDiff: bindGeneratedDiff(resolveServerBaseUrl()),
     onState: (state: ShellState) => {
       if (state.kind !== "HIDDEN" && !win.isVisible()) win.showInactive();
@@ -26,9 +23,9 @@ app.whenReady().then(() => {
     },
   });
 
-  registerHotkey(DEFAULT_HOTKEY, () => {
-    void flow.onHotkey();
-  });
+  // Baseline after the renderer is ready so every detected capture can be
+  // delivered to a subscribed card. Existing clipboard content is ignored.
+  win.webContents.once("did-finish-load", pipeline.start);
 
   // Tier-1 → Tier-2 promotion path (I7): the card's single details affordance
   // deep-links the web app in the system browser; the overlay itself never
@@ -42,9 +39,9 @@ app.whenReady().then(() => {
   // I3 (§7): a chip tap in the renderer is one explicit user action — the
   // flow alone decides whether it becomes a /diff (S2; taps outside the
   // VERDICT phase or on display-only chips are swallowed there).
-  ipcMain.on("overlay:chip-tap", (_event, assumption: Parameters<typeof flow.onChipTap>[0]) => {
-    void flow.onChipTap(assumption);
+  ipcMain.on("overlay:chip-tap", (_event, assumption: Parameters<typeof pipeline.onChipTap>[0]) => {
+    void pipeline.onChipTap(assumption);
   });
 
-  app.on("will-quit", unregisterAllHotkeys);
+  app.on("will-quit", pipeline.stop);
 });

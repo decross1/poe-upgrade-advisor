@@ -1,0 +1,407 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`clipboard pipeline — CAN'T EVALUATE golden card > detects → requests exactly once → renders the card 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--cant_evaluate"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--cant_evaluate"
+    >
+      CAN'T EVALUATE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--suppressed"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      />
+      <span
+        class="delta-value"
+      >
+        —
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--suppressed"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      />
+      <span
+        class="delta-value"
+      >
+        —
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Trigger setup makes the main skill ambiguous; open details and pick your skill to get a verdict.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <button
+      class="chip"
+      type="button"
+    >
+      trigger build
+    </button>
+    <span
+      class="chip"
+    >
+      skill: Cremation
+    </span>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link details-link--emphasized"
+      href="/breakdown/d-6efc9d24"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`clipboard pipeline — DOWNGRADE golden card > detects → requests exactly once → renders the card 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--downgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--downgrade"
+    >
+      DOWNGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 72.8%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −18.2%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 12.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +3.1%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Losing +2 arrows outweighs the armour gain; clear DPS drops 18.2%.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Tornado Shot
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-a51d02e9"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`clipboard pipeline — SIDEGRADE golden card > detects → requests exactly once → renders the card 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--sidegrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--sidegrade"
+    >
+      SIDEGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 2.4%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +0.6%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 1.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −0.4%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    Near-identical single-target output; you trade a sliver of armour for attack speed.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Boneshatter (yours)
+    </span>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-3b9e77c0"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
+
+exports[`clipboard pipeline — UPGRADE golden card > detects → requests exactly once → renders the card 1`] = `
+<section
+  aria-label="Upgrade verdict"
+  class="verdict-card verdict-card--upgrade"
+>
+  <header
+    class="verdict-header"
+  >
+    <span
+      class="verdict-word verdict-word--upgrade"
+    >
+      UPGRADE
+    </span>
+  </header>
+  <div
+    class="delta-bars"
+  >
+    <div
+      class="delta-row delta-row--positive"
+    >
+      <span
+        class="delta-label"
+      >
+        Offense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--positive"
+          style="width: 49.6%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        +12.4%
+      </span>
+    </div>
+    <div
+      class="delta-row delta-row--negative"
+    >
+      <span
+        class="delta-label"
+      >
+        Defense
+      </span>
+      <span
+        aria-hidden="true"
+        class="delta-track"
+      >
+        <span
+          class="delta-fill delta-fill--negative"
+          style="width: 7.2%;"
+        />
+      </span>
+      <span
+        class="delta-value"
+      >
+        −1.8%
+      </span>
+    </div>
+  </div>
+  <p
+    class="verdict-sentence"
+  >
+    "
+    +1 to cold gems and higher flat cold beat the small life loss; clear DPS rises 12.4%.
+    "
+  </p>
+  <div
+    aria-label="Assumptions"
+    class="chip-strip"
+    role="group"
+  >
+    <span
+      class="chip"
+    >
+      skill: Vortex
+    </span>
+    <button
+      class="chip"
+      type="button"
+    >
+      crit recently
+    </button>
+    <button
+      class="chip chip--dimmed"
+      type="button"
+    >
+      flasks up
+    </button>
+  </div>
+  <footer
+    class="details-row"
+  >
+    <a
+      class="details-link"
+      href="/breakdown/d-8f2c41a7"
+    >
+      Open details ▸
+    </a>
+  </footer>
+</section>
+`;
