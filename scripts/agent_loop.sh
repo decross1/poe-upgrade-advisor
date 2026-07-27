@@ -41,19 +41,19 @@ invoke() {
   case $ROLE in
     pm)
       (cd "$dir" && env -u ANTHROPIC_API_KEY claude -p "$prompt" --permission-mode acceptEdits) ;;
-    backend)
+    backend|frontend)
+      # Both coding roles run codex since 2026-07-27 (#89: kimi credits exhausted).
       # bwrap userns sandboxing fails headless on this box (RTM_NEWADDR EPERM),
       # so run unsandboxed; poll cadence + HALT + MAX_PARALLEL are the containment.
       (cd "$dir" && codex exec --dangerously-bypass-approvals-and-sandbox \
+        -m "${CODEX_MODEL:-gpt-5.6-sol}" \
         -c model_reasoning_effort="${CODEX_EFFORT:-high}" "$prompt") ;;
-    frontend)
-      eval "$(grep '^export KIMI_API_KEY' ~/.bashrc)"
-      (cd "$dir" && pi --provider moonshot --model kimi-k3 --thinking "${PI_THINKING:-high}" --no-session -p "$prompt") ;;
   esac
 }
 
 fan_worker() { # $1 = full message_id
-  [ -f "$MAILROOM/effort.env" ] && . "$MAILROOM/effort.env"  # live effort/timeout tuning
+  # set -a so tuned values are exported and actually reach the codex child process
+  [ -f "$MAILROOM/effort.env" ] && { set -a; . "$MAILROOM/effort.env"; set +a; }
   local id=$1 id8=${1:0:8}
   local lockf=$MAILROOM/locks/$ROLE-msg-$id8.lock
   exec 8>"$lockf"
@@ -80,7 +80,7 @@ export -f invoke fan_worker
 n=0
 echo "[$(date -Is)] loop v2 start role=$ROLE poll=${POLL}s max_parallel=$MAX_PARALLEL heartbeat_every=$HEARTBEAT_EVERY" | tee -a "$LOG"
 while true; do
-  [ -f "$MAILROOM/effort.env" ] && . "$MAILROOM/effort.env"  # live effort/timeout tuning
+  [ -f "$MAILROOM/effort.env" ] && { set -a; . "$MAILROOM/effort.env"; set +a; }  # live effort/timeout tuning
   if [ -f "$MAILROOM/HALT" ]; then
     echo "[$(date -Is)] HALT set — idle" >>"$LOG"
     sleep "$POLL"; continue
