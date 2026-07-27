@@ -40,7 +40,11 @@ invoke() {
   local prompt=$1 dir=$2
   case $ROLE in
     pm)
-      (cd "$dir" && env -u ANTHROPIC_API_KEY claude -p "$prompt" --permission-mode acceptEdits) ;;
+      # acceptEdits blocked all Bash (ledger/gh/git) in throwaway .fan worktrees —
+      # ~50 burned invocations on 2026-07-27. Same containment stance as the codex
+      # roles' bypass flag: poll cadence + HALT + MAX_PARALLEL.
+      (cd "$dir" && env -u ANTHROPIC_API_KEY claude -p "$prompt" --dangerously-skip-permissions \
+        --add-dir /home/decross1/projects/poe-discord-proj/mailroom) ;;
     backend|frontend)
       # Both coding roles run codex since 2026-07-27 (#89: kimi credits exhausted).
       # bwrap userns sandboxing fails headless on this box (RTM_NEWADDR EPERM),
