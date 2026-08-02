@@ -279,8 +279,48 @@ Log volume: `backend.log` 59 MB, `frontend.log` 2.1 MB, `pm.log` 692 KB.
 
 | # | Blocker | Owner | Effect |
 |---|---|---|---|
-| 1 | `MERGE_ROBOT_TOKEN` unset; `main` unprotected; no distinct bot identity (TASK-007) | **human only** | Caps the achievable verdict at `GO-SUPERVISED`. `GO-UNATTENDED-7D` is unreachable until this lands. |
+| 1 | `MERGE_ROBOT_TOKEN` unset; `main` unprotected; no distinct bot identity (TASK-007) | **human only** | Caps the achievable verdict at `GO-SUPERVISED`. `GO-UNATTENDED-7D` is unreachable until this lands. **Necessary but not sufficient — see 2a.** |
 | 2 | All roles share one GitHub identity (ADR-0003) | **human only** | Non-author approval is mechanically unsatisfiable; merge-robot conditions 2/3 can never pass |
+| 2a | **The evidence-bearing-approval read path has never worked, independently of identity** | W1-5 / W2-5 | Provisioning identities and the token would **not** unblock the two live PRs. See below. |
+
+### 2a — the second read-path bug `[O]`
+
+`merge_robot.py:52-57` reads approvals from `/pulls/{n}/reviews` and requires
+`state == "APPROVED"` **and** an `EVIDENCE-SHA256:` in the review body **and** a
+non-author identity. Replaying that condition against the two live approved PRs
+on 2026-08-02:
+
+| PR | Review objects | States | Evidence in a review body | Condition 2/3 |
+|---|---:|---|---|---|
+| #87 | **0** | — | no | **FAIL** |
+| #91 | 1 | `COMMENTED` | yes | **FAIL** |
+
+Both PRs are recorded by the org as approved with evidence, and both are. But
+they record it in **two different places by two different mechanisms**:
+
+- **#87**'s evidence is in a PR **issue comment**
+  (`Frontend execution review — no objections / REVIEW_VERDICT: APPROVE`,
+  with `EVIDENCE-SHA256`). `merge_robot.py` never reads issue comments, so it is
+  invisible to the gate.
+- **#91**'s evidence is in a real **review object**, but its state is
+  `COMMENTED`, not `APPROVED`, so the `state == "APPROVED"` filter drops it.
+
+`docs/REVIEW_PROTOCOL.md` rule 1 says evidence goes "in the review comment",
+which is ambiguous between a GitHub *review* and an *issue comment on the PR*.
+Both readings were used in practice, and neither satisfies the robot.
+
+**This is the same failure shape as the coverage ratchet** (§4): a gate that
+reads from a location nothing reliably writes to, never observed because the
+robot has never run. It is the third instance of that pattern in this control
+plane.
+
+**Consequence for the restart plan:** blocker 1 is necessary but not
+sufficient. Provisioning `MERGE_ROBOT_TOKEN`, branch protection, and distinct
+bot identities tomorrow would still leave both PRs blocked at condition 2/3.
+Either the reviewer must submit an actual `APPROVE` review carrying the
+evidence line, or the robot must also accept an evidence-bearing issue comment
+from a non-author identity. That is a code decision, not a provisioning one,
+and it belongs to Lane B.
 | 3 | 7 unacked `pm` messages | pm | Must be resolved before `HALT` is lifted |
 | 4 | 13 dirty `.fan` worktrees | pm / W1-4 | Unrecovered work; must be preserved and triaged |
 | 5 | 9 stale running markers | W1-6 | Readiness must handle a marker whose PID has been recycled |
