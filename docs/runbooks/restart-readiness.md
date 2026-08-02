@@ -411,3 +411,61 @@ observed none, and generalised the finding to components I had not checked.
 That is the same shape as every gate defect catalogued in §5 — a claim about a
 thing nobody actually looked at. The readiness record should say what was
 measured, not what was inferred from an adjacent measurement.
+
+---
+
+## Second probe incident, and two perishable measurements — appended 2026-08-02T18:45Z
+
+### The sidecar files: my probes touched the quarantined residue
+
+During today's read-only evidence sweep (pre-dispatch verification for the
+critical-closure program), one of my probe agents opened
+`mailroom/governor/budget_ledger.sqlite3.pm-probe-residue-20260802` — the
+quarantined residue itself — in read-write mode at 17:15:40Z, creating WAL
+sidecar files inside the evidence mailroom:
+
+```
+budget_ledger.sqlite3.pm-probe-residue-20260802       53248 bytes, mtime 03:02:54 — UNTOUCHED
+  sha256 807558428832c1d8dd433568d254a7efa2ca6dc66c8a2f7c4b984b8e2ca54029
+...-wal   0 bytes     sha256 e3b0c442... (the empty-string hash: ZERO frames, nothing written)
+...-shm   32768 bytes SQLite shared-memory index, no durable content
+```
+
+The main database's bytes, size and mtime are unchanged and the WAL is empty:
+no rows were created or altered. The two sidecars are my probe's artifacts and
+are to be removed (checksums above are the record). The instruction to that
+probe said read-only in three places; the lesson is the one this file already
+records twice — a constraint stated is not a constraint enforced. A8/B3
+(CI-enforced write-free snapshot regression) is the enforcement.
+
+### The stale-marker measurement is perishable — recorded here before it decays
+
+All nine `mailroom/locks/running/` marker PIDs (1558003, 1789116, 1789153,
+1789159, 1789165, 1789175, 1789185, 1789194, 1789202) were verified DEAD at
+2026-08-02 ~17:15–17:45Z by two independent probes: `/proc/<pid>` absent for
+every one, `ps -p` empty, full `ps -eo` scan of the surrounding PID bands.
+
+That fact CANNOT be re-derived later: the PID allocator has already wrapped at
+least twice this boot (proved by non-monotonic PID-vs-start-time pairs, e.g.
+PID 1507689 started Jun 30 vs PID 1528509 started Jul 27), `ns_last_pid` was
+~4,039,000 of `pid_max` 4,194,304 at 17:26Z burning ~412k PIDs/day — the next
+wrap is HOURS away and reuse of the marker band follows within days. After
+that, `os.kill(pid, 0)` on these markers may find an unrelated live process and
+the readiness checker's `stale_markers` will silently flip FAIL→PASS on aliased
+PIDs. An earlier draft justified "dead" with "the allocator has not wrapped";
+that justification was WRONG (adversarial review caught it) — the measurement
+above, not the reasoning, is the record.
+
+Consequences carried into the program: (1) markers are to be MOVED aside, not
+deleted — eight of nine role-log trails end "fan invoke done rc=0", so the
+markers are the only surviving artifact of the leak itself (the EXIT-trap bug
+in agent_loop.sh's fan_worker: `local marker` is popped before the EXIT trap
+runs, reproduced standalone); (2) `_stale_markers`' bare `os.kill(pid, 0)` needs
+start-time corroboration — folded into Lane B's B3 unit.
+
+### One more standing fact
+
+The scheduled `merge-robot` workflow has been firing roughly hourly and failing
+every run (observed 12:59, 14:28, 15:36, 16:42, 17:48Z today) — 401 by design
+while `MERGE_ROBOT_TOKEN` is unset. Disposition is the operator's; recorded so
+the failure stream is not mistaken for new breakage.

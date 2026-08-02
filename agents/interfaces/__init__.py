@@ -1,14 +1,23 @@
-"""Frozen boundary between the two hardening lanes.
+"""Boundary between the two hardening lanes.
 
 This package is the ONLY contract surface shared by
 `hardening/lane-a-dispatcher` and `hardening/lane-b-gates`. Lane A codes the
 invocation path against these types; Lane B codes the telemetry, budget,
 packet and scheduling backends behind them.
 
-Ownership: **pm**. Neither lane edits this package. If a lane needs a change
-here, it files a REQUEST in `temp_channel/<lane>_to_pm.md` and waits for a pm
-commit. Silently widening this surface re-couples the lanes and is the one
-change that can make both branches unmergeable at once.
+Ownership: per-file, ruled by pm 2026-08-02 (critical-closure program). The
+previous blanket freeze ("neither lane edits this package") is LIFTED — it made
+this the least-owned, least-reliable surface in the repo; three defects
+accumulated here precisely because nobody owned it.
+
+    states.py, result.py, schemas/result.schema.json   -> Lane A
+    telemetry.py, budget.py, run_budget.py, policy.py,
+    packet.py, schemas/task_packet.schema.json         -> Lane B
+    __init__.py (this file, re-exports)                -> pm
+
+The non-owning lane files a REQUEST in `temp_channel/<lane>_to_pm.md` for
+changes it needs across the seam; the owning lane appends a HANDOFF to the
+other lane's inbound file when it changes a surface the other imports.
 
 Design rules that must survive any future edit:
 
