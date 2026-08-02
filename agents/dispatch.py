@@ -69,6 +69,7 @@ from agents.interfaces.result import (  # noqa: E402
 from agents.interfaces.states import AckDecision, DispatchDecision  # noqa: E402
 from agents.interfaces.telemetry import JsonlTelemetry  # noqa: E402
 from agents.postmaster import ledger as ledger_mod  # noqa: E402
+from jsonschema import ValidationError  # noqa: E402
 
 RESULT_SCHEMA_REL = "agents/interfaces/schemas/result.schema.json"
 STDERR_TAIL_LINES = 200
@@ -218,6 +219,30 @@ def write_dead_letter(root: Path, *, task_id: str, role: str, message_id: str,
     return fp
 
 
+def _diag_path(root: Path, message_id: str) -> Path:
+    return root / "governor" / "attempt_diag" / f"{message_id}.json"
+
+
+def _read_attempt_diag(root: Path, message_id: str) -> dict:
+    p = _diag_path(root, message_id)
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _write_attempt_diag(root: Path, message_id: str, diag: dict) -> None:
+    """Best-effort per-message diagnostics of the most recent attempt."""
+    try:
+        p = _diag_path(root, message_id)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(diag, default=str))
+    except OSError:
+        pass  # diagnostics, not accounting — never blocks the path
+
+
 def run_preflight(msg: dict, packet: dict | None):
     """W1-3 hook. Absent module or PREFLIGHT=0 means 'pass'."""
     if os.environ.get("PREFLIGHT", "1") == "0":
@@ -255,10 +280,34 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                        reason=f"budget ledger unavailable: {e}",
                        message_id=message_id, role=role, exit_code=3)
 
-    # 3 — the message itself.
-    msg = find_message(mailroom, message_id)
+    # 3 — the message itself. Unloadable (absent, ambiguous, schema-invalid)
+    # is a structured suppression, not a traceback: the poll loop must keep
+    # its zero-model-call guarantee even against a poison message.
+    try:
+        msg = find_message(mailroom, message_id)
+    except (ValueError, ValidationError) as e:
+        out = Outcome(decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
+                      reason=f"message unloadable: {e}", message_id=message_id,
+                      role=role)
+        if not dry_run:
+            tele.suppressed(role=role, message_id=message_id,
+                            suppressed_reason="message_invalid")
+        return out
     message_id = msg["message_id"]
     task_id = msg["task_id"]
+
+    # A message addressed to another role is not ours to run OR to retire —
+    # acking it here would write into the wrong cursor while the addressee
+    # still sees it unacked (cross-role double processing).
+    if msg["to_role"] != role:
+        out = Outcome(decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
+                      reason=f"role mismatch: message is addressed to "
+                             f"{msg['to_role']}, dispatcher runs as {role}",
+                      message_id=message_id, task_id=task_id, role=role)
+        if not dry_run:
+            tele.suppressed(role=role, task_id=task_id, message_id=message_id,
+                            suppressed_reason="role_mismatch")
+        return out
 
     acked = ledger_mod.acked_ids(mailroom, role)
     if message_id in acked:
@@ -324,6 +373,10 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         allowed, reason = gov.allow(role, task_id)
     except KeyError as e:
         allowed, reason = False, f"role not in policy: {e}"
+    except OSError as e:
+        # e.g. the governor's repo-side dead-letter write failing in an
+        # unexpected checkout — an authorisation error must deny, not crash.
+        allowed, reason = False, f"governor error: {e}"
     if not allowed:
         out = Outcome(decision=DispatchDecision.SUPPRESSED_GOVERNOR.value,
                       reason=reason, message_id=message_id, task_id=task_id,
@@ -339,6 +392,26 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     port = load_run_budget_port()
     rbv = port.check(role=role, task_id=task_id, tier=tier)
     if not rbv.allowed:
+        if rbv.reassign_to and msg["hop_count"] + 1 >= msg["max_hops"]:
+            # Refuse, retain, surface. A forward at hop 5/6 mints a 6/6
+            # message that nothing can reply to — a dead-end wearing a
+            # reassignment's clothes. (Live queue precedent: 67cefe20 sits at
+            # 5/6 today.) The retained original costs zero model tokens per
+            # poll; pm re-triages from the surfaced reason.
+            out = Outcome(decision=DispatchDecision.SUPPRESSED_GOVERNOR.value,
+                          reason=f"run budget: {rbv.reason}; reassignment to "
+                                 f"{rbv.reassign_to} REFUSED: hop cap "
+                                 f"({msg['hop_count']}/{msg['max_hops']})",
+                          message_id=message_id, task_id=task_id, role=role,
+                          extra={"reassign_refused": "hop_cap",
+                                 "degradation_level": rbv.degradation_level})
+            if not dry_run:
+                tele.suppressed(role=role, task_id=task_id,
+                                message_id=message_id,
+                                suppressed_reason=f"run_budget:{rbv.reason}:"
+                                                  "reassign_refused_hop_cap",
+                                degradation_level=rbv.degradation_level)
+            return out
         if rbv.reassign_to:
             # Forward the work to the role with spare capacity; retain the
             # original (its owner is throttled; preflight retires it once the
@@ -404,14 +477,20 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     # invocations of one message over 6h13m" into "max_attempts, then a
     # durable dead-letter and an ack".
     if attempts > max_attempts:
-        stderr_tail = ""
+        # The invocation that trips the cap never runs, so its diagnostics
+        # come from the sidecar the PREVIOUS attempt persisted (below, after
+        # step 11) — otherwise every dead-letter would carry empty evidence
+        # and pm-lite re-triage would have nothing to triage with.
+        diag = _read_attempt_diag(mailroom, message_id)
         dl = write_dead_letter(mailroom, task_id=task_id, role=role,
                                message_id=message_id,
                                reason=f"attempt cap exceeded: attempt "
                                       f"{attempts} > max {max_attempts} "
                                       f"for tier {tier}",
-                               attempts=attempts, exit_code=None,
-                               stderr_tail=stderr_tail, fingerprint=None)
+                               attempts=attempts,
+                               exit_code=diag.get("exit_code"),
+                               stderr_tail=diag.get("stderr_tail", ""),
+                               fingerprint=diag.get("error_fingerprint"))
         ack_message(mailroom, role, message_id)
         gov.record(role, task_id, False)
         tele.suppressed(role=role, task_id=task_id, message_id=message_id,
@@ -484,6 +563,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     result_error: str | None = None
     success = False
     ack = AckDecision.RETAIN
+    res: dict | None = None
     try:
         res = load_result(worktree / RESULT_FILENAME)
         result_status = res["status"]
@@ -506,8 +586,25 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     except ImportError:
         pass
 
-    # 13 / 14 — record and close.
+    # Persist this attempt's diagnostics so a later cap-trip dead-letter has
+    # evidence to carry (the trip itself never invokes).
+    _write_attempt_diag(mailroom, message_id, {
+        "run_id": run_id, "attempt": attempts, "exit_code": rc,
+        "timed_out": timed_out, "stderr_tail": stderr_tail,
+        "error_fingerprint": (res or {}).get("error_fingerprint"),
+        "result_error": result_error, "ts": time.time(),
+    })
+
+    # 13 / 14 — record and close. Spend recording is fail-closed by design,
+    # but at this point the spend has already happened: log loudly and let
+    # the NEXT invocation's fail-closed open refuse instead.
     gov.record(role, task_id, success)
+    try:
+        bl.record_spend(role=role, task_id=task_id, run_id=run_id,
+                        success=success)
+    except BudgetLedgerUnavailable as e:
+        print(f"WARNING: spend record failed after invocation: {e}",
+              file=sys.stderr)
     tele.finish(run_id, result_status=result_status, result_error=result_error,
                 exit_code=rc, timed_out=timed_out,
                 duration_seconds=round(duration, 3),

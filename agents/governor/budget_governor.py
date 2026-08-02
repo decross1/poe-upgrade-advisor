@@ -98,6 +98,10 @@ class Governor:
         dl = self.repo / "tasks" / "dead_letter" / f"{task_id}.md"
         if dl.exists():
             return
+        # tasks/dead_letter/ is untracked, so a fresh (fan) worktree does not
+        # have it — without this the first breaker/cap trip in a throwaway
+        # checkout raises FileNotFoundError instead of parking the task.
+        dl.parent.mkdir(parents=True, exist_ok=True)
         dl.write_text(
             f"# Dead-letter: {task_id}\n\n- role: {role}\n- reason: {reason}\n"
             f"- parked: {datetime.now(timezone.utc).isoformat()}\n\n"
