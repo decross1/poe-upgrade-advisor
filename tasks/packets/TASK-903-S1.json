@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-903-S1",
+  "parent_task_id": "TASK-903",
+  "issue": null,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Generate adversarial packet tests whose input mutations must be rejected.",
+  "files_in_scope": ["tests/test_packets.py"],
+  "files_out_of_scope": ["agents/interfaces/**", "contracts/**"],
+  "required_checks": ["python3 -m pytest tests/test_packets.py::test_packet_input_mutation_guard -q"],
+  "acceptance_criteria": [{"id": "AC-1", "text": "Deleting or corrupting every required field makes the validator fail."}],
+  "budgets": {"max_attempts": 2, "max_files_modified": 1, "max_diff_lines": 180, "max_wall_clock_seconds": 600}
+}
