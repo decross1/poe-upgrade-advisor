@@ -363,3 +363,51 @@ its own gate found.
 required an operator to clear §7 before anything runs. This adds a known-red
 required check to the record rather than a new class of risk, and the canary
 task is now identified rather than hypothetical.
+
+---
+
+## Correction: pm's own probes wrote to the real mailroom
+
+Appended after the final state check, because I asserted more than I had
+verified.
+
+I verified with a byte/mtime snapshot that **`check_agent_readiness.py` writes
+nothing**, and that holds. I then generalised it to "nothing has been written to
+the real mailroom during this entire exercise, by anyone". That was wrong.
+
+`agents/run_budget.load()` resolves the **real** project mailroom and constructs
+an `AccountingBudgetLedger` at `mailroom/governor/budget_ledger.sqlite3`, and
+every `check()` records a governor decision — because I asked Lane B to make
+every verdict fail-closed recorded. My mode-ruling probes therefore created a
+ledger and wrote **141 `governor_decisions` rows** plus one `run_state` row.
+
+What it did **not** do, verified directly:
+
+```
+spend:               0 rows      <- no model was ever invoked
+attempts:            0 rows      <- no message was ever dispatched
+allowance_readings:  0 rows
+messages: 296 · cursors 91/107/90 · HALT mtime 2026-07-27T22:07:04
+```
+
+Every decision row reads `deny — codex allowance reading missing or stale`,
+which is the fail-closed path working exactly as designed. `HALT` was never
+touched, the queue never moved, and no model ran.
+
+**Disposition.** The file was created entirely by my probes — Phase 0 recorded
+that no governor sqlite existed — and it contains no real data, but 141 phantom
+decisions would pollute the first genuine `agent_metrics.py` output an operator
+reads. Moved aside rather than deleted, because it is operational state even
+when I am the one who created it:
+
+```
+mailroom/governor/budget_ledger.sqlite3.pm-probe-residue-20260802
+```
+
+Delete it whenever convenient; the org recreates the ledger on first run.
+
+**The lesson is the program's own.** I checked one component for writes,
+observed none, and generalised the finding to components I had not checked.
+That is the same shape as every gate defect catalogued in §5 — a claim about a
+thing nobody actually looked at. The readiness record should say what was
+measured, not what was inferred from an adjacent measurement.
