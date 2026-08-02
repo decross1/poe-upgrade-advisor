@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import sqlite3
 
 import pytest
 
@@ -58,6 +59,19 @@ def test_budget_failure_blocks_invocation_but_analytics_failure_does_not(tmp_pat
     assert telemetry.degraded
     assert TELEMETRY_DEGRADED in stderr.getvalue()
     assert TELEMETRY_DEGRADED in report.read_text()
+
+
+def test_post_open_spend_write_operational_error_is_fail_closed(tmp_path):
+    ledger = AccountingBudgetLedger(tmp_path / "budget.sqlite3")
+    ledger.db.close()
+
+    class BrokenConnection:
+        def execute(self, sql, args=()):
+            raise sqlite3.OperationalError("simulated full filesystem")
+
+    ledger.db = BrokenConnection()
+    with pytest.raises(BudgetLedgerUnavailable, match="write failed"):
+        ledger.record_spend(role="pm", task_id="TASK-WRITE", run_id="run-write")
 
 
 def test_crash_preserves_recoverable_incomplete_record(tmp_path):
