@@ -7,6 +7,8 @@ import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from agents.pm_lite.scheduler import PmLiteScheduler
 
 NOW = 1_800_000_000.0
@@ -432,6 +434,18 @@ def test_ordered_backlog_assigns_only_dependency_ready_packet(tmp_path):
     assert [message["task_id"] for message in sent] == ["TASK-2"]
 
 
+def test_missing_exact_packet_is_refused_before_assignment(tmp_path):
+    _, mailroom, scheduler, _, _ = _fixture(tmp_path)
+    state = mailroom / "pm_lite"
+    state.mkdir()
+    (state / "backlog.json").write_text(json.dumps([
+        {"task_id": "TASK-404", "priority": 1, "depends_on": []},
+    ]))
+    report = scheduler.poll(ready_prs=[])
+    assert "packet_missing" in _kinds(report)
+    assert not list((mailroom / "messages").glob("*.json"))
+
+
 def test_stage_packet_assignment_preserves_exact_stage_identity(tmp_path):
     repo, mailroom, scheduler, _, _ = _fixture(tmp_path)
     stage = _packet("TASK-210-S1")
@@ -450,3 +464,44 @@ def test_stage_packet_assignment_preserves_exact_stage_identity(tmp_path):
     ]
     assert len(messages) == 1
     assert messages[0]["task_id"] == "TASK-210-S1"
+
+
+def test_unavailable_github_ready_state_is_not_reported_as_empty(tmp_path):
+    repo, mailroom, _, telemetry, _ = _fixture(tmp_path)
+    scheduler = PmLiteScheduler(
+        repo,
+        mailroom,
+        now=lambda: NOW,
+        gh=lambda *args: None,
+        merge_runner=lambda pr: pytest.fail("unknown state must not request merge"),
+        config={},
+        telemetry=telemetry,
+    )
+    report = scheduler.poll()
+    assert "github_state_unavailable" in _kinds(report)
+    assert not telemetry.suppressed_events
+
+
+def test_unreadable_governor_state_refuses_to_choose_arbiter(tmp_path):
+    repo, mailroom, _, telemetry, _ = _fixture(tmp_path)
+    ledger = mailroom / "governor/governor_ledger.sqlite3"
+    ledger.write_text("not sqlite")
+    scheduler = PmLiteScheduler(
+        repo,
+        mailroom,
+        now=lambda: NOW,
+        merge_runner=lambda pr: None,
+        config={"arbiter_fallback": "backend"},
+        telemetry=telemetry,
+    )
+    report = scheduler.poll(
+        events=[{
+            "event_id": "needs-arbiter",
+            "kind": "arbitration_request",
+            "payload": {"task_id": "TASK-1", "detail": "impasse"},
+        }],
+        ready_prs=[],
+    )
+    assert "arbiter_state_unavailable" in _kinds(report)
+    assert "judgement_unroutable" in _kinds(report)
+    assert "judgement" not in _kinds(report)

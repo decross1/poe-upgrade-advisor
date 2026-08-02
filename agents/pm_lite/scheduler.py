@@ -25,8 +25,9 @@ import yaml
 
 from agents.accounting import AnalyticsTelemetry
 from agents.degradation import arbiter_after_circuit_break
-from agents.interfaces.packet import PacketError, load_packet, packet_path
+from agents.interfaces.packet import PacketError, packet_path
 from agents.interfaces.policy import load_policy
+from agents.packets.validate import validate_path
 from agents.postmaster import ledger as ledger_mod
 
 JUDGEMENT_INTENTS = {"ARBITRATION_REQUEST"}
@@ -198,7 +199,7 @@ class PmLiteScheduler:
                 )
         return messages
 
-    def _circuit_broken_roles(self) -> set[str]:
+    def _circuit_broken_roles(self) -> set[str] | None:
         path = self.mailroom / "governor/governor_ledger.sqlite3"
         if not path.is_file():
             return set()
@@ -212,8 +213,13 @@ class PmLiteScheduler:
             rows = db.execute(
                 "SELECT role, task_id, success FROM ledger ORDER BY ts DESC"
             ).fetchall()
-        except (OSError, sqlite3.Error, KeyError, TypeError, ValueError):
-            return set()
+        except (OSError, sqlite3.Error, KeyError, TypeError, ValueError) as exc:
+            self._action(
+                "arbiter_state_unavailable",
+                str(path),
+                f"cannot certify PM circuit state: {type(exc).__name__}: {exc}",
+            )
+            return None
         finally:
             if "db" in locals():
                 db.close()
@@ -230,8 +236,11 @@ class PmLiteScheduler:
         return {role for (role, _), count in streaks.items() if count >= threshold}
 
     def _arbiter(self) -> str | None:
+        broken = self._circuit_broken_roles()
+        if broken is None:
+            return None
         return arbiter_after_circuit_break(
-            self.config, circuit_broken=self._circuit_broken_roles()
+            self.config, circuit_broken=broken
         )
 
     def _judgement_message(
@@ -467,7 +476,7 @@ class PmLiteScheduler:
             candidate = packet_path(self.repo, record["task_id"])
             if candidate.is_file():
                 try:
-                    packet = load_packet(candidate)
+                    packet = validate_path(candidate)
                 except PacketError as exc:
                     self._action(
                         "blocked_packet_invalid",
@@ -650,15 +659,28 @@ class PmLiteScheduler:
         completed = set(self._state["completed"])
         assigned = set(self._state["assigned"])
         indexed = list(enumerate(self._load_backlog()))
-        indexed.sort(key=lambda item: (int(item[1].get("priority", 100)), item[0]))
+        try:
+            indexed.sort(key=lambda item: (int(item[1].get("priority", 100)), item[0]))
+        except (AttributeError, TypeError, ValueError) as exc:
+            self._action("backlog_invalid", "priority", f"invalid backlog entry: {exc}")
+            return
         for _, entry in indexed:
             task_id = entry.get("task_id")
             if not isinstance(task_id, str) or task_id in assigned or task_id in completed:
                 continue
             if not set(entry.get("depends_on") or []) <= completed:
                 continue
+            candidate = packet_path(self.repo, task_id)
+            if not candidate.is_file():
+                self._action(
+                    "packet_missing",
+                    task_id,
+                    f"refusing assignment: exact packet does not exist at {candidate}",
+                    task_id=task_id,
+                )
+                continue
             try:
-                packet = load_packet(packet_path(self.repo, task_id))
+                packet = validate_path(candidate)
             except PacketError as exc:
                 self._action("packet_not_assignable", str(task_id), str(exc), task_id=task_id)
                 continue
@@ -696,15 +718,6 @@ class PmLiteScheduler:
             )
             return
 
-    def _gh_json(self, *args: str) -> Any:
-        raw = self._gh(*args)
-        if not raw:
-            return None
-        try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            return None
-
     def _run_gh(self, *args: str) -> str | None:
         try:
             run = subprocess.run(
@@ -720,7 +733,7 @@ class PmLiteScheduler:
         return run.stdout if run.returncode == 0 else None
 
     def _ready_prs(self) -> list[dict[str, Any]]:
-        value = self._gh_json(
+        raw = self._gh(
             "pr",
             "list",
             "--state",
@@ -730,7 +743,33 @@ class PmLiteScheduler:
             "--json",
             "number,title",
         )
-        return value if isinstance(value, list) else []
+        if raw is None:
+            self._action(
+                "github_state_unavailable",
+                "ready-to-merge",
+                "gh pr list failed; merge eligibility is unknown",
+                once=False,
+            )
+            return []
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            self._action(
+                "github_state_unavailable",
+                "ready-to-merge",
+                f"gh pr list returned invalid JSON: {exc}",
+                once=False,
+            )
+            return []
+        if not isinstance(value, list):
+            self._action(
+                "github_state_unavailable",
+                "ready-to-merge",
+                "gh pr list returned a non-list response",
+                once=False,
+            )
+            return []
+        return value
 
     def _local_merge_pause(self) -> str | None:
         path = self.mailroom / "PAUSE_MERGES"
