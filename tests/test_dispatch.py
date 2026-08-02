@@ -1051,3 +1051,69 @@ def test_capture_seam_end_to_end_through_real_lane_b_parser(
     assert f["cash_usd"] == 0.0421
     assert f["cached_input_tokens"] == 40960
     assert f.get("usage_parse_error") is None
+
+
+# ------------------------------------------------------- CC-5 effort (A4)
+
+def test_effort_precedence_ladder(monkeypatch):
+    """CC-5 ruling: packet routing.reasoning_effort > CODEX_EFFORT
+    (effort.env live knob) > built-in high. pm carries no effort flag —
+    not_applicable, never a faked flag."""
+    packet = {"routing": {"reasoning_effort": "low"}}
+    mr = Path("/mailroom-unused")
+
+    # rung 1: packet wins over env (both set)
+    monkeypatch.setenv("CODEX_EFFORT", "medium")
+    cmd = dispatch_mod.role_command("backend", "p", mr, packet=packet)
+    assert "-c" in cmd and "model_reasoning_effort=low" in cmd
+
+    # rung 2: env only (no packet field)
+    cmd = dispatch_mod.role_command("backend", "p", mr, packet=None)
+    assert "model_reasoning_effort=medium" in cmd
+
+    # rung 3: built-in default (neither)
+    monkeypatch.delenv("CODEX_EFFORT")
+    cmd = dispatch_mod.role_command("backend", "p", mr)
+    assert "model_reasoning_effort=high" in cmd
+
+    # pm rung: the claude CLI has no effort flag — none appears
+    cmd = dispatch_mod.role_command("pm", "p", mr, packet=packet)
+    assert not any("effort" in tok for tok in cmd)
+    assert dispatch_mod.resolve_effort("pm", packet) == "not_applicable"
+
+
+def test_spawn_site_receives_the_packet(mailroom, worktree, monkeypatch):
+    """The packet must reach the ONLY model-spawn site. role_command is
+    replaced by a recorder that runs `true` instead of a model; the
+    dispatch goes down the REAL (non-fake) spawn path."""
+    packet = {
+        "schema_version": "1.0", "task_id": "TASK-7",
+        "owner_role": "backend", "tier": "green",
+        "objective": "prove the packet reaches the spawn site",
+        "files_in_scope": ["README.md"], "files_out_of_scope": [],
+        "required_checks": ["git status --porcelain"],
+        "acceptance_criteria": [
+            {"id": "AC-1", "text": "packet visible at spawn"}],
+        "budgets": {"max_attempts": 2, "max_files_modified": 2,
+                    "max_diff_lines": 100, "max_wall_clock_seconds": 60},
+        "routing": {"reasoning_effort": "low"},
+    }
+    d = worktree / "tasks" / "packets"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "TASK-7.json").write_text(json.dumps(packet))
+
+    seen: dict = {}
+
+    def recorder(role, prompt, mailroom_, packet=None):
+        seen.update(role=role, packet=packet)
+        return ["true"]
+    monkeypatch.setattr(dispatch_mod, "role_command", recorder)
+
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree)  # no fake_agent
+
+    assert out.invoked is True
+    assert out.ack == RETAIN            # `true` writes no result file
+    assert seen["role"] == "backend"
+    assert seen["packet"] is not None
+    assert seen["packet"]["routing"]["reasoning_effort"] == "low"

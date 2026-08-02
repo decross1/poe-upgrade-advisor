@@ -211,12 +211,36 @@ def build_prompt(role: str, msg: dict, run_id: str, mailroom: Path) -> str:
     )
 
 
-def role_command(role: str, prompt: str, mailroom: Path) -> list[str]:
+def resolve_effort(role: str, packet: dict | None) -> str:
+    """CC-5 effort precedence (pm ruling, PLAN 18:55Z):
+
+        packet `routing.reasoning_effort`  >  CODEX_EFFORT  >  built-in high
+
+    CODEX_EFFORT stays a LIVE operator knob (mailroom/effort.env, sourced
+    by agent_loop.sh with `set -a`) for packets that do not set the field.
+    The pm role's claude CLI carries no effort flag — `not_applicable`,
+    never a faked flag the CLI lacks.
+    """
+    if role == "pm":
+        return "not_applicable"
+    packet_effort = ((packet or {}).get("routing") or {}).get(
+        "reasoning_effort")
+    if packet_effort:
+        return packet_effort
+    return os.environ.get("CODEX_EFFORT", "high")
+
+
+def role_command(role: str, prompt: str, mailroom: Path,
+                 packet: dict | None = None) -> list[str]:
     """The model CLI for a role. This is the ONLY place a model is spawned.
 
     Machine-readable output is enabled on both CLIs (Lane B W2-1 seam): the
     final usage object is recovered from stdout and fed to accounting —
     subscription-capacity draw must never be disguised as zero cost.
+
+    CC-5: the packet is finally in scope at the spawn site — before this,
+    `routing.reasoning_effort` was schema surface the dispatcher never
+    read and every invocation ran at the env/default rung.
     """
     if role == "pm":
         return ["env", "-u", "ANTHROPIC_API_KEY", "claude", "-p", prompt,
@@ -225,7 +249,7 @@ def role_command(role: str, prompt: str, mailroom: Path) -> list[str]:
     return ["codex", "exec", "--json",
             "--dangerously-bypass-approvals-and-sandbox",
             "-m", os.environ.get("CODEX_MODEL", "gpt-5.6-sol"),
-            "-c", f"model_reasoning_effort={os.environ.get('CODEX_EFFORT', 'high')}",
+            "-c", f"model_reasoning_effort={resolve_effort(role, packet)}",
             prompt]
 
 
@@ -952,7 +976,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         ctxf.close()
         cmd = [fake_agent, ctxf.name]
     else:
-        cmd = role_command(role, prompt, mailroom)
+        cmd = role_command(role, prompt, mailroom, packet)
     started = time.time()
     rc, stdout_tail, stderr_tail, stop_reason = _run_capped(
         cmd, worktree, mailroom, wall_cap=wall_cap, task_id=task_id,
