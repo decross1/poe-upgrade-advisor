@@ -55,21 +55,60 @@ def _default_pause_merges_path() -> Path:
     return Path.cwd() / "mailroom/PAUSE_MERGES"
 
 
-def pause_merges_reason(path: str | Path | None = None) -> str | None:
+def pause_merges_reason(
+    path: str | Path | None = None, *, issue_loader=None
+) -> str | None:
     """Return a fail-closed reason when the local merge pause is active.
 
-    Hosted-runner transport is deliberately outside this reader. Operators may
-    set PAUSE_MERGES_PATH to the materialized read-only state location.
+    The local file protects on-box schedulers. An open GitHub issue labelled
+    ``merge-pause`` is the authoritative transport visible to hosted runners.
     """
     configured = path if path is not None else os.environ.get("PAUSE_MERGES_PATH")
     pause_path = Path(configured) if configured else _default_pause_merges_path()
     try:
         if not pause_path.is_file():
-            return None
-        pause_path.read_text(encoding="utf-8")
+            local_reason = None
+        else:
+            pause_path.read_text(encoding="utf-8")
+            local_reason = f"PAUSE_MERGES active at {pause_path}"
     except OSError as exc:
         return f"PAUSE_MERGES state unreadable at {pause_path}: {exc}"
-    return f"PAUSE_MERGES active at {pause_path}"
+    if local_reason is not None:
+        return local_reason
+
+    loader = gh if issue_loader is None else issue_loader
+    try:
+        issues = loader(
+            f"/repos/{REPO}/issues",
+            params={"labels": "merge-pause", "state": "open"},
+        )
+    except Exception as exc:  # noqa: BLE001 - merge authority fails closed
+        return f"merge-pause state unreachable: {type(exc).__name__}: {exc}"
+    if not isinstance(issues, list):
+        return "merge-pause state unreachable: invalid GitHub response"
+    if issues:
+        issue = issues[0]
+        if not isinstance(issue, dict) or "number" not in issue or "title" not in issue:
+            return "merge-pause state unreachable: malformed issue response"
+        return f"merge-pause active: #{issue['number']} {issue['title']}"
+    return None
+
+
+def approval_failure(reviews: list[dict], author: str) -> str | None:
+    """Diagnose conditions 2/3 without collapsing distinct operator actions."""
+    approved = [review for review in reviews if review.get("state") == "APPROVED"]
+    if not approved:
+        return "(2) no APPROVED review"
+    evidenced = [
+        review
+        for review in approved
+        if "EVIDENCE-SHA256:" in (review.get("body") or "")
+    ]
+    if not evidenced:
+        return "(3) APPROVED review lacks EVIDENCE-SHA256"
+    if not any((review.get("user") or {}).get("login") != author for review in evidenced):
+        return "(3) evidence-bearing approval is author-only"
+    return None
 
 
 class TaskLinkError(ValueError):
@@ -154,11 +193,9 @@ def check_pr(pr_number: int) -> None:
 
     # 2+3 — evidence-bearing approval from a different identity
     reviews = gh(f"/repos/{REPO}/pulls/{pr_number}/reviews")
-    approved = [r for r in reviews if r["state"] == "APPROVED"
-                and "EVIDENCE-SHA256:" in (r.get("body") or "")
-                and r["user"]["login"] != author]
-    if not approved:
-        fail(pr_number, "(2/3) no evidence-bearing approval from a non-author identity")
+    approval_problem = approval_failure(reviews, author)
+    if approval_problem is not None:
+        fail(pr_number, approval_problem)
 
     # 4 — whole-task Fixes or structurally derived stage Refs (ADR-0008)
     try:

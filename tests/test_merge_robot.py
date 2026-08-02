@@ -97,6 +97,48 @@ def test_pause_merges_gate_is_read_only_and_precedes_remote_inspection(
     assert pause.read_text() == "main is red\n"
 
 
+def test_github_merge_pause_issue_blocks_when_local_state_is_absent(
+    monkeypatch, tmp_path
+):
+    robot = _robot(monkeypatch)
+    calls = []
+
+    def issues(path, **kwargs):
+        calls.append((path, kwargs))
+        return [{"number": 123, "title": "Main is red"}]
+
+    reason = robot.pause_merges_reason(tmp_path / "absent", issue_loader=issues)
+    assert reason == "merge-pause active: #123 Main is red"
+    assert calls == [(
+        "/repos/example/repo/issues",
+        {"params": {"labels": "merge-pause", "state": "open"}},
+    )]
+
+
+@pytest.mark.parametrize(
+    ("loader", "detail"),
+    [
+        (lambda path, **kwargs: (_ for _ in ()).throw(OSError("offline")), "offline"),
+        (lambda path, **kwargs: {"status": 503}, "invalid GitHub response"),
+        (lambda path, **kwargs: [{}], "malformed issue response"),
+    ],
+)
+def test_github_merge_pause_transport_fails_closed(
+    monkeypatch, tmp_path, loader, detail
+):
+    robot = _robot(monkeypatch)
+    reason = robot.pause_merges_reason(tmp_path / "absent", issue_loader=loader)
+    assert reason is not None
+    assert "unreachable" in reason and detail in reason
+
+
+def test_both_pause_transports_clear_allows_merge_inspection(monkeypatch, tmp_path):
+    robot = _robot(monkeypatch)
+    assert robot.pause_merges_reason(
+        tmp_path / "absent", issue_loader=lambda path, **kwargs: []
+    ) is None
+
+
 def test_default_pause_path_finds_shared_mailroom_from_fan_worktree(
     monkeypatch, tmp_path
 ):
@@ -109,7 +151,9 @@ def test_default_pause_path_finds_shared_mailroom_from_fan_worktree(
     pause.write_text("main is red\n")
     monkeypatch.delenv("PAUSE_MERGES_PATH", raising=False)
     monkeypatch.chdir(worktree)
-    assert robot.pause_merges_reason() == f"PAUSE_MERGES active at {pause}"
+    assert robot.pause_merges_reason(
+        issue_loader=lambda path, **kwargs: pytest.fail("local pause must short-circuit")
+    ) == f"PAUSE_MERGES active at {pause}"
 
 
 def test_pause_merges_reader_fails_closed_when_present_state_is_unreadable(
@@ -126,7 +170,9 @@ def test_pause_merges_reader_fails_closed_when_present_state_is_unreadable(
         return original(self, *args, **kwargs)
 
     monkeypatch.setattr(robot.Path, "read_text", unreadable)
-    reason = robot.pause_merges_reason(pause)
+    reason = robot.pause_merges_reason(
+        pause, issue_loader=lambda path, **kwargs: pytest.fail("unreadable is paused")
+    )
     assert reason is not None
     assert "unreadable" in reason and "simulated unreadable state" in reason
     assert pause.is_file()
@@ -135,8 +181,40 @@ def test_pause_merges_reader_fails_closed_when_present_state_is_unreadable(
 def test_absent_pause_state_does_not_get_created(monkeypatch, tmp_path):
     robot = _robot(monkeypatch)
     pause = tmp_path / "PAUSE_MERGES"
-    assert robot.pause_merges_reason(pause) is None
+    assert robot.pause_merges_reason(
+        pause, issue_loader=lambda path, **kwargs: []
+    ) is None
     assert not pause.exists()
+
+
+@pytest.mark.parametrize(
+    ("reviews", "expected"),
+    [
+        ([{"state": "COMMENTED", "user": {"login": "reviewer"}}],
+         "(2) no APPROVED review"),
+        ([{"state": "APPROVED", "body": "looks good",
+           "user": {"login": "reviewer"}}],
+         "(3) APPROVED review lacks EVIDENCE-SHA256"),
+        ([{"state": "APPROVED", "body": "EVIDENCE-SHA256:abc",
+           "user": {"login": "author"}}],
+         "(3) evidence-bearing approval is author-only"),
+    ],
+)
+def test_approval_gate_diagnoses_each_distinct_failure(
+    monkeypatch, reviews, expected
+):
+    robot = _robot(monkeypatch)
+    assert robot.approval_failure(reviews, "author") == expected
+
+
+def test_approval_gate_accepts_evidenced_non_author(monkeypatch):
+    robot = _robot(monkeypatch)
+    reviews = [{
+        "state": "APPROVED",
+        "body": "execution proof EVIDENCE-SHA256:abc",
+        "user": {"login": "reviewer"},
+    }]
+    assert robot.approval_failure(reviews, "author") is None
 
 
 def _robot(monkeypatch):
