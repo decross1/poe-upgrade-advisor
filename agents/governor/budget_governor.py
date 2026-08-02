@@ -12,16 +12,24 @@ Also provides a stall watchdog CLI:
 finds tasks with recent invocations but no new commits and parks them.
 """
 from __future__ import annotations
-import argparse, sqlite3, subprocess, time
+import argparse, sqlite3, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from agents.interfaces.policy import load_policy  # noqa: E402
 
 
 class Governor:
     def __init__(self, policy_path: Path, ledger_path: Path):
-        self.policy = yaml.safe_load(Path(policy_path).read_text())
+        # Merged view of policy.yaml (Lane A keys) + run_policy.yaml (Lane B:
+        # per_day_max, daily_reset_hour_utc since pm's atomic move 7d95d79).
+        # load_policy raises on a key defined in both files, so the lane
+        # boundary stays a test failure rather than a silent overwrite.
+        self.policy = load_policy(Path(policy_path).parent)
         self.db = sqlite3.connect(ledger_path)
         self.db.execute(
             """CREATE TABLE IF NOT EXISTS ledger (
@@ -29,6 +37,13 @@ class Governor:
         )
         self.db.commit()
         self.repo = Path(policy_path).resolve().parents[2]  # repo root
+        cb = self.policy.get("circuit_breaker_consecutive_failures", 0)
+        if cb > 10:
+            import sys
+            print(f"WARNING: circuit_breaker_consecutive_failures={cb} "
+                  f"exceeds the LIMIT 10 window in _consecutive_failures — "
+                  f"the breaker can never trip at this setting",
+                  file=sys.stderr)
 
     # ------------------------------------------------------------ queries
     def _day_start(self) -> float:
@@ -44,6 +59,10 @@ class Governor:
         return self.db.execute(q, args).fetchone()[0]
 
     def _consecutive_failures(self, role: str, task_id: str) -> int:
+        # LIMIT 10 caps the observable streak: a breaker threshold above 10
+        # can NEVER trip (12 straight failures count as 10). Pinned in the
+        # W1-1 characterisation suite; __init__ warns when a policy crosses
+        # the coupling. W2-4's anti-loop controller is the deeper defence.
         rows = self.db.execute(
             "SELECT success FROM ledger WHERE role=? AND task_id=? ORDER BY ts DESC LIMIT 10",
             (role, task_id)).fetchall()
@@ -61,23 +80,27 @@ class Governor:
 
     # ------------------------------------------------------------ decisions
     def allow(self, role: str, task_id: str) -> tuple[bool, str]:
+        # ORG is deliberately NOT exempt. 16 of 57 commits were org-plumbing,
+        # and the measured 2026-07-27 cascade ran under task_id=ORG-adjacent
+        # heartbeats: unbounded org chatter is the failure mode, not an edge
+        # case. ORG's caps come from the same per-task machinery; its tier
+        # budgets live in execution_classes.org (policy.yaml).
         p = self.policy
-        if task_id != "ORG":
-            used = self._count(
-                "SELECT COUNT(*) FROM ledger WHERE role=? AND task_id=?", (role, task_id))
-            if used >= p["per_task_max_invocations"]:
-                self._dead_letter(role, task_id, f"per-task cap {used} reached")
-                return False, "per-task cap"
-            cf = self._consecutive_failures(role, task_id)
-            if cf >= p["circuit_breaker_consecutive_failures"]:
-                self._dead_letter(role, task_id, f"{cf} consecutive failures")
-                return False, "circuit breaker tripped"
-            if cf > 0:
-                wait = min(p["backoff"]["base_minutes"] * (2 ** (cf - 1)),
-                           p["backoff"]["max_minutes"]) * 60
-                last = self._last_failure_ts(role, task_id) or 0
-                if time.time() - last < wait:
-                    return False, f"backoff {int(wait - (time.time()-last))}s remaining"
+        used = self._count(
+            "SELECT COUNT(*) FROM ledger WHERE role=? AND task_id=?", (role, task_id))
+        if used >= p["per_task_max_invocations"]:
+            self._dead_letter(role, task_id, f"per-task cap {used} reached")
+            return False, "per-task cap"
+        cf = self._consecutive_failures(role, task_id)
+        if cf >= p["circuit_breaker_consecutive_failures"]:
+            self._dead_letter(role, task_id, f"{cf} consecutive failures")
+            return False, "circuit breaker tripped"
+        if cf > 0:
+            wait = min(p["backoff"]["base_minutes"] * (2 ** (cf - 1)),
+                       p["backoff"]["max_minutes"]) * 60
+            last = self._last_failure_ts(role, task_id) or 0
+            if time.time() - last < wait:
+                return False, f"backoff {int(wait - (time.time()-last))}s remaining"
         today = self._count(
             "SELECT COUNT(*) FROM ledger WHERE role=? AND ts>=?", (role, self._day_start()))
         if today >= p["per_day_max"][role]:
@@ -94,6 +117,10 @@ class Governor:
         dl = self.repo / "tasks" / "dead_letter" / f"{task_id}.md"
         if dl.exists():
             return
+        # tasks/dead_letter/ is untracked, so a fresh (fan) worktree does not
+        # have it — without this the first breaker/cap trip in a throwaway
+        # checkout raises FileNotFoundError instead of parking the task.
+        dl.parent.mkdir(parents=True, exist_ok=True)
         dl.write_text(
             f"# Dead-letter: {task_id}\n\n- role: {role}\n- reason: {reason}\n"
             f"- parked: {datetime.now(timezone.utc).isoformat()}\n\n"

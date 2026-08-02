@@ -5,7 +5,9 @@ import shlex
 import sys
 from pathlib import Path
 
-from agents.postmaster import postmaster
+# postmaster is RETIRED to the attic (W1-2) — superseded by agents/dispatch.py.
+# These tests keep characterising its transport semantics from there.
+from agents.attic import postmaster
 
 
 class RecordingGovernor:
@@ -143,7 +145,9 @@ def test_headless_heartbeat_spawn_can_reply_through_ledger(
     tmp_path: Path,
 ) -> None:
     root = _root(tmp_path)
-    ledger_script = Path(postmaster.__file__).with_name("ledger.py")
+    ledger_script = (
+        Path(postmaster.__file__).parents[1] / "postmaster" / "ledger.py"
+    )
     fake_agent = tmp_path / "reply_agent.py"
     fake_agent.write_text(
         "from pathlib import Path\n"
