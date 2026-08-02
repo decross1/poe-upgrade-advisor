@@ -26,9 +26,12 @@ def main() -> int:
         with open(counter, "a") as f:
             f.write("invoked\n")
     branch = os.environ.get("TRUTHFUL_BRANCH", "task/TASK-7-S1")
+    touch = os.environ.get("TRUTHFUL_TOUCH", "agent-work.txt")
     _git("checkout", "-q", "-b", branch)
-    Path("agent-work.txt").write_text("real work, really committed\n")
-    _git("add", "agent-work.txt")
+    p = Path(touch)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("real work, really committed\n")
+    _git("add", touch)
     _git("commit", "-q", "-m", "real work")
     sha = _git("rev-parse", "HEAD")
     _git("push", "-q", "origin", branch)
@@ -42,7 +45,7 @@ def main() -> int:
         "pushed": True,
         "branch": branch,
         "acceptance_criteria": [
-            {"id": "AC1", "status": "passed", "evidence": "agent-work.txt"},
+            {"id": "AC-1", "status": "passed", "evidence": "agent-work.txt"},
         ],
     }))
     return 0

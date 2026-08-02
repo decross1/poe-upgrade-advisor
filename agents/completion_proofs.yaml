@@ -1,18 +1,28 @@
-# Completion-proof contract (CC-2). Data, not code: the active proof list
-# and its parameters live here so pm-ratified values from plan v1.0 drop in
-# without a code change. Checkers are registered in agents/completion.py.
-#
-# Proofs #5-#15 of the plan are ABSENT deliberately: the base contract
-# (plan v1.0) is not on disk and pm's ANSWER is pending. Do not invent
-# entries here — an unratified proof is not a control.
-schema_version: "1.0"
+# Completion-proof contract (CC-2) — RATIFIED proofs #1-#15 (pm ANSWER
+# 2026-08-02T20:50Z, from the v1.0 reconstruction). Data, not code: the
+# active list and parameters live here; checkers are registered in
+# agents/completion.py. Numbering anchors #3/#4/#8 are fixed by v1.1 —
+# do not renumber.
+schema_version: "2.0"
 
-# Ratified task-branch pattern. null = pm ANSWER pending; the branch_pattern
-# proof reports not-evaluable (recorded, never inferred) until it is set.
-branch_pattern: null
+# Repo-wide default task-branch pattern (proof #4). A packet's own
+# `branch_pattern` field overrides it when that schema field lands
+# (protected change, Lane B).
+branch_pattern: "^(task|canary|repair)/TASK-[0-9]+(-S[0-9]+)?([a-z0-9-]*)?$"
 
 proofs:
-  - id: commit_exists
-  - id: pushed_remote_agreement
-  - id: branch_pattern
-  - id: ls_remote_recorded
+  - id: result_valid            # 1
+  - id: completed_fields        # 2
+  - id: pushed                  # 3  (anchor)
+  - id: branch_pattern          # 4  (anchor)
+  - id: commit_exists           # 5
+  - id: descends_from_base      # 6
+  - id: tree_clean_after_sweep  # 7
+  - id: remote_agreement        # 8  (anchor; persists ls-remote evidence)
+  - id: required_checks_pass    # 9  (CC-1 results, dispatcher-run)
+  - id: acceptance_criteria     # 10
+  - id: scope                   # 11
+  - id: protected_paths         # 12 (circuit break)
+  - id: banned_patterns         # 13 (circuit break)
+  - id: budgets                 # 14 (ceiling per A4; known-over breaks)
+  - id: accounting_before_ack   # 15 (dispatcher-evaluated at ack time)

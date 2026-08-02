@@ -77,6 +77,9 @@ from agents.checks import (  # noqa: E402
     validate_packet_commands,
 )
 from agents.completion import (  # noqa: E402
+    Proof,
+    breaks,
+    persist_bundle,
     proofs_telemetry,
     refusal,
     verify_completion,
@@ -876,6 +879,18 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                         attempt_number=attempts, task_class=tier,
                         started_at=time.time())
 
+    # 8.2 — record the worktree base BEFORE the agent runs (proof #6): the
+    # SHA the worktree was created from, observed while the tree is still
+    # the creation state. Ancestry against it catches orphan branches and
+    # history rewrites; absence fails #6 closed.
+    try:
+        _bp = subprocess.run(["git", "-C", str(worktree), "rev-parse",
+                              "HEAD"], capture_output=True, text=True,
+                             timeout=30)
+        base_sha = _bp.stdout.strip() if _bp.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        base_sha = None
+
     # 8.5 — dependency provisioning (A2 amendment): dispatcher-owned and
     # privileged — derived from the packet's commands, never expressible in
     # them (npm ci is banned in packets, yet npm checks cannot run without
@@ -965,57 +980,11 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     ack = AckDecision.RETAIN
     res: dict | None = None
     completion_proofs: list | None = None
+    proofs: list = []
     required_checks_tele: list | None = None
     try:
         res = load_result(worktree / RESULT_FILENAME)
         result_status = res["status"]
-        if is_ackable(res):
-            # Decision only — applied AFTER the anti-loop assessment, which
-            # may pre-empt it: a "completed" result that modified a
-            # prohibited file terminates instead of acking as success.
-            if result_status == "completed":
-                # 11.05 — CC-1: the packet's required_checks are
-                # AUTHORITATIVE and the DISPATCHER runs them itself, after
-                # the agent returns and before any ack. A failing check
-                # beats a "completed" self-report. Per-check rc rides
-                # telemetry; the runner never swallows one. (The command
-                # policy governs THESE commands and the prepass only —
-                # never the agent's own tools; the agent must push.)
-                declared = (packet or {}).get("required_checks") or []
-                check_results = run_commands(declared, worktree)
-                # Absent stays None, never zero-length: "no packet declared
-                # checks" and "checks ran" must be distinguishable.
-                required_checks_tele = (checks_telemetry(check_results)
-                                        if declared else None)
-                checks_refused = failed_checks_reason(check_results)
-
-                # 11.1 — CC-2: "completed" is a CLAIM. The dispatcher
-                # verifies the completion proofs (commit exists, push is
-                # real, branch conforms, ls-remote evidence persisted —
-                # agents/completion.py) before any ack applies. The
-                # fabricated payload {"status": "completed", "pushed":
-                # false, "commit_sha": "0000000", ...} was ackable here on
-                # the agent's word alone. COMPLETION_PROOFS=0 is the
-                # operator rollback lever (ANTI_LOOP idiom); default ON —
-                # it does NOT disable the required checks above.
-                proof_refused = None
-                if os.environ.get("COMPLETION_PROOFS", "1") != "0":
-                    proofs = verify_completion(res, worktree=worktree,
-                                               mailroom=mailroom,
-                                               run_id=run_id, packet=packet)
-                    completion_proofs = proofs_telemetry(proofs)
-                    proof_refused = refusal(proofs)
-
-                refused = "; ".join(
-                    r for r in (checks_refused, proof_refused) if r) or None
-                if refused:
-                    result_error = refused
-                else:
-                    ack = AckDecision.ACK
-                    success = True
-            else:  # blocked — ackable, never a success
-                ack = AckDecision.ACK
-        # needs_retry: actionable, retained; step 7 retires it at the cap.
     except ResultError as e:
         result_error = str(e)
         if stop_reason == "timeout":
@@ -1024,13 +993,114 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             result_error = f"stopped ({stop_reason}); {result_error}"
 
     # 11.2 — CC-3: sweep the result artifact into the durable run record
-    # BEFORE cleanliness is evaluated anywhere — the anti-loop changed-file
-    # set (11.5), the step-12 recovery inspection, and the supervisor's
-    # clean-tree removal guard all judge by what is in the tree. The agent
-    # writes the file in-worktree (contract unchanged); from the read
-    # onward its lifecycle is the dispatcher's. Valid or invalid it is
-    # evidence, so it moves — never deleted — to mailroom/runs/<run_id>/.
+    # BEFORE cleanliness is evaluated anywhere — proof #7, the anti-loop
+    # changed-file set (11.5), the step-12 recovery inspection, and the
+    # supervisor's clean-tree removal guard all judge by what is in the
+    # tree. The agent writes the file in-worktree (contract unchanged);
+    # from the read onward its lifecycle is the dispatcher's. Valid or
+    # invalid it is evidence, so it moves — never deleted — to
+    # mailroom/runs/<run_id>/.
     sweep_result(worktree, mailroom, run_id)
+
+    if res is not None and is_ackable(res):
+        # Decision only — applied AFTER the anti-loop assessment, which
+        # may pre-empt it: a "completed" result that modified a
+        # prohibited file terminates instead of acking as success.
+        if result_status == "completed":
+            # 11.05 — CC-1: the packet's required_checks are AUTHORITATIVE
+            # and the DISPATCHER runs them itself, after the agent returns
+            # and before any ack. A failing check beats a "completed"
+            # self-report. Per-check rc rides telemetry; the runner never
+            # swallows one. (The command policy governs THESE commands and
+            # the prepass only — never the agent's own tools.)
+            declared = (packet or {}).get("required_checks") or []
+            check_results = run_commands(declared, worktree)
+            # Absent stays None, never zero-length: "no packet declared
+            # checks" and "checks ran" must be distinguishable.
+            required_checks_tele = (checks_telemetry(check_results)
+                                    if declared else None)
+            checks_refused = failed_checks_reason(check_results)
+
+            # 11.1 — CC-2: "completed" is a CLAIM. The dispatcher runs the
+            # ratified proofs #1–#14 (agents/completion.py; #15 is the
+            # accounting-before-ack ordering, satisfied below) before any
+            # ack applies. The fabricated payload {"status": "completed",
+            # "pushed": false, "commit_sha": "0000000", ...} was ackable
+            # here on the agent's word alone. COMPLETION_PROOFS=0 is the
+            # operator rollback lever (ANTI_LOOP idiom); default ON — it
+            # does NOT disable the required checks above.
+            proof_refused = None
+            if os.environ.get("COMPLETION_PROOFS", "1") != "0":
+                proofs = verify_completion(
+                    res, worktree=worktree, mailroom=mailroom,
+                    run_id=run_id, packet=packet, base_sha=base_sha,
+                    check_results=check_results if declared else None,
+                    attempts=attempts, duration_seconds=duration,
+                    usage=usage)
+                completion_proofs = proofs_telemetry(proofs)
+                proof_refused = refusal(proofs)
+
+                # #12/#13 (and a known-spend ceiling breach): CIRCUIT
+                # BREAK — terminate via the dead-letter path, dispatcher-
+                # authored status, never ack-as-success and never a plain
+                # retain-and-retry.
+                broken = breaks(proofs)
+                if broken:
+                    reason = "completion proof circuit break: " + "; ".join(
+                        f"#{p.number} {p.proof_id}: {p.detail}"
+                        for p in broken)
+                    persist_bundle(mailroom, run_id, proofs,
+                                   extra={"circuit_break": True})
+                    dl = write_dead_letter(
+                        mailroom, task_id=task_id, role=role,
+                        message_id=message_id, reason=reason,
+                        attempts=attempts, exit_code=rc,
+                        stderr_tail=stderr_tail, fingerprint=None)
+                    ack_message(mailroom, role, message_id)
+                    gov.record(role, task_id, False)
+                    try:
+                        bl.record_spend(role=role, task_id=task_id,
+                                        run_id=run_id, success=False,
+                                        cash_usd=usage.get("cash_usd"),
+                                        allowance_pct=usage.get(
+                                            "allowance_pct_estimated"),
+                                        input_tokens=usage.get(
+                                            "input_tokens"),
+                                        output_tokens=usage.get(
+                                            "output_tokens"))
+                    except BudgetLedgerUnavailable as e:
+                        print(f"WARNING: spend record failed: {e}",
+                              file=sys.stderr)
+                    tele.finish(run_id, result_status=result_status,
+                                result_error=reason,
+                                completion_proofs=completion_proofs,
+                                required_checks=required_checks_tele,
+                                provisioning=provisioning or None,
+                                usage_parse_error=usage_parse_error,
+                                exit_code=rc, stop_reason=stop_reason,
+                                duration_seconds=round(duration, 3),
+                                attempt_number=attempts,
+                                completed_at=time.time(), **usage)
+                    return Outcome(
+                        decision=DispatchDecision.CIRCUIT_BROKEN.value,
+                        ack=AckDecision.ACK_DEAD_LETTER.value,
+                        reason=reason, message_id=message_id,
+                        task_id=task_id, role=role, attempts=attempts,
+                        max_attempts=max_attempts,
+                        exit_code=rc if rc is not None else -1,
+                        invoked=True, result_status=result_status,
+                        extra={"dead_letter": str(dl)})
+
+            refused = "; ".join(
+                r for r in (checks_refused, proof_refused) if r) or None
+            if refused:
+                result_error = refused
+            else:
+                ack = AckDecision.ACK
+                success = True
+        else:  # blocked — ackable, never a success
+            ack = AckDecision.ACK
+    # needs_retry: actionable, retained; step 7 retires it at the cap.
 
     # 11.5 — anti-loop controller (W2-4): every one of ~50 measured
     # invocations of one task produced an identical error signature with
@@ -1090,8 +1160,65 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         # force_strategy_change / continue: state persisted by the
         # controller; the next attempt reads the note and the tier.
 
-    if ack is AckDecision.ACK:
+    # 11.9 — proof #15: accounting BEFORE ack, fail-closed. For a verified
+    # completion the spend row, governor row, telemetry finish row and the
+    # persisted proof bundle all exist before the message is retired; a
+    # ledger write failure refuses the ack (RETAIN) rather than acking
+    # unremembered work.
+    accounted = False
+    if ack is AckDecision.ACK and success:
+        try:
+            bl.record_spend(role=role, task_id=task_id, run_id=run_id,
+                            success=True,
+                            cash_usd=usage.get("cash_usd"),
+                            allowance_pct=usage.get(
+                                "allowance_pct_estimated"),
+                            input_tokens=usage.get("input_tokens"),
+                            output_tokens=usage.get("output_tokens"))
+            spend_err = None
+        except BudgetLedgerUnavailable as e:
+            spend_err = str(e)
+        if spend_err is None:
+            gov.record(role, task_id, True)
+            if proofs:
+                p15 = Proof(15, "accounting_before_ack", True,
+                            "spend row, governor row and telemetry finish "
+                            "written before ack; bundle persisted")
+                proofs = [p15 if p.number == 15 else p for p in proofs]
+                completion_proofs = proofs_telemetry(proofs)
+            tele.finish(run_id, result_status=result_status,
+                        result_error=None,
+                        usage_parse_error=usage_parse_error,
+                        completion_proofs=completion_proofs,
+                        required_checks=required_checks_tele,
+                        provisioning=provisioning or None,
+                        exit_code=rc, timed_out=timed_out, halted=halted,
+                        stop_reason=stop_reason,
+                        duration_seconds=round(duration, 3),
+                        attempt_number=attempts, prepass=prepass_results,
+                        completed_at=time.time(), **usage)
+            if proofs:
+                persist_bundle(mailroom, run_id, proofs,
+                               extra={"acked": True})
+            ack_message(mailroom, role, message_id)
+            accounted = True
+        else:
+            ack = AckDecision.RETAIN
+            success = False
+            result_error = ("completion refused: #15 accounting_before_ack: "
+                            f"spend row could not be written before ack: "
+                            f"{spend_err}")
+            if proofs:
+                p15 = Proof(15, "accounting_before_ack", False,
+                            f"spend row not writable before ack: {spend_err}")
+                proofs = [p15 if p.number == 15 else p for p in proofs]
+                completion_proofs = proofs_telemetry(proofs)
+    elif ack is AckDecision.ACK:
         ack_message(mailroom, role, message_id)
+
+    # A refused completion's bundle is evidence too.
+    if proofs and not accounted:
+        persist_bundle(mailroom, run_id, proofs, extra={"acked": False})
 
     # 12 — recovery: any unsaved work in the tree (dirty or unpushed) gets a
     # verified bundle before the supervisor may consider removal (W1-4).
@@ -1108,30 +1235,35 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         "result_error": result_error, "ts": time.time(),
     })
 
-    # 13 / 14 — record and close. Spend recording is fail-closed by design,
-    # but at this point the spend has already happened: log loudly and let
-    # the NEXT invocation's fail-closed open refuse instead.
-    gov.record(role, task_id, success)
-    try:
-        bl.record_spend(role=role, task_id=task_id, run_id=run_id,
-                        success=success,
-                        cash_usd=usage.get("cash_usd"),
-                        allowance_pct=usage.get("allowance_pct_estimated"),
-                        input_tokens=usage.get("input_tokens"),
-                        output_tokens=usage.get("output_tokens"))
-    except BudgetLedgerUnavailable as e:
-        print(f"WARNING: spend record failed after invocation: {e}",
-              file=sys.stderr)
-    tele.finish(run_id, result_status=result_status, result_error=result_error,
-                usage_parse_error=usage_parse_error,
-                completion_proofs=completion_proofs,
-                required_checks=required_checks_tele,
-                provisioning=provisioning or None,
-                exit_code=rc, timed_out=timed_out, halted=halted,
-                stop_reason=stop_reason,
-                duration_seconds=round(duration, 3),
-                attempt_number=attempts, prepass=prepass_results,
-                completed_at=time.time(), **usage)
+    # 13 / 14 — record and close (non-success and blocked paths; a verified
+    # completion already accounted at 11.9, before its ack). Spend recording
+    # is fail-closed by design, but at this point the spend has already
+    # happened: log loudly and let the NEXT invocation's fail-closed open
+    # refuse instead.
+    if not accounted:
+        gov.record(role, task_id, success)
+        try:
+            bl.record_spend(role=role, task_id=task_id, run_id=run_id,
+                            success=success,
+                            cash_usd=usage.get("cash_usd"),
+                            allowance_pct=usage.get(
+                                "allowance_pct_estimated"),
+                            input_tokens=usage.get("input_tokens"),
+                            output_tokens=usage.get("output_tokens"))
+        except BudgetLedgerUnavailable as e:
+            print(f"WARNING: spend record failed after invocation: {e}",
+                  file=sys.stderr)
+        tele.finish(run_id, result_status=result_status,
+                    result_error=result_error,
+                    usage_parse_error=usage_parse_error,
+                    completion_proofs=completion_proofs,
+                    required_checks=required_checks_tele,
+                    provisioning=provisioning or None,
+                    exit_code=rc, timed_out=timed_out, halted=halted,
+                    stop_reason=stop_reason,
+                    duration_seconds=round(duration, 3),
+                    attempt_number=attempts, prepass=prepass_results,
+                    completed_at=time.time(), **usage)
     return Outcome(decision=DispatchDecision.INVOKE.value, ack=ack.value,
                    reason=result_error or (result_status or ""),
                    message_id=message_id, task_id=task_id, role=role,

@@ -114,10 +114,18 @@ def test_fabricated_completion_refused_end_to_end(mailroom, worktree):
     ev = finish_event(mailroom)
     assert ev["result_error"].startswith("completion refused")
     pr = proofs_by_id(ev)
-    assert pr["commit_exists"]["passed"] is False
-    assert pr["pushed_remote_agreement"]["passed"] is False
-    # A4-precedent unknown semantics: pattern unset is recorded, not failed.
-    assert pr["branch_pattern"]["passed"] is None
+    assert len(pr) == 15                       # the full ratified set
+    assert pr["pushed"]["passed"] is False              # 3
+    assert pr["branch_pattern"]["passed"] is False      # 4 (no branch)
+    assert pr["commit_exists"]["passed"] is False       # 5
+    assert pr["remote_agreement"]["passed"] is False    # 8
+    # A4-precedent unknown semantics: packetless inputs record, not fail.
+    assert pr["scope"]["passed"] is None                # 11
+    assert pr["budgets"]["passed"] is None              # 14
+    # A refused completion's bundle is persisted evidence.
+    bundles = list((mailroom / "runs").glob("*/completion-proof.json"))
+    assert len(bundles) == 1
+    assert json.loads(bundles[0].read_text())["acked"] is False
     # The fabricated claim itself is preserved evidence (A1 sweep).
     swept = list((mailroom / "runs").glob("*/agent-result.json"))
     assert len(swept) == 1
@@ -140,10 +148,16 @@ def test_genuine_completion_acks_and_persists_ls_remote(mailroom, worktree):
 
     ev = finish_event(mailroom)
     pr = proofs_by_id(ev)
-    assert pr["commit_exists"]["passed"] is True
-    assert pr["pushed_remote_agreement"]["passed"] is True
-    assert pr["branch_pattern"]["passed"] is None  # pm ANSWER pending
-    assert pr["ls_remote_recorded"]["passed"] is True
+    assert pr["commit_exists"]["passed"] is True         # 5
+    assert pr["pushed"]["passed"] is True                # 3
+    assert pr["branch_pattern"]["passed"] is True        # 4: ratified default
+    assert pr["descends_from_base"]["passed"] is True    # 6
+    assert pr["tree_clean_after_sweep"]["passed"] is True  # 7
+    assert pr["remote_agreement"]["passed"] is True      # 8
+    assert pr["accounting_before_ack"]["passed"] is True  # 15
+    bundles = list((mailroom / "runs").glob("*/completion-proof.json"))
+    assert len(bundles) == 1
+    assert json.loads(bundles[0].read_text())["acked"] is True
 
     records = list((mailroom / "runs").glob("*/ls-remote.json"))
     assert len(records) == 1
@@ -199,7 +213,7 @@ def test_command_policy_never_constrains_agent_tools(mailroom, worktree):
 
     assert out.ack == ACK          # the agent's push went through
     ev = finish_event(mailroom)
-    assert proofs_by_id(ev)["pushed_remote_agreement"]["passed"] is True
+    assert proofs_by_id(ev)["remote_agreement"]["passed"] is True
     assert [c["rc"] for c in ev["required_checks"]] == [0]
 
 
@@ -219,9 +233,9 @@ def _true_completion(worktree: Path) -> dict:
             "acceptance_criteria": []}
 
 
-def _run(res, worktree, mailroom, params) -> dict:
+def _run(res, worktree, mailroom, params, **kw) -> dict:
     proofs = verify_completion(res, worktree=worktree, mailroom=mailroom,
-                               run_id="run-unit0001", params=params)
+                               run_id="run-unit0001", params=params, **kw)
     return {p.proof_id: p for p in proofs}
 
 
@@ -236,10 +250,9 @@ def test_commit_must_exist(mailroom, worktree):
 def test_pushed_false_refuses_even_with_real_commit(mailroom, worktree):
     res = _true_completion(worktree)
     res["pushed"] = False
-    pr = _run(res, worktree, mailroom,
-              {"proofs": [{"id": "pushed_remote_agreement"}]})
-    assert pr["pushed_remote_agreement"].passed is False
-    assert "pushed=false" in pr["pushed_remote_agreement"].detail
+    pr = _run(res, worktree, mailroom, {"proofs": [{"id": "pushed"}]})
+    assert pr["pushed"].passed is False
+    assert "pushed=false" in pr["pushed"].detail
 
 
 def test_remote_tip_must_match_claim(mailroom, worktree):
@@ -251,9 +264,9 @@ def test_remote_tip_must_match_claim(mailroom, worktree):
     _git("commit", "-q", "-m", "w2", cwd=worktree)
     _git("push", "-q", "origin", "task/TASK-9", cwd=worktree)  # remote moves
     pr = _run(res, worktree, mailroom,  # still claims the OLD sha
-              {"proofs": [{"id": "pushed_remote_agreement"}]})
-    assert pr["pushed_remote_agreement"].passed is False
-    assert "not the claimed" in pr["pushed_remote_agreement"].detail
+              {"proofs": [{"id": "remote_agreement"}]})
+    assert pr["remote_agreement"].passed is False
+    assert "not the claimed" in pr["remote_agreement"].detail
 
 
 def test_unpushed_branch_refuses(mailroom, worktree):
@@ -261,9 +274,9 @@ def test_unpushed_branch_refuses(mailroom, worktree):
     res["branch"] = "task/TASK-9-never-pushed"
     _git("branch", "-q", "task/TASK-9-never-pushed", cwd=worktree)
     pr = _run(res, worktree, mailroom,
-              {"proofs": [{"id": "pushed_remote_agreement"}]})
-    assert pr["pushed_remote_agreement"].passed is False
-    assert "does not exist on origin" in pr["pushed_remote_agreement"].detail
+              {"proofs": [{"id": "remote_agreement"}]})
+    assert pr["remote_agreement"].passed is False
+    assert "does not exist on origin" in pr["remote_agreement"].detail
 
 
 def test_branch_pattern_enforced_when_ratified(mailroom, worktree):
@@ -291,7 +304,150 @@ def test_unknown_ratified_proof_id_refuses(mailroom, worktree):
 
 
 def test_not_evaluable_alone_does_not_refuse():
-    proofs = [Proof("branch_pattern", None, "pattern unset"),
-              Proof("commit_exists", True, "ok")]
+    proofs = [Proof(4, "branch_pattern", None, "pattern unset"),
+              Proof(5, "commit_exists", True, "ok")]
     assert refusal(proofs) is None
-    assert refusal([Proof("commit_exists", False, "no")]) is not None
+    assert refusal([Proof(5, "commit_exists", False, "no")]) is not None
+
+
+# ----------------------------------------------- ratified proofs #6-#15
+
+def test_history_rewrite_fails_ancestry(mailroom, worktree):
+    """#6: a claimed commit that does not descend from the recorded base
+    (rewrite/orphan) refuses, even though the commit exists and is pushed."""
+    res = _true_completion(worktree)
+    tip = res["commit_sha"]
+    parent = _git("rev-parse", f"{tip}~1", cwd=worktree).strip()
+    pr = _run(res, worktree, mailroom,
+              {"proofs": [{"id": "descends_from_base"}]}, base_sha=tip)
+    # base == tip, claimed == tip: fine
+    assert pr["descends_from_base"].passed is True
+    res2 = dict(res, commit_sha=parent)  # claims an ancestor of the base
+    pr2 = _run(res2, worktree, mailroom,
+               {"proofs": [{"id": "descends_from_base"}]}, base_sha=tip)
+    assert pr2["descends_from_base"].passed is False
+
+
+def test_dirty_tree_fails_p7(mailroom, worktree):
+    res = _true_completion(worktree)
+    (worktree / "residue.txt").write_text("left behind\n")
+    pr = _run(res, worktree, mailroom,
+              {"proofs": [{"id": "tree_clean_after_sweep"}]})
+    assert pr["tree_clean_after_sweep"].passed is False
+    assert "residue.txt" in pr["tree_clean_after_sweep"].detail
+
+
+def test_ac_set_equality_and_evidence(mailroom, worktree):
+    """#10: exact id-set — none missing, none invented; all passed with
+    evidence. No packet → not evaluable, never inferred."""
+    res = _true_completion(worktree)
+    packet = {"acceptance_criteria": [{"id": "AC-1", "text": "x"},
+                                      {"id": "AC-2", "text": "y"}]}
+    res["acceptance_criteria"] = [
+        {"id": "AC-1", "status": "passed", "evidence": "t"}]
+    pr = _run(res, worktree, mailroom,
+              {"proofs": [{"id": "acceptance_criteria"}]}, packet=packet)
+    assert pr["acceptance_criteria"].passed is False
+    assert "missing ['AC-2']" in pr["acceptance_criteria"].detail
+    res["acceptance_criteria"] = [
+        {"id": "AC-1", "status": "passed", "evidence": "t"},
+        {"id": "AC-2", "status": "passed", "evidence": None}]
+    pr = _run(res, worktree, mailroom,
+              {"proofs": [{"id": "acceptance_criteria"}]}, packet=packet)
+    assert pr["acceptance_criteria"].passed is False  # evidence null
+    assert _run(res, worktree, mailroom,
+                {"proofs": [{"id": "acceptance_criteria"}]}
+                )["acceptance_criteria"].passed is None  # no packet
+
+
+def test_out_of_scope_path_fails_p11(mailroom, worktree):
+    res = _true_completion(worktree)  # touched w.txt
+    packet = {"files_in_scope": ["README.md"], "files_out_of_scope": []}
+    pr = _run(res, worktree, mailroom, {"proofs": [{"id": "scope"}]},
+              packet=packet, base_sha=_git("rev-parse", "origin/main",
+                                           cwd=worktree).strip())
+    assert pr["scope"].passed is False
+    assert "w.txt" in pr["scope"].detail
+
+
+def test_protected_path_circuit_breaks_end_to_end(mailroom, worktree,
+                                                  monkeypatch):
+    """#12 e2e: the agent commits a change to a PROTECTED path (agents/*),
+    pushes it, and reports completed truthfully — the dispatcher circuit-
+    breaks: dead-letter, ack_dead_letter, CIRCUIT_BROKEN, bundle marked."""
+    monkeypatch.setenv("TRUTHFUL_TOUCH", "agents/governor/policy.yaml")
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("truthful_agent.py"))
+
+    assert out.decision == "circuit_broken"
+    assert out.ack == "ack_dead_letter"
+    assert "completion proof circuit break" in out.reason
+    assert "#12" in out.reason
+    dl = list((mailroom / "dead_letter").glob("*/*.json"))
+    assert len(dl) == 1
+    assert json.loads(dl[0].read_text())["status"] == "dead_lettered"
+    bundles = list((mailroom / "runs").glob("*/completion-proof.json"))
+    assert len(bundles) == 1
+    assert json.loads(bundles[0].read_text())["circuit_break"] is True
+
+
+def test_test_weakening_signature_breaks_p13(mailroom, worktree):
+    _git("checkout", "-q", "-b", "task/TASK-13", cwd=worktree)
+    (worktree / "tests_new.py").write_text(
+        "@pytest.mark.skip\ndef test_x():\n    pass\n")
+    _git("add", "tests_new.py", cwd=worktree)
+    _git("commit", "-q", "-m", "weaken", cwd=worktree)
+    sha = _git("rev-parse", "HEAD", cwd=worktree).strip()
+    base = _git("rev-parse", "origin/main", cwd=worktree).strip()
+    res = {"schema_version": "1.0", "run_id": "run-unit0001",
+           "task_id": "TASK-13", "status": "completed", "summary": "w",
+           "commit_sha": sha, "pushed": True, "branch": "task/TASK-13",
+           "acceptance_criteria": []}
+    pr = _run(res, worktree, mailroom,
+              {"proofs": [{"id": "banned_patterns"}]}, base_sha=base)
+    assert pr["banned_patterns"].passed is False
+    assert pr["banned_patterns"].severity == "break"
+    assert "TEST_SIG" in pr["banned_patterns"].detail
+
+
+def test_budgets_p14_lines_ceiling_and_unknown_spend(mailroom, worktree):
+    res = _true_completion(worktree)
+    base = _git("rev-parse", "origin/main", cwd=worktree).strip()
+    packet = {"budgets": {"max_diff_lines": 0}}
+    pr = _run(res, worktree, mailroom, {"proofs": [{"id": "budgets"}]},
+              packet=packet, base_sha=base)
+    assert pr["budgets"].passed is False
+    assert pr["budgets"].severity == "fail"
+    # known spend over ceiling: circuit break (T-A3)
+    packet = {"budgets": {"cost_ceiling_usd": 1.0}}
+    pr = _run(res, worktree, mailroom, {"proofs": [{"id": "budgets"}]},
+              packet=packet, usage={"cash_usd": 2.5})
+    assert pr["budgets"].passed is False
+    assert pr["budgets"].severity == "break"
+    # unknown spend: ceiling not_evaluable, never blocks (A4)
+    pr = _run(res, worktree, mailroom, {"proofs": [{"id": "budgets"}]},
+              packet=packet, usage={"cash_usd": None})
+    assert pr["budgets"].passed is True
+    assert "not_evaluable" in pr["budgets"].detail
+
+
+def test_spend_write_failure_refuses_ack_p15(mailroom, worktree,
+                                             monkeypatch):
+    """#15 e2e: all fourteen proofs pass but the spend row cannot be
+    written — the ack is REFUSED (retain), never 'acked but unremembered'."""
+    from agents.interfaces.budget import BudgetLedgerUnavailable
+
+    def boom(self, **kw):
+        raise BudgetLedgerUnavailable("disk full")
+    monkeypatch.setattr(dispatch_mod.SqliteBudgetLedger, "record_spend",
+                        boom)
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("truthful_agent.py"))
+
+    assert out.ack == RETAIN
+    assert "#15 accounting_before_ack" in out.reason
+    assert msg["message_id"] not in acked(mailroom, "backend")
+    ev = finish_event(mailroom)
+    assert proofs_by_id(ev)["accounting_before_ack"]["passed"] is False
