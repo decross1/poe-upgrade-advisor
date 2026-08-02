@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Postmaster v1 — governed agent launcher over the append-only ledger.
+"""Postmaster v1 — RETIRED (W1-2, 2026-08-02). Do not wire anything to this.
+
+Superseded by `agents/dispatch.py`, the single governed entry point. This
+daemon never ran in production (`scripts/agent_loop.sh` drove all activity),
+and it acknowledges a message whenever the spawned process exits — the
+measured 2026-07 logs show 1,408 invocations with rc=0 and ~88% zero yield,
+so that ack rule records failure as success. Kept in the attic because its
+tests characterise real transport semantics; its config
+(`agents/postmaster/config.yaml`) stays where it is, untouched.
 
 Per configured role: poll the shared ledger -> validate AgentMessage JSON ->
 dedupe (sqlite) -> ask governor for permission -> build a wrapper prompt ->
 spawn that role's agent CLI headlessly in its worktree -> acknowledge the
 message in the role's append-only ledger cursor.
 
-Agents send replies directly with ledger.py; the daemon has no credentials.
-Kill switch: `touch <mailroom>/HALT` stops all invocations.
-
-Usage:
+Usage (historical):
   python postmaster.py --config config.yaml --role backend --once
   python postmaster.py --config config.yaml --all --daemon
 """
@@ -29,10 +34,11 @@ import yaml  # pip install pyyaml
 from jsonschema import Draft202012Validator  # pip install jsonschema
 
 HERE = Path(__file__).resolve().parent
-SCHEMA = json.loads((HERE / "message_schema.json").read_text())
+_POSTMASTER_DIR = HERE.parent / "postmaster"  # schema + ledger stayed behind
+SCHEMA = json.loads((_POSTMASTER_DIR / "message_schema.json").read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
 
-sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(_POSTMASTER_DIR))
 from ledger import acked_ids, all_messages, ledger_root  # noqa: E402
 
 sys.path.insert(0, str(HERE.parent / "governor"))
