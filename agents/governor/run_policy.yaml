@@ -1,13 +1,28 @@
-# W2-3 aggregate run policy.
+# Aggregate execution policy — Lane B key space.
+#
+# Split from policy.yaml so two concurrent dev lanes never edit the same YAML.
+# agents/interfaces/policy.py::load_policy merges both files and RAISES if a
+# top-level key appears in both, so a boundary violation is a test failure
+# rather than a silent overwrite.
+#
+# Lane A owns policy.yaml: per_task_max_invocations, backoff,
+# circuit_breaker_consecutive_failures, execution_classes, circuit_breakers,
+# recovery, progress.
+#
+# per_day_max and daily_reset_hour_utc moved here from policy.yaml by pm in a
+# single atomic commit: budget_governor.py does p["per_day_max"][role] with no
+# guard, so a window where neither file defines it would KeyError on every
+# governor call.
 #
 # EVERY NUMERIC CAP BELOW IS [E]: a placeholder derived from a three-day run
 # under different roles/models and before these controls existed. Replace the
 # numbers from measured shakedown telemetry before unattended operation.
-#
-# `per_day_max` and `daily_reset_hour_utc` remain temporarily in Lane A's
-# policy.yaml so this branch is loadable without duplicate keys. Integration
-# moves those two existing keys here atomically; the frozen loader rejects any
-# overlap, preventing a silent partial move.
+
+per_day_max:
+  pm: 24
+  backend: 36
+  frontend: 36
+daily_reset_hour_utc: 4
 
 roles:
   pm: {budget: claude, allowance_owner: pm}
