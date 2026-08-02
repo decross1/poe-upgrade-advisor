@@ -122,11 +122,32 @@ class SqliteBudgetLedger:
         )
 
     def spend_since(self, *, since_ts: float, role: str | None = None) -> dict[str, Any]:
-        sql = ("SELECT COUNT(*), COALESCE(SUM(cash_usd),0), COALESCE(SUM(allowance_pct),0) "
+        """Aggregate spend, keeping *unknown* distinct from *zero*.
+
+        `SUM()` over an all-NULL column is NULL, and wrapping it in
+        `COALESCE(..., 0)` reports "we spent nothing" for "we do not know what
+        we spent". That is the single failure this whole accounting layer
+        exists to prevent, so it is not done here.
+
+        Returns `cash_usd`/`allowance_pct` as the sum of the values that ARE
+        known, or `None` when none is, plus a count of rows contributing no
+        figure. A caller that cannot tolerate unknowns must check
+        `*_unknown_rows` and refuse to certify headroom rather than treating
+        the sum as complete.
+        """
+        sql = ("SELECT COUNT(*), SUM(cash_usd), SUM(allowance_pct), "
+               "       SUM(cash_usd IS NULL), SUM(allowance_pct IS NULL) "
                "FROM spend WHERE ts >= ?")
         args: tuple = (since_ts,)
         if role is not None:
             sql += " AND role = ?"
             args += (role,)
-        n, cash, pct = self._x(sql, args).fetchone()
-        return {"invocations": n, "cash_usd": cash, "allowance_pct": pct}
+        n, cash, pct, cash_unknown, pct_unknown = self._x(sql, args).fetchone()
+        return {
+            "invocations": n,
+            "cash_usd": cash,
+            "allowance_pct": pct,
+            "cash_usd_unknown_rows": cash_unknown or 0,
+            "allowance_pct_unknown_rows": pct_unknown or 0,
+            "complete": n > 0 and not (cash_unknown or 0) and not (pct_unknown or 0),
+        }
