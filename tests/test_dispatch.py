@@ -45,6 +45,22 @@ _SEQ = itertools.count(1)
 
 
 # ------------------------------------------------------------------ fixtures
+
+@pytest.fixture(autouse=True)
+def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
+    """Pin the run-budget port to AlwaysAllow for dispatch-unit tests.
+
+    Lane B's real agents.run_budget (integrated at b9293a8) fail-closes when
+    allowance readings are missing or stale — correct for production, but
+    run-level state these unit tests deliberately do not model. Tests that
+    exercise run-budget denial install their own stub per-test, which
+    overrides this pin.
+    """
+    from agents.interfaces.run_budget import AlwaysAllow
+    monkeypatch.setenv("RUN_BUDGET", "0")  # reaches subprocess children too
+    monkeypatch.setattr(dispatch_mod, "load_run_budget_port",
+                        lambda *a, **k: AlwaysAllow(warn=lambda m: None))
+
 @pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom, wired in via POB_LEDGER_DIR before any dispatch call.
@@ -982,3 +998,42 @@ def test_capture_seam_absent_accounting_module_leaves_usage_none(
     assert finishes[0].get("cash_usd") is None
     assert finishes[0]["stop_reason"] is None
     assert finishes[0]["result_status"] == "completed"
+
+
+def test_capture_seam_end_to_end_through_real_lane_b_parser(
+        mailroom, worktree, counter):
+    """THE integration proof (PM 06:50): two green lanes shipped a dead
+    accounting pipeline, and no test on either side could have caught it —
+    the stub variant above proves the call site, but only the REAL parser
+    proves the pipeline. No stub here: dispatch captures the fake's
+    stream-json stdout, agents.accounting.provider_usage (b9293a8) parses
+    it, and the values land in BOTH stores.
+
+    Asserted on VALUES, not truthiness: {} is what the broken version
+    returned, and a truthy-dict assertion would have passed through the
+    entire period the pipeline was dead.
+    """
+    msg = write_message(mailroom, to_role="pm", from_role="backend")
+    out = dispatch("pm", msg["message_id"], worktree,
+                   fake_agent=fake("usage_emitting_agent.py"))
+
+    assert out.result_status == "completed"
+    assert out.ack == ACK
+
+    db = sqlite3.connect(mailroom / "governor" / dispatch_mod.BUDGET_DB)
+    try:
+        rows = db.execute(
+            "SELECT cash_usd, input_tokens, output_tokens, success "
+            "FROM spend").fetchall()
+    finally:
+        db.close()
+    assert rows == [(0.0421, 51234, 2211, 1)]
+
+    finish = [r for r in tele_lines(mailroom) if r["event"] == "finish"]
+    assert len(finish) == 1
+    f = finish[0]
+    assert f["input_tokens"] == 51234
+    assert f["output_tokens"] == 2211
+    assert f["cash_usd"] == 0.0421
+    assert f["cached_input_tokens"] == 40960
+    assert f.get("usage_parse_error") is None

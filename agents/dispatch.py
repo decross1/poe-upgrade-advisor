@@ -139,7 +139,14 @@ def ack_message(root: Path, role: str, message_id: str) -> None:
 
 
 def load_run_budget_port(warn=None):
-    """Lane B's `agents.run_budget.load()` if present, else AlwaysAllow."""
+    """Lane B's `agents.run_budget.load()` if present, else AlwaysAllow.
+
+    RUN_BUDGET=0 is the dispatch-side rollback flag (W2-3 'set all caps to
+    infinity'): it forces AlwaysAllow, whose one-time RUN-BUDGET-ABSENT
+    marker keeps the unbounded state visible.
+    """
+    if os.environ.get("RUN_BUDGET", "1") == "0":
+        return run_budget_iface.AlwaysAllow(warn=warn)
     try:
         import agents.run_budget as rb  # noqa: PLC0415 — deliberate late bind
     except ImportError:

@@ -51,6 +51,18 @@ _SEQ = itertools.count(1)
 
 # ------------------------------------------------------------------ fixtures
 @pytest.fixture(autouse=True)
+def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
+    """Pin the run-budget port to AlwaysAllow (and RUN_BUDGET=0 for any
+    child process): Lane B's real agents.run_budget fail-closes on missing
+    allowance state, which preflight-unit tests do not model."""
+    import agents.dispatch as dispatch_mod
+    from agents.interfaces.run_budget import AlwaysAllow
+    monkeypatch.setenv("RUN_BUDGET", "0")
+    monkeypatch.setattr(dispatch_mod, "load_run_budget_port",
+                        lambda *a, **k: AlwaysAllow(warn=lambda m: None))
+
+
+@pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom via POB_LEDGER_DIR before any dispatch or ledger call.
 

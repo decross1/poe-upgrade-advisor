@@ -71,6 +71,22 @@ CIRCUIT_BROKEN = DispatchDecision.CIRCUIT_BROKEN.value
 
 
 # ------------------------------------------------------------------ fixtures
+
+@pytest.fixture(autouse=True)
+def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
+    """Pin the run-budget port to AlwaysAllow for dispatch-unit tests.
+
+    Lane B's real agents.run_budget (integrated at b9293a8) fail-closes when
+    allowance readings are missing or stale — correct for production, but
+    run-level state these unit tests deliberately do not model. Tests that
+    exercise run-budget denial install their own stub per-test, which
+    overrides this pin.
+    """
+    from agents.interfaces.run_budget import AlwaysAllow
+    monkeypatch.setenv("RUN_BUDGET", "0")  # reaches subprocess children too
+    monkeypatch.setattr(dispatch_mod, "load_run_budget_port",
+                        lambda *a, **k: AlwaysAllow(warn=lambda m: None))
+
 @pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom via POB_LEDGER_DIR, set BEFORE any dispatch/controller
