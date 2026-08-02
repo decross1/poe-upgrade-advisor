@@ -156,6 +156,16 @@ Across three days, nine-way concurrency and a 977-invocation cascade, the
 3-strike circuit breaker fired **zero** times, and `tasks/dead_letter/` is
 empty `[O]`.
 
+**Amended 2026-08-02 after Lane A's W1-2 review.** An earlier revision of this
+section attributed the empty `tasks/dead_letter/` solely to the breaker never
+firing. That is incomplete. `budget_governor._dead_letter` writes to
+`<repo>/tasks/dead_letter/`, and the governed path runs inside a **throwaway
+`.fan` worktree** that is removed on cleanup — so a dead-letter would have been
+discarded with the worktree even if the breaker *had* fired. Both facts are
+true, and the second is the one that would have kept biting after the breaker
+was wired into the live path. W1-2 relocates dead-letters to
+`<mailroom>/dead_letter/`, outside every clone, for this reason.
+
 `agent_loop.sh` invokes models directly at two sites, with no governor call
 anywhere in the file `[O]`:
 
