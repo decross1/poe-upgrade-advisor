@@ -469,3 +469,23 @@ The scheduled `merge-robot` workflow has been firing roughly hourly and failing
 every run (observed 12:59, 14:28, 15:36, 16:42, 17:48Z today) — 401 by design
 while `MERGE_ROBOT_TOKEN` is unset. Disposition is the operator's; recorded so
 the failure stream is not mistaken for new breakage.
+
+### Marker disposition — executed 2026-08-02T19:20Z (operator-directed)
+
+§7 condition 2 is DONE, by move not deletion. All nine
+`mailroom/locks/running/` markers were moved, mtimes preserved, to
+
+```
+mailroom-quarantine/locks-running-stale-20260802/   (OUTSIDE the mailroom)
+```
+
+with a `MANIFEST.txt` recording per marker: filename, PID, mtime to the
+nanosecond, sha256, and a **move-time re-verification** that `/proc/<pid>`
+was still absent for every one of the nine (the wrap clock made the earlier
+17:15–17:45Z measurement perishable; at 19:20:08Z it still held).
+`mailroom/locks/running/` is now empty. Remaining §7 operator conditions:
+the 8 unacked messages (condition 3, the cascade trigger — PRs #87/#91
+first), `mailroom/telemetry/` (condition 4), and `mailroom/readiness.yaml`
+(condition 1 — write it LAST: `operating_mode: canary` flips
+`run_budget._operating_mode` off its fail-closed default, so the file
+arms spend semantics the moment it exists).
