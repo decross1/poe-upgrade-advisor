@@ -678,13 +678,38 @@ def test_wall_clock_timeout_is_recorded_and_retained(
 
 # ------------------------------------------------------- regression greps
 def test_no_model_spawn_tokens_outside_dispatch():
-    """agent_loop.sh contains no model command token; among agents/**/*.py
+    """agent_loop.sh contains no model INVOCATION form; among agents/**/*.py
     only agents/dispatch.py may. This is the grep that stops model-spawn
-    logic quietly reappearing in the supervisor in six weeks."""
-    pat = re.compile(r"\b(claude|codex|kimi|qwen)\b")
+    logic quietly reappearing in the supervisor in six weeks.
+
+    Narrowed per PM 06:40/06:50 (integration failure 2): the pattern matches
+    invocation forms — `claude -p`, `codex exec`, `kimi --`, `qwen` as a
+    command word — not bare provider names, so Lane B's legitimate
+    `provider.lower() == "codex"` comparison in accounting.py does not trip
+    the guard. The guard itself is not weakened: the self-check below proves
+    a reintroduced `codex exec` in agent_loop.sh is still caught.
+    """
+    pat = re.compile(
+        r"(\bclaude\b[^\n]{0,80}?\s-p\b|\"claude\",\s*\"-p\"|"
+        r"\bcodex\s+exec\b|\"codex\",\s*\"exec\"|\bkimi\s+--|"
+        r"^\s*qwen\s|\bqwen\s+(chat|exec|run)\b)", re.M)
 
     loop = (REPO_ROOT / "scripts" / "agent_loop.sh").read_text()
-    assert not pat.search(loop), "model token reappeared in agent_loop.sh"
+    assert not pat.search(loop), "model invocation reappeared in agent_loop.sh"
+
+    # Self-check: the narrowed pattern still catches the historical forms —
+    # exactly what v2 contained, and what must never return.
+    assert pat.search('(cd "$dir" && codex exec --dangerously-bypass'
+                      '-approvals-and-sandbox -m "$MODEL" "$prompt")')
+    assert pat.search("env -u ANTHROPIC_API_KEY claude -p \"$prompt\"")
+    assert pat.search("kimi --prompt-file x --yolo")
+    # ...including the argv-list forms the dispatcher itself uses.
+    assert pat.search('["codex", "exec", "--json", "-m", model]')
+    assert pat.search('["env", "-u", "KEY", "claude", "-p", prompt]')
+    # ...and does NOT fire on provider-name comparisons (Lane B accounting).
+    assert not pat.search('provider.lower() == "codex"')
+    assert not pat.search('if provider in ("anthropic", "claude"):')
+    assert not pat.search('"anthropic" if role == "pm" else "openai"')
 
     dispatch_py = REPO_ROOT / "agents" / "dispatch.py"
     offenders = sorted(
@@ -692,7 +717,7 @@ def test_no_model_spawn_tokens_outside_dispatch():
         for p in (REPO_ROOT / "agents").rglob("*.py")
         if p != dispatch_py and pat.search(p.read_text())
     )
-    assert offenders == [], f"model tokens outside dispatch.py: {offenders}"
+    assert offenders == [], f"model invocations outside dispatch.py: {offenders}"
     # dispatch.py itself IS the one sanctioned spawn site.
     assert pat.search(dispatch_py.read_text())
 
@@ -857,3 +882,103 @@ def test_spend_row_recorded_on_invocation(mailroom, worktree, counter):
     finally:
         db.close()
     assert rows == [("backend", "TASK-7", None, 1)]
+
+
+# ----------------------------------------------- W2-1 capture seam (PM-auth)
+def test_capture_seam_usage_lands_in_spend_row_and_finish_event(
+        mailroom, worktree, counter, monkeypatch):
+    """W2-1 capture seam, proven with the fake harness (PM constraint: no
+    live invocation). The fake prints a realistic claude stream-json
+    transcript — JSONL on stdout, usage in the final result event — AND
+    writes a valid completed result. With Lane B's provider_usage stubbed to
+    canned fields, those fields must land in BOTH the fail-closed spend row
+    and the telemetry finish event (with stop_reason None), while the result
+    file still parses: stdout became machine-readable without touching the
+    ack contract.
+    """
+    import sys
+    import types
+
+    seen: dict = {}
+    mod = types.ModuleType("agents.accounting")
+
+    def provider_usage(provider, stdout_tail):
+        seen["provider"] = provider
+        seen["tail"] = stdout_tail
+        return {"cash_usd": 0.0421, "input_tokens": 51234,
+                "output_tokens": 2211, "allowance_pct_estimated": 3.7}
+
+    mod.provider_usage = provider_usage
+    monkeypatch.setitem(sys.modules, "agents.accounting", mod)
+
+    msg = write_message(mailroom, to_role="pm", from_role="backend")
+    out = dispatch("pm", msg["message_id"], worktree,
+                   fake_agent=fake("usage_emitting_agent.py"))
+
+    # The result contract survived a JSONL stdout (PM constraint).
+    assert out.decision == INVOKE
+    assert out.ack == ACK
+    assert out.result_status == "completed"
+    assert msg["message_id"] in acked(mailroom, "pm")
+    assert len(counter_lines(counter)) == 1
+
+    # The parser received the captured stdout tail, mapped to the provider.
+    assert seen["provider"] == "anthropic"
+    assert "total_cost_usd" in seen["tail"]
+    assert '"input_tokens": 51234' in seen["tail"]
+
+    db = sqlite3.connect(mailroom / "governor" / dispatch_mod.BUDGET_DB)
+    try:
+        rows = db.execute(
+            "SELECT cash_usd, allowance_pct, input_tokens, output_tokens, "
+            "success FROM spend").fetchall()
+    finally:
+        db.close()
+    assert rows == [(0.0421, 3.7, 51234, 2211, 1)]
+
+    finishes = [r for r in tele_lines(mailroom) if r["event"] == "finish"]
+    assert len(finishes) == 1
+    fin = finishes[0]
+    assert fin["cash_usd"] == 0.0421
+    assert fin["input_tokens"] == 51234
+    assert fin["output_tokens"] == 2211
+    assert fin["allowance_pct_estimated"] == 3.7
+    assert fin["stop_reason"] is None
+    assert fin["result_status"] == "completed"
+
+
+def test_capture_seam_absent_accounting_module_leaves_usage_none(
+        mailroom, worktree, counter, monkeypatch):
+    """Without Lane B's accounting module the guarded import fails and the
+    spend row keeps None usage fields — None, never zero: a missing count
+    must not read as free — and the invocation itself is unaffected."""
+    import sys
+
+    # A None sys.modules entry makes `from agents.accounting import ...`
+    # raise ImportError deterministically, even after Lane B lands the
+    # real module in this base.
+    monkeypatch.setitem(sys.modules, "agents.accounting", None)
+
+    msg = write_message(mailroom, to_role="pm", from_role="backend")
+    out = dispatch("pm", msg["message_id"], worktree,
+                   fake_agent=fake("usage_emitting_agent.py"))
+
+    assert out.decision == INVOKE
+    assert out.ack == ACK
+    assert out.result_status == "completed"
+    assert msg["message_id"] in acked(mailroom, "pm")
+
+    db = sqlite3.connect(mailroom / "governor" / dispatch_mod.BUDGET_DB)
+    try:
+        rows = db.execute(
+            "SELECT cash_usd, allowance_pct, input_tokens, output_tokens, "
+            "success FROM spend").fetchall()
+    finally:
+        db.close()
+    assert rows == [(None, None, None, None, 1)]  # None, never zero
+
+    finishes = [r for r in tele_lines(mailroom) if r["event"] == "finish"]
+    assert len(finishes) == 1
+    assert finishes[0].get("cash_usd") is None
+    assert finishes[0]["stop_reason"] is None
+    assert finishes[0]["result_status"] == "completed"

@@ -200,25 +200,37 @@ def role_command(role: str, prompt: str, mailroom: Path) -> list[str]:
 def _provider_usage(role: str, stdout_tail: str) -> dict:
     """Lane B's usage parser, guarded until agents.accounting integrates.
 
-    Contract (HANDOFFed): provider_usage(provider, raw_stdout_tail) ->
-    dict with any of cash_usd / input_tokens / output_tokens /
-    cached_input_tokens / allowance_pct_estimated / allowance_pct_source /
-    invocation_weight — or None. Absent data stays None, never zero; a
-    parse failure is loud, never silent.
+    Contract (converged, PM 06:50): provider_usage(provider, str|dict) —
+    Lane B's parser accepts the raw stdout tail directly and both provider
+    vocabularies. Returns a dict with any of cash_usd / input_tokens /
+    output_tokens / cached_input_tokens / allowance_pct_estimated /
+    allowance_pct_source / invocation_weight — or None. Absent data stays
+    None, never zero.
+
+    Returns (usage_dict, parse_error): every failure mode — module
+    unimportable (a packaging break once accounting is on main), parser
+    exception, unknown shape — is loud on stderr AND carried into the
+    telemetry finish event, so a dead pipeline is queryable, never a
+    silent None-forever.
     """
     if not stdout_tail.strip():
-        return {}
+        return {}, None
     provider = "anthropic" if role == "pm" else "openai"
     try:
         from agents.accounting import provider_usage  # noqa: PLC0415
-    except ImportError:
-        return {}
+    except ImportError as e:
+        # With accounting on main this can only be a packaging break — the
+        # silent version of this branch would record None-forever and look
+        # identical to "the provider reported nothing" (PM, 06:50).
+        msg = f"accounting module unimportable: {e}"
+        print(f"TELEMETRY-DEGRADED: {msg}", file=sys.stderr)
+        return {}, msg
     try:
-        return provider_usage(provider, stdout_tail) or {}
+        return provider_usage(provider, stdout_tail) or {}, None
     except Exception as e:  # noqa: BLE001 — fail-open, loudly
-        print(f"TELEMETRY-DEGRADED: provider usage parse failed: {e}",
-              file=sys.stderr)
-        return {}
+        msg = f"provider usage parse failed: {type(e).__name__}: {e}"
+        print(f"TELEMETRY-DEGRADED: {msg}", file=sys.stderr)
+        return {}, msg
 
 
 def write_dead_letter(root: Path, *, task_id: str, role: str, message_id: str,
@@ -395,19 +407,32 @@ def _assess_anti_loop(mailroom: Path, worktree: Path, *, task_id: str,
 
     diff_text = _git("diff", "HEAD")
     status = _git("status", "--porcelain")
-    if res and res.get("files_modified"):
-        files_changed = list(res["files_modified"])
+    # The breakers see what ACTUALLY changed, never what the agent claims
+    # changed: git status supplies every touched path (including untracked
+    # files, which numstat misses), and the result's files_modified claim
+    # can only ADD paths, never subtract them. W2-4 review reproduced an
+    # agent editing agents/governor/policy.yaml while claiming
+    # files_modified=["README.md"] — the claim-first version acked that as
+    # a completed success.
+    git_files: list[str] = []
+    for ln in status.splitlines():
+        path = ln[3:].strip()
+        if " -> " in path:  # rename: "R  old -> new" — the new path counts
+            path = path.split(" -> ", 1)[1]
+        if path:
+            git_files.append(path)
+    lines_changed = 0
+    for ln in _git("diff", "HEAD", "--numstat").splitlines():
+        parts = ln.split("\t")
+        if len(parts) == 3:
+            for n in parts[:2]:
+                if n.isdigit():
+                    lines_changed += int(n)
+    claimed = list((res or {}).get("files_modified") or [])
+    files_changed = sorted(set(git_files) | set(claimed))
+    if not lines_changed and res:
         lines_changed = (res.get("lines_added") or 0) + \
             (res.get("lines_deleted") or 0)
-    else:
-        files_changed, lines_changed = [], 0
-        for ln in _git("diff", "HEAD", "--numstat").splitlines():
-            parts = ln.split("\t")
-            if len(parts) == 3:
-                files_changed.append(parts[2])
-                for n in parts[:2]:
-                    if n.isdigit():
-                        lines_changed += int(n)
     tests = (res or {}).get("tests") or []
     criteria = (res or {}).get("acceptance_criteria") or []
     state = al.AttemptState(
@@ -853,7 +878,9 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     halted = stop_reason == "halt"
     # Usage parsing runs for fake agents too: the fake harness is how the
     # capture seam is proven without a live invocation (PM constraint).
-    usage = _provider_usage(role, stdout_tail)
+    # usage_parse_error rides the telemetry finish event so "usage never
+    # parsed" is queryable in invocations.jsonl, not buried in stderr.
+    usage, usage_parse_error = _provider_usage(role, stdout_tail)
     # Degraded-budget accounting: this invocation happened; whether it ran
     # on degraded checks decides the streak.
     _set_degraded_streak(mailroom,
@@ -903,12 +930,22 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             ack_message(mailroom, role, message_id)
             gov.record(role, task_id, False)
             try:
+                # Same explicit field mapping as the normal path: the usage
+                # dict's vocabulary is wider than record_spend's signature,
+                # and a splat crashes AFTER the ack but BEFORE the spend row
+                # lands — spend happened, record lost (W2-4 review).
                 bl.record_spend(role=role, task_id=task_id, run_id=run_id,
-                                success=False, **usage)
+                                success=False,
+                                cash_usd=usage.get("cash_usd"),
+                                allowance_pct=usage.get(
+                                    "allowance_pct_estimated"),
+                                input_tokens=usage.get("input_tokens"),
+                                output_tokens=usage.get("output_tokens"))
             except BudgetLedgerUnavailable as e:
                 print(f"WARNING: spend record failed: {e}", file=sys.stderr)
             tele.finish(run_id, result_status=result_status,
                         anti_loop=anti.action, anti_loop_reason=anti.reason,
+                        usage_parse_error=usage_parse_error,
                         exit_code=rc, stop_reason=stop_reason,
                         duration_seconds=round(duration, 3),
                         attempt_number=attempts, completed_at=time.time(),
@@ -963,6 +1000,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         print(f"WARNING: spend record failed after invocation: {e}",
               file=sys.stderr)
     tele.finish(run_id, result_status=result_status, result_error=result_error,
+                usage_parse_error=usage_parse_error,
                 exit_code=rc, timed_out=timed_out, halted=halted,
                 stop_reason=stop_reason,
                 duration_seconds=round(duration, 3),

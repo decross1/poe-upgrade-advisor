@@ -644,3 +644,73 @@ def test_inspect_worktree_preserves_existing_abnormal_bundle(tmp_path):
                                        run_id="r1", role="backend")
     assert d1 == d2
     assert meta_of(d1)["trigger"] == "sigterm"
+
+
+# ------------------------------------- W2-4 follow-up: submodule pointers
+def test_submodule_pointer_advance_is_captured_in_bundle(mailroom, tmp_path):
+    """A submodule pointer advanced in the clone but never staged emits no
+    plain-diff hunk and no untracked entry — the exact shape found on the
+    real frontend-a49a07be specimen (engine/vendor/PathOfBuilding), where a
+    pointer-only dirty tree bundled NOTHING and verified clean. With
+    `git diff --submodule=short` the bundle must capture the pointer change:
+    captured_bytes > 0 and the patch names the subproject commits."""
+    sub = tmp_path / "subrepo"
+    sub.mkdir()
+    _git("init", "-q", "-b", "main", cwd=sub)
+    _git("config", "user.email", "recovery-test@example.com", cwd=sub)
+    _git("config", "user.name", "Recovery Test", cwd=sub)
+    (sub / "f.txt").write_text("one\n")
+    _git("add", "-A", cwd=sub)
+    _git("commit", "-q", "-m", "sub init", cwd=sub)
+
+    origin = make_origin(tmp_path)  # sibling of subrepo => ../subrepo works
+    _git("-c", "protocol.file.allow=always", "submodule", "add",
+         "../subrepo", "subrepo", cwd=origin)
+    _git("commit", "-q", "-m", "add submodule", cwd=origin)
+
+    wt = clone_worktree(origin, tmp_path / "wt-sub")
+    _git("-c", "protocol.file.allow=always", "submodule", "update",
+         "--init", cwd=wt)
+    subwt = wt / "subrepo"
+    _git("config", "user.email", "recovery-test@example.com", cwd=subwt)
+    _git("config", "user.name", "Recovery Test", cwd=subwt)
+    (subwt / "f.txt").write_text("one\ntwo\n")
+    _git("add", "-A", cwd=subwt)
+    _git("commit", "-q", "-m", "advance the pointer", cwd=subwt)
+    # Pointer advanced in the superproject, deliberately NOT staged.
+    status = _git("status", "--porcelain", cwd=wt)
+    assert " M subrepo" in status
+    assert is_dirty(wt) is True
+
+    d = write_bundle(wt, mailroom, task_id="TASK-90", run_id="r-sub",
+                     role="backend", trigger="manual")
+    assert d is not None
+    meta = meta_of(d)
+    assert meta["dirty"] is True
+    assert meta["captured_bytes"] > 0
+    patch = (d / "working.patch").read_text()
+    assert "Subproject commit" in patch  # the pointer change, recorded
+    assert verify_bundle(d) is True
+
+
+def test_verify_bundle_rejects_dirty_with_zero_capture_contradiction(
+        tmp_path):
+    """The PM-flagged contradiction, mechanically defended: metadata saying
+    dirty=true while captured_bytes is 0 with no unpushed commits and empty
+    artifacts is a capture FAILURE wearing a verified stamp — verify_bundle
+    must say False. The identical artifacts with dirty=false are honestly
+    empty and verify True."""
+    d = tmp_path / "bundle"
+    d.mkdir()
+    for name in ("working.patch", "staged.patch", "untracked-files.txt",
+                 "branch.txt", "commits.txt"):
+        (d / name).write_text("")
+    (d / "untracked.tar").write_bytes(b"")
+    meta = {"schema_version": "1.0", "dirty": True, "captured_bytes": 0,
+            "unpushed_commit_count": 0}
+    (d / "metadata.json").write_text(json.dumps(meta))
+    assert verify_bundle(d) is False  # dirty tree, nothing captured
+
+    meta["dirty"] = False
+    (d / "metadata.json").write_text(json.dumps(meta))
+    assert verify_bundle(d) is True  # same artifacts, no contradiction

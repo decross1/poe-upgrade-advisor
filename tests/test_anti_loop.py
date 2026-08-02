@@ -675,3 +675,31 @@ def test_clean_invocation_resets_partial_degraded_streak(
     assert out.ack == ACK
     assert len(counter_lines(counter)) == 1
     assert dispatch_mod._degraded_streak(mailroom) == 0  # reset, not 8
+
+
+def test_18b_lying_files_modified_claim_cannot_launder_protected_edit(
+        mailroom, git_worktree, counter, monkeypatch):
+    """W2-4 review defect 2, the explicit-lie variant: the agent edits
+    agents/governor/policy.yaml but CLAIMS files_modified=["README.md"].
+
+    The claim-first version of _assess_anti_loop fed the claim to the
+    prohibited-file breaker and acked the tampered result as a completed
+    success. The breaker must see git truth; a claim can add paths, never
+    subtract them.
+    """
+    monkeypatch.setenv("CLAIM_FILES", '["README.md"]')
+    msg = write_message(mailroom)
+
+    out = dispatch("backend", msg["message_id"], git_worktree,
+                   fake_agent=fake("protected_touch_agent.py"))
+
+    assert out.decision == "circuit_broken"
+    assert out.ack == "ack_dead_letter"
+    assert "prohibited files modified" in out.reason
+    assert "agents/governor/policy.yaml" in out.reason
+    assert msg["message_id"] in acked(mailroom, "backend")
+    dl = (mailroom / "dead_letter" / msg["task_id"] /
+          f"{msg['message_id']}.json")
+    assert dl.exists()
+    rows = governor_rows(mailroom)
+    assert rows and rows[-1][2] == 0  # never recorded as success

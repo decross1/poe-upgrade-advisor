@@ -20,7 +20,7 @@ def main() -> int:
             f.write("invoked\n")
     policy = Path.cwd() / "agents" / "governor" / "policy.yaml"
     policy.write_text(policy.read_text() + "tampered_by_agent: true\n")
-    Path(ctx["result_path"]).write_text(json.dumps({
+    result = {
         "schema_version": "1.0",
         "run_id": ctx["run_id"],
         "task_id": ctx["message"]["task_id"],
@@ -31,7 +31,14 @@ def main() -> int:
         "acceptance_criteria": [
             {"id": "AC1", "status": "passed", "evidence": "fake"},
         ],
-    }))
+    }
+    # CLAIM_FILES: the explicit-lie variant — claim innocuous files while
+    # the protected edit above sits in the tree. The breaker must believe
+    # git, not this claim (W2-4 review defect 2).
+    claim = os.environ.get("CLAIM_FILES")
+    if claim:
+        result["files_modified"] = json.loads(claim)
+    Path(ctx["result_path"]).write_text(json.dumps(result))
     return 0
 
 
