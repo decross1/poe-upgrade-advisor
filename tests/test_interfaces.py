@@ -288,3 +288,36 @@ def test_state_values_are_stable_strings():
     """These strings are persisted in telemetry; renaming one is a migration."""
     assert TaskState.RECOVERY_REQUIRED.value == "recovery_required"
     assert AckDecision.ACK_DEAD_LETTER.value == "ack_dead_letter"
+
+
+# --------------------------------------------------------------- run budget
+
+def test_absent_run_budget_allows_but_announces_itself_loudly():
+    """No aggregate ceiling must never be mistaken for a configured one."""
+    from agents.interfaces import AlwaysAllow, RunBudgetPort
+
+    seen = []
+    rb = AlwaysAllow(warn=seen.append)
+    assert isinstance(rb, RunBudgetPort)
+    v = rb.check(role="backend", task_id="TASK-1", tier="green")
+    assert v.allowed and v.degradation_level == 0
+    assert seen and AlwaysAllow.MARKER in seen[0]
+
+
+def test_absent_run_budget_warns_once_not_per_call():
+    from agents.interfaces import AlwaysAllow
+
+    seen = []
+    rb = AlwaysAllow(warn=seen.append)
+    for _ in range(5):
+        rb.check(role="pm", task_id="ORG", tier="green")
+    assert len(seen) == 1
+
+
+def test_run_budget_verdict_carries_reassignment():
+    """Throttling a role must be able to move its work, not just stop it."""
+    from agents.interfaces import RunBudgetVerdict
+
+    v = RunBudgetVerdict(False, "frontend daily cap", degradation_level=1,
+                         reassign_to="backend")
+    assert not v.allowed and v.reassign_to == "backend"

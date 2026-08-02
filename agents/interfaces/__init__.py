@@ -27,6 +27,7 @@ from .result import RESULT_SCHEMA_PATH, ResultError, load_result, validate_resul
 from .packet import PACKET_SCHEMA_PATH, PacketError, load_packet, validate_packet
 from .telemetry import JsonlTelemetry, NullTelemetry, TelemetryPort, TELEMETRY_DEGRADED
 from .budget import BudgetLedgerPort, BudgetLedgerUnavailable, SqliteBudgetLedger
+from .run_budget import AlwaysAllow, RunBudgetPort, RunBudgetVerdict
 from .policy import load_policy, resolve_budgets
 
 __all__ = [
@@ -48,6 +49,9 @@ __all__ = [
     "BudgetLedgerPort",
     "BudgetLedgerUnavailable",
     "SqliteBudgetLedger",
+    "AlwaysAllow",
+    "RunBudgetPort",
+    "RunBudgetVerdict",
     "load_policy",
     "resolve_budgets",
 ]
