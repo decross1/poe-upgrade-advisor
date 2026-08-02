@@ -95,6 +95,22 @@ def worktree(tmp_path: Path) -> Path:
     return make_worktree(tmp_path)
 
 
+#: The pre-ratification policy shape: contract bans, no allowlist. Runner-
+#: and dispatch-SEMANTICS tests use it so they can exercise rc-branching
+#: with plain shell utilities; the ratified committed policy has its own
+#: tests below.
+PERMISSIVE_POLICY = {"banned": [["npm", "install"], ["npm", "ci"],
+                                ["git", "push"], ["gh"]],
+                     "allowlist": None}
+
+
+@pytest.fixture
+def permissive_policy(monkeypatch: pytest.MonkeyPatch):
+    import agents.checks as checks_mod
+    monkeypatch.setattr(checks_mod, "load_command_policy",
+                        lambda *a, **k: PERMISSIVE_POLICY)
+
+
 def with_packet(worktree: Path, task_id: str = "TASK-7", **fields) -> dict:
     """Write a minimal schema-valid packet into the worktree."""
     packet = {
@@ -160,12 +176,60 @@ def test_contract_bans_are_token_wise(cmd):
     "npminstall",                      # NOT the banned pair
     "ghq get repo",                    # token boundary: NOT the gh ban
     "git status",
-    "git log --oneline",
-    "python3 -m pytest tests -q",
-    "npm --prefix web run test",       # npm RUN is not npm install/ci
 ])
-def test_non_banned_commands_pass_bans_only_policy(cmd):
-    assert check_policy(parse_command(cmd)) == "bans_only"
+def test_ban_matching_is_token_wise(cmd):
+    """Under a bans-only policy the lookalikes pass: bans match parsed
+    tokens, never string prefixes."""
+    assert check_policy(parse_command(cmd), PERMISSIVE_POLICY) == "bans_only"
+
+
+@pytest.mark.parametrize("cmd", [
+    "python3 -m pytest tests -q",
+    "pytest tests/test_dispatch.py::test_good_agent_end_to_end_via_main",
+    "python3 -m pytest packaging --cov --cov-report=json",
+    "python3 scripts/check_invariants.py",
+    "python3 scripts/check_fixture_coverage.py",
+    "python3 scripts/check_coverage_floor.py",
+    "python3 agents/packets/validate.py --all",
+    "python3 -m agents.packets.validate tasks/packets/TASK-901-S1.json",
+    "python3 -m unittest discover -s engine/tests -v",
+    "ruff check --select E501 agents",
+    "npm --prefix web run test",
+    "npm --prefix overlay run build",
+    "npm --prefix overlay run typecheck",
+    "git status --porcelain",
+    "git diff --exit-code",
+    "git merge-base --is-ancestor abc def",
+])
+def test_ratified_allowlist_accepts_listed_commands(cmd):
+    assert check_policy(parse_command(cmd)) == "allowlist"
+
+
+@pytest.mark.parametrize("cmd,context", [
+    ("python3 -m pytest /etc/passwd", "checks"),        # target outside trees
+    ("python3 -m pytest tests --lf", "checks"),         # unlisted flag
+    ("ruff check --fix agents", "checks"),              # --fix is prepass-only
+    ("npm --prefix web run test -- --watch", "checks"), # extra args rejected
+    ("npm --prefix server run test", "checks"),         # prefix not pinned
+    ("npm --prefix web run gen:types", "checks"),       # entry 10 prepass-only
+    ("git -C /tmp status --porcelain", "checks"),       # global opt escape
+    ("git diff --ext-diff", "checks"),                  # external-cmd escape
+    ("python3 -c print(1)", "checks"),                  # entry 12 EXCLUDED
+    ("ruff check", "checks"),                           # bare ruff check IS fine...
+])
+def test_ratified_allowlist_constraints(cmd, context):
+    if cmd == "ruff check":  # the one accept in this table, as a control
+        assert check_policy(parse_command(cmd), context=context) == "allowlist"
+        return
+    with pytest.raises(CommandPolicyError):
+        check_policy(parse_command(cmd), context=context)
+
+
+def test_prepass_context_admits_prepass_only_entries():
+    assert check_policy(parse_command("ruff check --fix agents"),
+                        context="prepass") == "allowlist"
+    assert check_policy(parse_command("npm --prefix web run gen:types"),
+                        context="prepass") == "allowlist"
 
 
 @pytest.mark.parametrize("cmd", [
@@ -195,17 +259,27 @@ def test_ratified_allowlist_mechanism_rejects_unlisted():
             "banned": [["git", "push"]], "allowlist": [["git"]]})
 
 
-def test_committed_policy_file_is_bans_only_pending_answer():
+def test_committed_policy_is_ratified_without_entry_12():
+    """pm ANSWER 20:50Z: eleven entries; entry 12 (argv-exact python3 -c)
+    EXCLUDED pending the operator's R1 ruling. The four v1.1 contract bans
+    lead the ban list; the ratified corollaries follow."""
     pol = load_command_policy()
-    assert pol["allowlist"] is None
-    assert [b for b in pol["banned"]] == [
-        ["npm", "install"], ["npm", "ci"], ["git", "push"], ["gh"]]
+    entries = [e["entry"] for e in pol["allowlist"]]
+    assert entries == list(range(1, 12))          # 1..11, no 12
+    assert pol["banned"][:4] == [
+        ["npm", "install"], ["npm", "ci"], ["git", "push"], ["gh"]] or \
+        [["npm", "install"], ["npm", "ci"]] == pol["banned"][:2]
+    flat = [tuple(b) for b in pol["banned"]]
+    for corollary in [("git", "fetch"), ("git", "pull"), ("npx",),
+                      ("node",), ("bash",), ("curl",)]:
+        assert corollary in flat
 
 
 # ------------------------------------------------------------------ runner
 
 def test_runner_branches_on_rc_and_runs_every_check(tmp_path):
-    results = run_commands(["true", "false", "true"], tmp_path)
+    results = run_commands(["true", "false", "true"], tmp_path,
+                           policy=PERMISSIVE_POLICY)
     assert [r.rc for r in results] == [0, 1, 0]
     assert [r.ok for r in results] == [True, False, True]
     assert checks_ok(results) is False
@@ -222,7 +296,8 @@ def test_runner_records_policy_rejection_as_failure(tmp_path):
 
 
 def test_runner_timeout_is_a_failure(tmp_path):
-    results = run_commands(["sleep 5"], tmp_path, timeout=1)
+    results = run_commands(["sleep 5"], tmp_path, timeout=1,
+                           policy=PERMISSIVE_POLICY)
     assert results[0].timed_out is True
     assert results[0].ok is False
 
@@ -256,7 +331,7 @@ def test_provisioning_runs_with_shared_cache(tmp_path, monkeypatch):
 # ------------------------------------------------------------------ e2e
 
 def test_failing_required_check_beats_completed_self_report(
-        mailroom, worktree, counter):
+        mailroom, worktree, counter, permissive_policy):
     """CC-1's authority inversion, end to end: the agent reports completed
     (and the proofs are pinned green); the dispatcher's own check run says
     otherwise; the message is retained and per-check rc is in telemetry."""
@@ -276,7 +351,7 @@ def test_failing_required_check_beats_completed_self_report(
 
 
 def test_passing_checks_ack_with_per_check_telemetry(
-        mailroom, worktree, counter):
+        mailroom, worktree, counter, permissive_policy):
     with_packet(worktree, required_checks=["true", "python3 -c 0"])
     msg = write_message(mailroom)
     out = dispatch("backend", msg["message_id"], worktree,
@@ -288,7 +363,7 @@ def test_passing_checks_ack_with_per_check_telemetry(
 
 
 def test_provisioning_failure_is_metered_and_never_invokes_model(
-        mailroom, worktree, counter, tmp_path, monkeypatch):
+        mailroom, worktree, counter, tmp_path, monkeypatch, permissive_policy):
     """A2 ordering, the probe target: provisioning sits BELOW the
     attempt-cap increment. rc!=0 → the attempt is COUNTED, the model is
     NEVER invoked, the message is retained with the failure telemetered —
@@ -309,7 +384,7 @@ def test_provisioning_failure_is_metered_and_never_invokes_model(
 
 
 def test_provisioned_fresh_worktree_runs_npm_checks(
-        mailroom, worktree, counter, tmp_path, monkeypatch):
+        mailroom, worktree, counter, tmp_path, monkeypatch, permissive_policy):
     """T-A1: an npm required check executes in a fresh worktree with NO
     pre-existing node_modules, because the dispatcher provisioned it first.
     The check itself proves node_modules existed when it ran."""
@@ -340,3 +415,48 @@ def test_no_packet_means_no_checks_no_provisioning(
     fin = [ln for ln in tele_lines(mailroom) if ln.get("event") == "finish"][0]
     assert fin.get("required_checks") is None
     assert fin.get("provisioning") is None
+
+
+# ------------------------------------------------- pre-invoke gate (annex)
+
+def test_packet_with_non_listed_command_fails_before_invoke(
+        mailroom, worktree, counter):
+    """Annex probe: 'a packet carrying a non-listed command fails
+    validation before invoke' — suppressed like a schema-invalid packet,
+    zero model spend, zero attempts."""
+    with_packet(worktree, required_checks=["make all"])  # not in the list
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("good_agent.py"))
+
+    assert out.invoked is False
+    assert out.decision == "suppressed_preflight"
+    assert "packet command policy" in out.reason
+    assert counter_lines(counter) == []          # model never ran
+    assert out.attempts == 0                     # nothing was metered
+    sup = [ln for ln in tele_lines(mailroom)
+           if ln.get("suppressed_reason") == "packet_command_policy"]
+    assert len(sup) == 1
+
+
+def test_validate_packet_commands_units():
+    """Annex probes: npm ci in required_checks rejects; git push in
+    deterministic_prepass rejects; compound rejects; clean packet is
+    clean."""
+    from agents.checks import validate_packet_commands
+    bad = validate_packet_commands({
+        "required_checks": ["npm ci --prefix web",
+                            "python3 -m pytest tests -q"],
+        "deterministic_prepass": ["git push origin main",
+                                  "ruff check --fix agents",
+                                  "true && false"],
+    })
+    assert len(bad) == 3
+    assert any("npm ci" in v and "required_checks" in v for v in bad)
+    assert any("git push" in v and "deterministic_prepass" in v for v in bad)
+    assert any("composition" in v for v in bad)
+    assert validate_packet_commands({
+        "required_checks": ["python3 -m pytest tests -q"],
+        "deterministic_prepass": ["ruff check --fix agents"],
+    }) == []
+    assert validate_packet_commands(None) == []

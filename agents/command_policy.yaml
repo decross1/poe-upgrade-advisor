@@ -5,19 +5,77 @@
 # to push; scope guards, protected paths, budgets and the banned-pattern scan
 # bound the agent instead.
 #
-# Data, not code: pm-ratified plan v1.0 contents drop in here without a code
-# change. Matching is token-wise on shlex-parsed argv — never string-prefix.
-schema_version: "1.0"
+# RATIFIED 2026-08-02 (pm ANSWER 20:50Z, from the v1.0 reconstruction's
+# "Packet command allowlist (CC-1)" section). ENTRY 12 (argv-exact python3 -c
+# canary probe) is EXCLUDED pending the operator's ruling on the audit's R1
+# finding — whichever way it goes arrives as one entry here, no code change.
+#
+# Matching: shlex-parsed argv; compound/shell forms are structurally rejected
+# at parse (metacharacters never reach matching). Entries pair a `kind`
+# (constraint engine in agents/checks.py) with parameters. `contexts` limits
+# where an entry may appear; prepass-only entries write the tree and are
+# rejected in required_checks.
+schema_version: "2.0"
 
-# Contract bans (v1.1 §CC-1, binding today). Argv-prefix matches.
+# Fast-reject bans (v1.1 §CC-1 contract four + ratified corollaries). Checked
+# before allowlist matching; argv-prefix, token-wise.
 banned:
   - [npm, install]
   - [npm, ci]
   - [git, push]
+  - [git, fetch]
+  - [git, pull]
+  - [git, remote]
   - [gh]
+  - [npx]
+  - [npm, exec]
+  - [node]
+  - [pip]
+  - [pip3]
+  - [curl]
+  - [wget]
+  - [bash]
+  - [sh]
+  - [env]
+  - [xargs]
+  - [timeout]
+  - [nice]
+  - [setsid]
 
-# Positive allowlist: null = pm ANSWER pending (plan v1.0). When ratified,
-# replace null with a list of argv prefixes; any command matching no entry
-# is then rejected. Until then only the bans are enforced and every check
-# record is stamped `policy: bans_only`.
-allowlist: null
+# Ratified positive allowlist. `kind` selects the validator; annex entry
+# numbers preserved for reconciliation.
+allowlist:
+  - entry: 1
+    kind: pytest
+    target_prefixes: [tests, packaging, engine/tests]
+  - entry: 2
+    kind: exact
+    argv: [python3, scripts/check_fixture_coverage.py]
+  - entry: 3
+    kind: exact
+    argv: [python3, scripts/check_invariants.py]
+  - entry: 4
+    kind: exact
+    argv: [python3, scripts/check_coverage_floor.py]
+  - entry: 5
+    kind: packets_validate
+  - entry: 6
+    kind: unittest_engine
+  - entry: 7
+    kind: ruff
+  - entry: 8
+    kind: npm_run
+    prefixes: [web, overlay]
+    scripts: [test, build]
+  - entry: 9
+    kind: npm_run
+    prefixes: [overlay]
+    scripts: [typecheck]
+  - entry: 10
+    kind: npm_run
+    prefixes: [web]
+    scripts: ["gen:types", "generate:client"]
+    contexts: [prepass]
+  - entry: 11
+    kind: git_readonly
+  # entry 12: EXCLUDED — operator ruling pending (R1). Do not add without it.

@@ -182,7 +182,7 @@ def test_command_policy_never_constrains_agent_tools(mailroom, worktree):
         "objective": "agent pushes; packet checks cannot",
         "files_in_scope": ["agent-work.txt"],
         "files_out_of_scope": [],
-        "required_checks": ["true"],
+        "required_checks": ["git status --porcelain"],  # ratified entry 11
         "acceptance_criteria": [
             {"id": "AC-1", "text": "agent tools are unconstrained"}],
         "budgets": {"max_attempts": 2, "max_files_modified": 2,

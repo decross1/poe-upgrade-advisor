@@ -74,6 +74,7 @@ from agents.checks import (  # noqa: E402
     provisioning_ok,
     run_commands,
     run_provisioning,
+    validate_packet_commands,
 )
 from agents.completion import (  # noqa: E402
     proofs_telemetry,
@@ -655,6 +656,21 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                                 message_id=message_id,
                                 suppressed_reason="packet_invalid")
             return out
+        # CC-1 pre-invoke gate: a packet carrying a command the ratified
+        # policy rejects fails HERE, before any model spend — same standing
+        # as a schema-invalid packet. The runner enforces again at
+        # execution (defense in depth).
+        cmd_violations = validate_packet_commands(packet)
+        if cmd_violations:
+            out = Outcome(decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
+                          reason="packet command policy: "
+                                 + "; ".join(cmd_violations),
+                          message_id=message_id, task_id=task_id, role=role)
+            if not dry_run:
+                tele.suppressed(role=role, task_id=task_id,
+                                message_id=message_id,
+                                suppressed_reason="packet_command_policy")
+            return out
 
     # 4 — preflight: every zero-token reason not to invoke. On a block the
     # message is ACKED and the durable blocked record carries the state —
@@ -891,7 +907,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
          **({"timeout": PREPASS_TIMEOUT} if r.timed_out else {})}
         for r in run_commands(
             (packet or {}).get("deterministic_prepass") or [],
-            worktree, timeout=PREPASS_TIMEOUT)
+            worktree, timeout=PREPASS_TIMEOUT, context="prepass")
     ]
 
     # 10 — the model call, wall-clock capped. A pending anti-loop strategy
