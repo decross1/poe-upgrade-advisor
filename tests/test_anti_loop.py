@@ -719,3 +719,33 @@ def test_18b_lying_files_modified_claim_cannot_launder_protected_edit(
     assert dl.exists()
     rows = governor_rows(mailroom)
     assert rows and rows[-1][2] == 0  # never recorded as success
+
+
+def test_fingerprint_distinct_when_only_strategy_changes():
+    """Guard for the normalize_action component of the composite fingerprint
+    (PM's W2-4 VERIFY: this mutation SURVIVED — dropping it left 45 green).
+
+    'Strategy materially changed' is a PROGRESS signal (audit 8.3). If a
+    future edit drops proposed_next_action from the hash, an agent that
+    legitimately changes approach after a failure fingerprints identical to
+    its previous attempt and gets escalated or dead-lettered as a loop —
+    the controller would punish exactly the behaviour it exists to reward,
+    and it would look like the controller working.
+
+    Same error, same files, same tests, DIFFERENT strategy => distinct.
+    (The inverse — identical everything => identical fingerprint — is
+    pinned by the ladder tests.)
+    """
+    base = dict(last_error="PermissionError: Bash denied",
+                files_changed=["server/app.py"],
+                tests_run=["pytest tests -q"],
+                recent_tool_calls=["Bash", "Read"])
+    retry = AttemptState(**base,
+                         proposed_next_action="retry the same edit again")
+    decompose = AttemptState(**base,
+                             proposed_next_action="decompose into three "
+                                                  "smaller patches")
+    assert fingerprint(retry) != fingerprint(decompose)
+    # And each component-equal pair still collides (stability half).
+    assert fingerprint(retry) == fingerprint(AttemptState(
+        **base, proposed_next_action="retry the same edit again"))
