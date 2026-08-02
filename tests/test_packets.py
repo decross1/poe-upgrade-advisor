@@ -147,6 +147,18 @@ def test_every_unique_example_required_check_exists_and_runs():
     for command in dict.fromkeys(commands):
         argv = shlex.split(command)
         assert argv and (argv[0] in {"python3", "npm"})
+        # A packet check must be RUNNABLE, but this test runs in a Python-only
+        # job. Shelling `npm run test` there fails on a missing toolchain, not
+        # on a bad packet — it reports red for a reason unrelated to the thing
+        # under test. Execute what this environment can; assert the rest is
+        # well-formed and its workspace exists, and leave actually running the
+        # npm suites to web-test / overlay-test, which are required checks.
+        if argv[0] == "npm":
+            assert "--prefix" in argv, f"npm check must name its workspace: {command}"
+            workspace = argv[argv.index("--prefix") + 1]
+            assert (ROOT / workspace).is_dir(), f"packet names a missing workspace: {command}"
+            if not (ROOT / workspace / "node_modules").is_dir():
+                continue
         result = subprocess.run(
             argv, cwd=ROOT, capture_output=True, text=True, timeout=120, check=False
         )
