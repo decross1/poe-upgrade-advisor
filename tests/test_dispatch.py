@@ -65,6 +65,18 @@ def counter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture(autouse=True)
+def no_preflight(monkeypatch: pytest.MonkeyPatch):
+    """These tests exercise DISPATCH semantics with preflight disabled.
+
+    Preflight (W1-3) has its own suite with an injected gh stub
+    (tests/test_preflight.py). Left enabled here, the real preflight would
+    consult the real `gh` CLI — a network call inside a unit test, and the
+    live repo's issue state leaking into assertions.
+    """
+    monkeypatch.setenv("PREFLIGHT", "0")
+
+
+@pytest.fixture(autouse=True)
 def no_gh(monkeypatch: pytest.MonkeyPatch):
     """Replace budget_governor's subprocess so _dead_letter never runs gh.
 

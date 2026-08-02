@@ -69,6 +69,7 @@ from agents.interfaces.result import (  # noqa: E402
 from agents.interfaces.states import AckDecision, DispatchDecision  # noqa: E402
 from agents.interfaces.telemetry import JsonlTelemetry  # noqa: E402
 from agents.postmaster import ledger as ledger_mod  # noqa: E402
+from agents import preflight as preflight_mod  # noqa: E402
 from jsonschema import ValidationError  # noqa: E402
 
 RESULT_SCHEMA_REL = "agents/interfaces/schemas/result.schema.json"
@@ -243,15 +244,19 @@ def _write_attempt_diag(root: Path, message_id: str, diag: dict) -> None:
         pass  # diagnostics, not accounting — never blocks the path
 
 
-def run_preflight(msg: dict, packet: dict | None):
-    """W1-3 hook. Absent module or PREFLIGHT=0 means 'pass'."""
-    if os.environ.get("PREFLIGHT", "1") == "0":
+def run_preflight(msg: dict, packet: dict | None, *, role: str,
+                  mailroom: Path, dry_run: bool):
+    """W1-3 preflight. Feature flag PREFLIGHT=0 disables (rollback path).
+
+    On a dry run the blocked-records directory is withheld so preflight
+    cannot write (clear/bump) — a dry run stays pure read-only, at the cost
+    of not reporting repeat_unchanged in its printed decision.
+    """
+    if os.environ.get(preflight_mod.FLAG, "1") == "0":
         return None
-    try:
-        from agents.preflight import preflight  # noqa: PLC0415
-    except ImportError:
-        return None
-    return preflight(msg, packet=packet)
+    return preflight_mod.preflight(
+        msg, packet=packet, role=role,
+        blocked_dir=None if dry_run else mailroom / "blocked")
 
 
 def dispatch(role: str, message_id: str, worktree: Path, *,
@@ -353,16 +358,32 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                                 suppressed_reason="packet_invalid")
             return out
 
-    # 4 — preflight (W1-3 module; graceful until it lands).
-    verdict = run_preflight(msg, packet)
+    # 4 — preflight: every zero-token reason not to invoke. On a block the
+    # message is ACKED and the durable blocked record carries the state —
+    # retaining it would mean redelivery forever, the failure being fixed.
+    verdict = run_preflight(msg, packet, role=role, mailroom=mailroom,
+                            dry_run=dry_run)
     if verdict is not None and not verdict.ok:
-        out = Outcome(decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
-                      ack=AckDecision.ACK.value, reason=verdict.reason,
-                      message_id=message_id, task_id=task_id, role=role)
+        decision = (DispatchDecision.SUPPRESSED_UNCHANGED_BLOCKER
+                    if verdict.repeat_unchanged
+                    else DispatchDecision.SUPPRESSED_PREFLIGHT)
+        out = Outcome(decision=decision.value, ack=AckDecision.ACK.value,
+                      reason=verdict.reason, message_id=message_id,
+                      task_id=task_id, role=role,
+                      extra={"fingerprint": verdict.fingerprint,
+                             "resume_condition": verdict.resume_condition,
+                             "degraded_checks": verdict.degraded_checks})
         if not dry_run:
+            rec = preflight_mod.record_block(
+                mailroom / "blocked", role, task_id=task_id,
+                message_id=message_id, verdict=verdict)
             ack_message(mailroom, role, message_id)
             tele.suppressed(role=role, task_id=task_id, message_id=message_id,
-                            suppressed_reason=f"preflight:{verdict.reason}")
+                            suppressed_reason=(
+                                "unchanged_blocker" if verdict.repeat_unchanged
+                                else f"preflight:{verdict.reason}"),
+                            fingerprint=verdict.fingerprint,
+                            check_count=rec["check_count"])
         return out
 
     # 5 — per-task governor. A role the policy does not know is a denial, not
