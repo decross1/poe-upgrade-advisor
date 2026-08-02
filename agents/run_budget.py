@@ -16,6 +16,9 @@ from agents.interfaces.budget import BudgetLedgerUnavailable
 from agents.interfaces.policy import PolicyError, load_policy
 from agents.interfaces.run_budget import RunBudgetVerdict
 
+OPERATING_MODES = frozenset({"canary", "supervised", "unattended-7d", "unattended-10d"})
+SUPERVISED_MODES = frozenset({"canary", "supervised"})
+
 
 @dataclass(frozen=True)
 class DistressState:
@@ -55,12 +58,16 @@ class RunBudget:
         now=time.time,
         run_started_at: float | None = None,
         distress: DistressState | None = None,
+        operating_mode: str = "unattended-10d",
     ) -> None:
         self.policy = policy
         self.ledger = ledger
         self._now = now
         self.run_started_at = run_started_at if run_started_at is not None else now()
         self.distress = distress or DistressState()
+        self.operating_mode = (
+            operating_mode if operating_mode in OPERATING_MODES else "unattended-10d"
+        )
         self._level = 0
 
     def level(self) -> int:
@@ -139,6 +146,19 @@ class RunBudget:
         max_age = float(self.run.get("allowance_stale_hours", 30)) * 3600
         return now - float(reading["ts"]) > max_age
 
+    def _allowance_diagnostic(
+        self, *, owner: str, budget: str, reading: dict[str, Any] | None
+    ) -> str:
+        state = "missing (no reading has ever been recorded)" if reading is None else "stale"
+        command = (
+            "python3 scripts/agent_metrics.py record-allowance "
+            f"--role {owner} --pct <0-100>"
+        )
+        return f"{budget} allowance reading {state}; record one with: {command}"
+
+    def _missing_allowance_blocks(self) -> bool:
+        return self.operating_mode not in SUPERVISED_MODES
+
     def _carry_forward(
         self,
         *,
@@ -187,8 +207,10 @@ class RunBudget:
         if budget in {"claude", "codex"}:
             reading = self._latest_allowance(str(config.get("allowance_owner", target)))
             cap = ((self.run.get("budgets") or {}).get(budget) or {}).get("pct_weekly_total")
-            if self._allowance_stale(reading, now) or (
-                cap is not None and float(reading["pct"]) >= float(cap)
+            if (self._allowance_stale(reading, now) and self._missing_allowance_blocks()) or (
+                reading is not None
+                and cap is not None
+                and float(reading["pct"]) >= float(cap)
             ):
                 return None
         return target
@@ -225,16 +247,25 @@ class RunBudget:
         budget_name = str(config.get("budget"))
         budget = ((self.run.get("budgets") or {}).get(budget_name) or {})
         roles = self._roles_for_budget(budget_name)
+        allowance_warning: str | None = None
 
         if budget_name in {"claude", "codex"}:
             owner = str(config.get("allowance_owner", role))
             reading = self._latest_allowance(owner)
             if self._allowance_stale(reading, now):
-                return self._verdict(
-                    allowed=False,
-                    reason=f"{budget_name} allowance reading missing or stale",
-                    level=1, role=role, task_id=task_id,
-                    reassign_to=self._reassignment(role, now),
+                diagnostic = self._allowance_diagnostic(
+                    owner=owner, budget=budget_name, reading=reading
+                )
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason=f"unattended mode denies invocation: {diagnostic}",
+                        level=1, role=role, task_id=task_id,
+                        reassign_to=self._reassignment(role, now),
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"{diagnostic}"
                 )
             total_cap = float(budget["pct_weekly_total"])
             if self._allowance_consumed(owner) >= total_cap:
@@ -345,7 +376,12 @@ class RunBudget:
                 reassign_to=self._reassignment(role, now),
             )
         return self._verdict(
-            allowed=True, reason="within run budget", level=0,
+            allowed=True,
+            reason=(
+                f"{allowance_warning}; within run budget"
+                if allowance_warning else "within run budget"
+            ),
+            level=0,
             role=role, task_id=task_id,
         )
 
@@ -379,6 +415,19 @@ def _run_started_at(
     return float(row[0])
 
 
+def _operating_mode(mailroom: Path) -> str:
+    """Read the operator-selected readiness mode, defaulting safely unattended."""
+    path = mailroom / "readiness.yaml"
+    try:
+        state = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return "unattended-10d"
+    if not isinstance(state, dict):
+        return "unattended-10d"
+    mode = state.get("operating_mode")
+    return str(mode) if mode in OPERATING_MODES else "unattended-10d"
+
+
 def load() -> RunBudget | UnconfiguredRunBudget:
     """Load the production port; missing policy is a denial, never unbounded."""
     code_root = Path(__file__).resolve().parents[1]
@@ -402,4 +451,9 @@ def load() -> RunBudget | UnconfiguredRunBudget:
         started_at = _run_started_at(ledger, run_id=run_id, now=time.time())
     except BudgetLedgerUnavailable as exc:
         return UnconfiguredRunBudget(f"budget ledger unavailable: {exc}")
-    return RunBudget(policy, ledger, run_started_at=started_at)
+    return RunBudget(
+        policy,
+        ledger,
+        run_started_at=started_at,
+        operating_mode=_operating_mode(mailroom),
+    )
