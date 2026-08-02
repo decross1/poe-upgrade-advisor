@@ -15,6 +15,34 @@ body:
     id: owner
     attributes: { label: Owner role (pm/backend/frontend) }
     validations: { required: true }
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Execution tier
+      description: Green is bounded/routine; yellow needs extra reasoning; red is frontier-only.
+      options: [green, yellow, red]
+    validations: { required: true }
+  - type: textarea
+    id: files_in_scope
+    attributes:
+      label: Files in scope
+      description: One repository-relative path or glob per line. This becomes a mechanical boundary.
+      placeholder: "web/src/components/**"
+    validations: { required: true }
+  - type: textarea
+    id: files_out_of_scope
+    attributes:
+      label: Files out of scope
+      description: One repository-relative path or glob per line. Deny wins over allow.
+      placeholder: "contracts/**"
+    validations: { required: true }
+  - type: textarea
+    id: required_checks
+    attributes:
+      label: Required checks
+      description: One real executable command per line; the dispatcher runs these itself.
+      placeholder: "python3 -m pytest tests/test_example.py -q"
+    validations: { required: true }
   - type: input
     id: contract
     attributes: { label: Contract surface touched (paths or "none") }

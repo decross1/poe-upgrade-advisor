@@ -69,3 +69,70 @@ def test_merge_robot_enforces_the_shared_pattern_objects(monkeypatch):
     assert robot.PROTECTED is patterns.PROTECTED
     assert robot.BANNED is patterns.BANNED
     assert robot.TEST_SIG is patterns.TEST_SIG
+
+
+def _robot(monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "example/repo")
+    monkeypatch.setenv("MERGE_ROBOT_TOKEN", "test-only")
+    sys.modules.pop("agents.merge_robot.merge_robot", None)
+    return importlib.import_module("agents.merge_robot.merge_robot")
+
+
+def test_stage_task_merges_with_refs_without_closing_parent(monkeypatch):
+    robot = _robot(monkeypatch)
+    issue = {
+        "number": 79,
+        "state": "open",
+        "title": "TASK-210: multi-stage native runtime",
+        "labels": [],
+    }
+    pr = {
+        "title": "TASK-210-S1: Windows runtime",
+        "body": "Refs #79",
+        "head": {"ref": "frontend/task-210-s1"},
+    }
+    link = robot.resolve_task_link(pr, issue_loader=lambda path: issue)
+    comment = robot.task_completion_comment(link, 91)
+    assert link == {
+        "kind": "stage",
+        "task_id": "TASK-210-S1",
+        "parent_task_id": "TASK-210",
+        "issue": issue,
+    }
+    assert "remains open" in comment
+    assert "close this task" not in comment.lower()
+    assert "Fixes" not in pr["body"]
+
+
+@pytest.mark.parametrize(
+    ("pr", "issue_title", "message"),
+    [
+        (
+            {"title": "TASK-210-S1: stage", "body": "Fixes #79", "head": {"ref": "stage"}},
+            "TASK-210: parent",
+            "stage PR must use Refs",
+        ),
+        (
+            {"title": "TASK-210-S1: stage", "body": "Refs #79", "head": {"ref": "TASK-999-S1"}},
+            "TASK-210: parent",
+            "exactly one stage ID",
+        ),
+        (
+            {"title": "TASK-999-S1: stage", "body": "Refs #79", "head": {"ref": "stage"}},
+            "TASK-210: parent",
+            "derives parent",
+        ),
+        (
+            {"title": "normal", "body": "Fixes #79\nRefs #79", "head": {"ref": "normal"}},
+            "TASK-210: parent",
+            "exactly one",
+        ),
+    ],
+)
+def test_stage_task_link_rejects_ambiguous_or_parent_closing_forms(
+    monkeypatch, pr, issue_title, message
+):
+    robot = _robot(monkeypatch)
+    issue = {"number": 79, "state": "open", "title": issue_title, "labels": []}
+    with pytest.raises(robot.TaskLinkError, match=message):
+        robot.resolve_task_link(pr, issue_loader=lambda path: issue)

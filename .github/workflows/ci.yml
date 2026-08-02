@@ -47,6 +47,14 @@ jobs:
       - run: npm ci --prefix overlay
       - run: npm --prefix overlay run test
       - run: npm --prefix overlay run build
+  packet-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install jsonschema
+      - run: python3 agents/packets/validate.py --all
   engine-integration:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-902-S1",
+  "parent_task_id": "TASK-902",
+  "issue": null,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Add one bounded assumption rule and its deterministic fixture coverage.",
+  "files_in_scope": ["assumptions/**", "tests/test_assumptions.py"],
+  "files_out_of_scope": ["contracts/**", "agents/**"],
+  "required_checks": ["python3 scripts/check_fixture_coverage.py"],
+  "acceptance_criteria": [{"id": "AC-1", "text": "Every new assumption rule has a passing and failing fixture."}],
+  "budgets": {"max_attempts": 2, "max_files_modified": 4, "max_diff_lines": 220, "max_wall_clock_seconds": 900}
+}
