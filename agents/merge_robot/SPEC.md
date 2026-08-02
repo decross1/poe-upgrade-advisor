@@ -24,8 +24,8 @@ On failure: comment the first failed condition (mechanical text, no advice), rem
 
 ## PROTECTED_PATHS
 ```
-agents/**  .github/**  contracts/**  PRODUCT_DOCTRINE.md  AGENTS.md
-engine/corpus/**  scripts/check_invariants.py  merge_robot/coverage_floor.json
+agents/*  .github/*  contracts/*  PRODUCT_DOCTRINE.md  AGENTS.md
+engine/corpus/*  scripts/check_invariants.py  tasks/packets/*
 ```
 `protected-change` labels can only be applied at task-creation time by the PM identity; the robot verifies the label's audit log actor.
 

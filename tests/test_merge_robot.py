@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import fnmatch
 import importlib
+from pathlib import Path
 import re
 import sys
 
@@ -22,11 +22,34 @@ def _matches_test_change(line: str) -> bool:
 
 
 def test_security_patterns_cover_expected_paths():
+    from agents.merge_robot.patterns import PROTECTED, matches_protected
+
+    # fnmatch's '*' crosses separators. Both depth>=2 cases are load-bearing:
+    # pathlib.Path.match would silently leave these paths unprotected.
+    assert matches_protected("agents/pm_lite/scheduler.py")
+    assert matches_protected("tasks/packets/archive/TASK-999-S1.json")
+    for path in ("agents/dispatch.py", ".github/workflows/ci.yml", "contracts/openapi.yaml"):
+        assert matches_protected(path)
+    assert not matches_protected("web/src/App.tsx")
+    assert PROTECTED == [
+        "agents/*",
+        ".github/*",
+        "contracts/*",
+        "PRODUCT_DOCTRINE.md",
+        "AGENTS.md",
+        "engine/corpus/*",
+        "scripts/check_invariants.py",
+        "tasks/packets/*",
+    ]
+
+
+def test_protected_paths_spec_is_exactly_the_canonical_list():
     from agents.merge_robot.patterns import PROTECTED
 
-    for path in ("agents/dispatch.py", ".github/workflows/ci.yml", "contracts/openapi.yaml"):
-        assert any(fnmatch.fnmatch(path, pattern) for pattern in PROTECTED)
-    assert not any(fnmatch.fnmatch("web/src/App.tsx", pattern) for pattern in PROTECTED)
+    spec = (Path(__file__).parents[1] / "agents/merge_robot/SPEC.md").read_text()
+    block = re.search(r"## PROTECTED_PATHS\n```\n(.*?)\n```", spec, re.DOTALL)
+    assert block is not None
+    assert block.group(1).split() == PROTECTED
 
 
 @pytest.mark.parametrize(
@@ -67,6 +90,7 @@ def test_merge_robot_enforces_the_shared_pattern_objects(monkeypatch):
     robot = importlib.import_module("agents.merge_robot.merge_robot")
     patterns = importlib.import_module("agents.merge_robot.patterns")
     assert robot.PROTECTED is patterns.PROTECTED
+    assert robot.matches_protected is patterns.matches_protected
     assert robot.BANNED is patterns.BANNED
     assert robot.TEST_SIG is patterns.TEST_SIG
 

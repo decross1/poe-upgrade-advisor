@@ -118,11 +118,15 @@ def test_legacy_issue_normalizes_only_with_explicit_confirmation():
     assert packet["parent_task_id"] == "TASK-210"
 
 
-def test_protected_scope_forces_frontier_route_and_review_policy():
+@pytest.mark.parametrize(
+    "protected_scope",
+    ["agents/packets/**", "tasks/packets/archive/**"],
+)
+def test_protected_scope_forces_frontier_route_and_review_policy(protected_scope):
     with pytest.raises(PacketError, match="protected-path"):
-        validate_semantics(_packet(files_in_scope=["agents/packets/**"]))
+        validate_semantics(_packet(files_in_scope=[protected_scope]))
     protected = _packet(
-        files_in_scope=["agents/packets/**"],
+        files_in_scope=[protected_scope],
         tier="red",
         routing={
             "reasoning_effort": "high",
