@@ -67,6 +67,14 @@ from agents.interfaces.result import (  # noqa: E402
     load_result,
     sweep_result,
 )
+from agents.checks import (  # noqa: E402
+    checks_ok,
+    checks_telemetry,
+    failed_checks_reason,
+    provisioning_ok,
+    run_commands,
+    run_provisioning,
+)
 from agents.completion import (  # noqa: E402
     proofs_telemetry,
     refusal,
@@ -852,17 +860,39 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                         attempt_number=attempts, task_class=tier,
                         started_at=time.time())
 
+    # 8.5 — dependency provisioning (A2 amendment): dispatcher-owned and
+    # privileged — derived from the packet's commands, never expressible in
+    # them (npm ci is banned in packets, yet npm checks cannot run without
+    # node_modules in a fresh worktree). Deliberately BELOW the step-6/7
+    # attempt accounting: a provisioning failure is a counted attempt, so a
+    # broken lockfile dead-letters at the cap instead of looping un-metered.
+    # Not charged against the packet's wall-clock cap; timed + telemetered.
+    provisioning = run_provisioning(packet, worktree, mailroom)
+    if provisioning and not provisioning_ok(provisioning):
+        err = "dependency provisioning failed: " + "; ".join(
+            f"{r['cmd']!r} rc={r['rc']}" for r in provisioning
+            if r.get("rc") != 0)
+        tele.finish(run_id, result_error=err, provisioning=provisioning,
+                    attempt_number=attempts, completed_at=time.time())
+        return Outcome(decision=DispatchDecision.INVOKE.value,
+                       ack=AckDecision.RETAIN.value, reason=err,
+                       message_id=message_id, task_id=task_id, role=role,
+                       attempts=attempts, max_attempts=max_attempts,
+                       invoked=False, extra={"provisioning": provisioning})
+
     # 9 — deterministic prepass: packet-declared T0 commands, zero tokens.
-    prepass_results = []
-    for cmd in (packet or {}).get("deterministic_prepass", []) or []:
-        try:
-            pr = subprocess.run(cmd, shell=True, cwd=worktree,
-                                capture_output=True, text=True,
-                                timeout=PREPASS_TIMEOUT)
-            prepass_results.append({"cmd": cmd, "rc": pr.returncode})
-        except subprocess.TimeoutExpired:
-            prepass_results.append({"cmd": cmd, "rc": None,
-                                    "timeout": PREPASS_TIMEOUT})
+    # CC-1: runs under the packet COMMAND POLICY (shlex-parsed, bans
+    # enforced, no shell) via the same runner as required_checks — the old
+    # shell=True runner that swallowed exit codes is gone. Prepass stays
+    # informational (T0 signal, not a gate); its rc is recorded, branched
+    # on only by telemetry consumers.
+    prepass_results = [
+        {"cmd": r.cmd, "rc": r.rc, "policy": r.policy,
+         **({"timeout": PREPASS_TIMEOUT} if r.timed_out else {})}
+        for r in run_commands(
+            (packet or {}).get("deterministic_prepass") or [],
+            worktree, timeout=PREPASS_TIMEOUT)
+    ]
 
     # 10 — the model call, wall-clock capped. A pending anti-loop strategy
     # note is embedded (and consumed): the re-prompt names the loop and
@@ -919,6 +949,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     ack = AckDecision.RETAIN
     res: dict | None = None
     completion_proofs: list | None = None
+    required_checks_tele: list | None = None
     try:
         res = load_result(worktree / RESULT_FILENAME)
         result_status = res["status"]
@@ -926,31 +957,46 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             # Decision only — applied AFTER the anti-loop assessment, which
             # may pre-empt it: a "completed" result that modified a
             # prohibited file terminates instead of acking as success.
-            if result_status == "completed" and \
-                    os.environ.get("COMPLETION_PROOFS", "1") != "0":
+            if result_status == "completed":
+                # 11.05 — CC-1: the packet's required_checks are
+                # AUTHORITATIVE and the DISPATCHER runs them itself, after
+                # the agent returns and before any ack. A failing check
+                # beats a "completed" self-report. Per-check rc rides
+                # telemetry; the runner never swallows one. (The command
+                # policy governs THESE commands and the prepass only —
+                # never the agent's own tools; the agent must push.)
+                declared = (packet or {}).get("required_checks") or []
+                check_results = run_commands(declared, worktree)
+                # Absent stays None, never zero-length: "no packet declared
+                # checks" and "checks ran" must be distinguishable.
+                required_checks_tele = (checks_telemetry(check_results)
+                                        if declared else None)
+                checks_refused = failed_checks_reason(check_results)
+
                 # 11.1 — CC-2: "completed" is a CLAIM. The dispatcher
                 # verifies the completion proofs (commit exists, push is
                 # real, branch conforms, ls-remote evidence persisted —
-                # agents/completion.py) before any ack applies. A failing
-                # proof beats the self-report: the message is retained and
-                # the refusal, proof by proof, rides telemetry. The
+                # agents/completion.py) before any ack applies. The
                 # fabricated payload {"status": "completed", "pushed":
                 # false, "commit_sha": "0000000", ...} was ackable here on
                 # the agent's word alone. COMPLETION_PROOFS=0 is the
-                # operator rollback lever (ANTI_LOOP idiom); default ON.
-                proofs = verify_completion(res, worktree=worktree,
-                                           mailroom=mailroom, run_id=run_id,
-                                           packet=packet)
-                completion_proofs = proofs_telemetry(proofs)
-                refused = refusal(proofs)
+                # operator rollback lever (ANTI_LOOP idiom); default ON —
+                # it does NOT disable the required checks above.
+                proof_refused = None
+                if os.environ.get("COMPLETION_PROOFS", "1") != "0":
+                    proofs = verify_completion(res, worktree=worktree,
+                                               mailroom=mailroom,
+                                               run_id=run_id, packet=packet)
+                    completion_proofs = proofs_telemetry(proofs)
+                    proof_refused = refusal(proofs)
+
+                refused = "; ".join(
+                    r for r in (checks_refused, proof_refused) if r) or None
                 if refused:
                     result_error = refused
                 else:
                     ack = AckDecision.ACK
                     success = True
-            elif result_status == "completed":
-                ack = AckDecision.ACK  # proofs disabled by operator flag
-                success = True
             else:  # blocked — ackable, never a success
                 ack = AckDecision.ACK
         # needs_retry: actionable, retained; step 7 retires it at the cap.
@@ -1005,6 +1051,8 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                         anti_loop=anti.action, anti_loop_reason=anti.reason,
                         usage_parse_error=usage_parse_error,
                         completion_proofs=completion_proofs,
+                        required_checks=required_checks_tele,
+                        provisioning=provisioning or None,
                         exit_code=rc, stop_reason=stop_reason,
                         duration_seconds=round(duration, 3),
                         attempt_number=attempts, completed_at=time.time(),
@@ -1061,6 +1109,8 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     tele.finish(run_id, result_status=result_status, result_error=result_error,
                 usage_parse_error=usage_parse_error,
                 completion_proofs=completion_proofs,
+                required_checks=required_checks_tele,
+                provisioning=provisioning or None,
                 exit_code=rc, timed_out=timed_out, halted=halted,
                 stop_reason=stop_reason,
                 duration_seconds=round(duration, 3),

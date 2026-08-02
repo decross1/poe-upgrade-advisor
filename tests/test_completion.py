@@ -167,6 +167,42 @@ def test_rollback_lever_documented(mailroom, worktree, monkeypatch):
     assert out.ack == ACK  # legacy behavior, operator's explicit choice
 
 
+def test_command_policy_never_constrains_agent_tools(mailroom, worktree):
+    """T-A2, the load-bearing scope sentence: the packet policy bans
+    `git push` for CHECK commands — and the agent itself must push to
+    complete. truthful_agent runs a real `git push` inside its invocation
+    while the packet declares (benign) checks under the same policy that
+    bans pushing. Completion must still verify and ack: the policy governs
+    what the DISPATCHER executes, never the agent's own tools."""
+    d = worktree / "tasks" / "packets"
+    d.mkdir(parents=True)
+    (d / "TASK-7.json").write_text(json.dumps({
+        "schema_version": "1.0", "task_id": "TASK-7",
+        "owner_role": "backend", "tier": "green",
+        "objective": "agent pushes; packet checks cannot",
+        "files_in_scope": ["agent-work.txt"],
+        "files_out_of_scope": [],
+        "required_checks": ["true"],
+        "acceptance_criteria": [
+            {"id": "AC-1", "text": "agent tools are unconstrained"}],
+        "budgets": {"max_attempts": 2, "max_files_modified": 2,
+                    "max_diff_lines": 100, "max_wall_clock_seconds": 60},
+    }))
+    # Packets are COMMITTED repo content (and tasks/packets/* is PROTECTED
+    # per Lane B's B2) — an untracked packet would read as an agent
+    # modification in the anti-loop changed-file set once that lands.
+    _git("add", "tasks/packets/TASK-7.json", cwd=worktree)
+    _git("commit", "-q", "-m", "packet: TASK-7", cwd=worktree)
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("truthful_agent.py"))
+
+    assert out.ack == ACK          # the agent's push went through
+    ev = finish_event(mailroom)
+    assert proofs_by_id(ev)["pushed_remote_agreement"]["passed"] is True
+    assert [c["rc"] for c in ev["required_checks"]] == [0]
+
+
 # ------------------------------------------------------------------ units
 
 def _true_completion(worktree: Path) -> dict:

@@ -1,0 +1,23 @@
+# Command policy for DISPATCHER-executed packet commands (CC-1/A3).
+#
+# SCOPE: governs packet-declared `required_checks` and `deterministic_prepass`
+# ONLY. It does not constrain the agent's own tools — the agent must be able
+# to push; scope guards, protected paths, budgets and the banned-pattern scan
+# bound the agent instead.
+#
+# Data, not code: pm-ratified plan v1.0 contents drop in here without a code
+# change. Matching is token-wise on shlex-parsed argv — never string-prefix.
+schema_version: "1.0"
+
+# Contract bans (v1.1 §CC-1, binding today). Argv-prefix matches.
+banned:
+  - [npm, install]
+  - [npm, ci]
+  - [git, push]
+  - [gh]
+
+# Positive allowlist: null = pm ANSWER pending (plan v1.0). When ratified,
+# replace null with a list of argv prefixes; any command matching no entry
+# is then rejected. Until then only the bans are enforced and every check
+# record is stamped `policy: bans_only`.
+allowlist: null
