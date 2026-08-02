@@ -235,6 +235,26 @@ def test_always_allow_run_budget_fails_unattended(tmp_path, monkeypatch):
     assert _by_name(evaluate(root, mailroom, "unattended-7d"))["run_budget"].verdict == "fail"
 
 
+def test_arbiter_fallback_requires_actual_pm_lite_consumer(tmp_path, monkeypatch):
+    root, mailroom = _fixture(tmp_path)
+    monkeypatch.setattr(
+        "scripts.check_agent_readiness.shutil.which", lambda command: f"/bin/{command}"
+    )
+    assert _by_name(evaluate(root, mailroom, "supervised"))[
+        "arbiter_fallback"
+    ].verdict == "fail"
+    scheduler = root / "agents/pm_lite/scheduler.py"
+    scheduler.parent.mkdir(parents=True)
+    scheduler.write_text(
+        "def _load_live_config(): pass\n"
+        "def _circuit_broken_roles(): pass\n"
+        "arbiter_after_circuit_break(config)\n"
+    )
+    assert _by_name(evaluate(root, mailroom, "supervised"))[
+        "arbiter_fallback"
+    ].verdict == "pass"
+
+
 def test_json_cli_lists_every_check_and_unknown_mode_fails(tmp_path, monkeypatch):
     root, mailroom = _fixture(tmp_path)
     env = {**os.environ, "PATH": os.environ["PATH"]}

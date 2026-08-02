@@ -28,8 +28,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from agents.interfaces.packet import PacketError, load_packet  # noqa: E402
-from agents.interfaces.policy import PolicyError, load_policy  # noqa: E402
+from agents.interfaces.packet import PacketError, load_packet
+from agents.interfaces.policy import PolicyError, load_policy
 
 MODES = ("canary", "supervised", "unattended-7d", "unattended-10d")
 ROLES = ("pm", "backend", "frontend")
@@ -371,8 +371,24 @@ def evaluate(root: Path, mailroom: Path, mode: str, environ: dict[str, str] | No
 
     packets_ok, packet_detail, ready_count = _packets(root)
     checks.append(_result(mode, "task_packets", packets_ok, packet_detail))
-    checks.append(_result(mode, "arbiter_fallback", state.get("arbiter_fallback_wired") is True,
-                          "arbiter fallback wired" if state.get("arbiter_fallback_wired") is True else "arbiter fallback only declared or absent"))
+    scheduler = root / "agents/pm_lite/scheduler.py"
+    try:
+        scheduler_source = scheduler.read_text(encoding="utf-8")
+    except OSError:
+        scheduler_source = ""
+    arbiter_wired = (
+        "arbiter_after_circuit_break(" in scheduler_source
+        and "_load_live_config(" in scheduler_source
+        and "_circuit_broken_roles(" in scheduler_source
+    )
+    checks.append(_result(
+        mode,
+        "arbiter_fallback",
+        arbiter_wired,
+        "arbiter fallback consumed from live config"
+        if arbiter_wired
+        else "arbiter fallback only declared or absent",
+    ))
     merge_ok = bool(env.get("MERGE_ROBOT_TOKEN") or github.get("token_present")) \
         and github.get("branch_protection") is True and github.get("distinct_merge_identity") is True
     checks.append(_result(mode, "merge_automation", merge_ok,

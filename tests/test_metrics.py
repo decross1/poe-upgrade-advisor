@@ -4,7 +4,11 @@ import json
 
 import pytest
 
-from agents.accounting import AnalyticsTelemetry, AccountingBudgetLedger, read_invocations
+from agents.accounting import (
+    AccountingBudgetLedger,
+    AnalyticsTelemetry,
+    read_invocations,
+)
 from scripts.agent_metrics import (
     accepted_cost,
     filter_records,
@@ -74,6 +78,18 @@ def test_task_model_module_since_and_summary_queries(tmp_path):
     }
     assert summarize(records)["suppressed"] == 1
     assert [r["run_id"] for r in wasted_runs(records)] == ["wasted"]
+
+
+def test_summary_distinguishes_partial_measurement_from_genuine_zero():
+    records = [
+        {"run_id": "known-zero", "cash_cost_usd": 0.0},
+        {"run_id": "unknown", "cash_cost_usd": None},
+        {"run_id": "known-cost", "cash_cost_usd": 2.5},
+    ]
+    summary = summarize(records)
+    assert summary["cash_cost_usd"] == 2.5
+    assert summary["cash_cost_usd_known_rows"] == 2
+    assert summary["cash_cost_usd_rows"] == 3
 
 
 def test_accepted_cost_refuses_incomplete_inputs_and_labels_estimates():

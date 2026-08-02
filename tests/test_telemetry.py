@@ -221,9 +221,18 @@ def test_accounting_ledger_preserves_unknown_spend_and_records_decisions(tmp_pat
     assert aggregate == {
         "invocations": 1,
         "cash_usd": None,
+        "cash_usd_known_rows": 0,
+        "cash_usd_unknown_rows": 1,
         "allowance_pct": None,
+        "allowance_pct_known_rows": 0,
+        "allowance_pct_unknown_rows": 1,
         "input_tokens": None,
+        "input_tokens_known_rows": 0,
+        "input_tokens_unknown_rows": 1,
         "output_tokens": None,
+        "output_tokens_known_rows": 0,
+        "output_tokens_unknown_rows": 1,
+        "complete": False,
     }
     ledger.record_decision(
         role="pm", task_id="TASK-U", run_id="unknown", decision="deny", reason="daily cap"
@@ -231,3 +240,88 @@ def test_accounting_ledger_preserves_unknown_spend_and_records_decisions(tmp_pat
     assert ledger.db.execute(
         "SELECT decision, reason FROM governor_decisions"
     ).fetchone() == ("deny", "daily cap")
+
+
+def test_allowance_validation_precedes_transaction_and_base_exception_rolls_back(
+    tmp_path, monkeypatch
+):
+    ledger = AccountingBudgetLedger(tmp_path / "budget.sqlite3")
+    with pytest.raises(ValueError, match="weighted_seconds"):
+        ledger.record_allowance(
+            role="pm",
+            pct=10.0,
+            source="manual_daily_reading",
+            weighted_seconds="not-numeric",
+        )
+    assert not ledger.db.in_transaction
+    assert ledger.db.execute("SELECT COUNT(*) FROM allowance_readings").fetchone()[0] == 0
+
+    original = ledger._x
+
+    def interrupted(sql, args=()):
+        if "INSERT INTO allowance_calibrations" in sql:
+            raise KeyboardInterrupt
+        return original(sql, args)
+
+    monkeypatch.setattr(ledger, "_x", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        ledger.record_allowance(
+            role="pm",
+            pct=10.0,
+            source="manual_daily_reading",
+            weighted_seconds=1.0,
+        )
+    assert not ledger.db.in_transaction
+    assert ledger.db.execute("SELECT COUNT(*) FROM allowance_readings").fetchone()[0] == 0
+
+
+def test_allowance_transaction_rolls_back_partial_write_and_commits_atomically(tmp_path):
+    path = tmp_path / "budget.sqlite3"
+    ledger = AccountingBudgetLedger(path)
+    ledger.db.execute(
+        """CREATE TRIGGER reject_calibration BEFORE INSERT ON allowance_calibrations
+           BEGIN SELECT RAISE(ABORT, 'injected calibration failure'); END"""
+    )
+    with pytest.raises(BudgetLedgerUnavailable, match="injected calibration failure"):
+        ledger.record_allowance(
+            role="pm",
+            pct=10.0,
+            source="manual_daily_reading",
+            weighted_seconds=1.0,
+        )
+    assert not ledger.db.in_transaction
+    assert ledger.db.execute("SELECT COUNT(*) FROM allowance_readings").fetchone()[0] == 0
+    ledger.db.execute("DROP TRIGGER reject_calibration")
+
+    ledger.record_allowance(
+        role="pm",
+        pct=42.0,
+        source="manual_daily_reading",
+        weighted_seconds=1.0,
+    )
+    observer = AccountingBudgetLedger(path)
+    assert observer.latest_allowance("pm")["pct"] == 42.0
+    assert observer.db.execute(
+        "SELECT COUNT(*) FROM allowance_calibrations"
+    ).fetchone()[0] == 1
+
+
+def test_partial_spend_aggregate_exposes_known_denominators(tmp_path):
+    ledger = AccountingBudgetLedger(tmp_path / "budget.sqlite3")
+    ledger.record_spend(
+        role="backend",
+        task_id="TASK-M",
+        run_id="known",
+        cash_usd=0.0,
+        input_tokens=10,
+    )
+    ledger.record_spend(role="backend", task_id="TASK-M", run_id="unknown")
+    aggregate = ledger.spend_since(since_ts=0)
+    assert aggregate["invocations"] == 2
+    assert aggregate["cash_usd"] == 0.0
+    assert aggregate["cash_usd_known_rows"] == 1
+    assert aggregate["cash_usd_unknown_rows"] == 1
+    assert aggregate["input_tokens"] == 10
+    assert aggregate["input_tokens_known_rows"] == 1
+    assert aggregate["input_tokens_unknown_rows"] == 1
+    assert aggregate["complete"] is False
