@@ -212,15 +212,17 @@ def test_record_inserts_ts_role_task_and_success_as_int(
 
 
 # ------------------------------------------------------------------- allow
-def test_org_is_exempt_from_per_task_cap_breaker_and_backoff_CURRENT(
+def test_org_is_subject_to_per_task_cap_breaker_and_backoff(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     fake_subprocess: _FakeSubprocess,
 ) -> None:
-    # pins current behaviour; see W1-2 / REQUEST
-    # 6 straight ORG failures exceed the per-task cap (5), the breaker (3)
-    # and would put the task deep in backoff — yet ORG sails through because
-    # task_id == "ORG" skips that entire block.
+    # W1-2 flipped the pinned W1-1 behaviour (see d897de2 for the before-
+    # state): the `if task_id != "ORG":` exemption is deleted. 16 of 57
+    # commits were org-plumbing and the measured 2026-07-27 cascade was
+    # org-adjacent heartbeat traffic — unbounded ORG chatter is the failure
+    # mode. 6 straight ORG failures now trip the breaker (3) exactly like
+    # any TASK id, and dead-letter with the needs-redesign label attempt.
     clock = _freeze_clock(monkeypatch, _ts(2026, 8, 15, 5, 0))
     _freeze_now(monkeypatch, datetime(2026, 8, 15, 12, 0, tzinfo=UTC))
     g = _governor(tmp_path, per_day_max={"backend": 100, "pm": 10})
@@ -228,16 +230,19 @@ def test_org_is_exempt_from_per_task_cap_breaker_and_backoff_CURRENT(
         clock.now = _ts(2026, 8, 15, 5, 0) + i
         g.record("backend", "ORG", False)
 
-    assert g.allow("backend", "ORG") == (True, "ok")
-    assert _dead_letters(tmp_path) == []
-    assert fake_subprocess.calls == []
+    allowed, reason = g.allow("backend", "ORG")
+    assert allowed is False
+    assert reason in {"per-task cap", "circuit breaker tripped"}
+    assert _dead_letters(tmp_path) == ["ORG.md"]
+    assert len(fake_subprocess.calls) == 1  # gh label attempt, stubbed
 
 
-def test_org_is_still_subject_to_daily_cap_CURRENT(
+def test_org_is_still_subject_to_daily_cap(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # pins current behaviour; see W1-2 / REQUEST — per_day_max is the ONLY
-    # check that applies to ORG traffic.
+    # Daily cap applied to ORG before W1-2 and still does; since W1-2 it is
+    # one of four checks (per-task cap, breaker, backoff, daily) rather than
+    # the only one.
     clock = _freeze_clock(monkeypatch, _ts(2026, 8, 15, 5, 0))
     _freeze_now(monkeypatch, datetime(2026, 8, 15, 12, 0, tzinfo=UTC))
     g = _governor(tmp_path, per_day_max={"backend": 2, "pm": 10})

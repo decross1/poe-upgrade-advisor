@@ -61,23 +61,27 @@ class Governor:
 
     # ------------------------------------------------------------ decisions
     def allow(self, role: str, task_id: str) -> tuple[bool, str]:
+        # ORG is deliberately NOT exempt. 16 of 57 commits were org-plumbing,
+        # and the measured 2026-07-27 cascade ran under task_id=ORG-adjacent
+        # heartbeats: unbounded org chatter is the failure mode, not an edge
+        # case. ORG's caps come from the same per-task machinery; its tier
+        # budgets live in execution_classes.org (policy.yaml).
         p = self.policy
-        if task_id != "ORG":
-            used = self._count(
-                "SELECT COUNT(*) FROM ledger WHERE role=? AND task_id=?", (role, task_id))
-            if used >= p["per_task_max_invocations"]:
-                self._dead_letter(role, task_id, f"per-task cap {used} reached")
-                return False, "per-task cap"
-            cf = self._consecutive_failures(role, task_id)
-            if cf >= p["circuit_breaker_consecutive_failures"]:
-                self._dead_letter(role, task_id, f"{cf} consecutive failures")
-                return False, "circuit breaker tripped"
-            if cf > 0:
-                wait = min(p["backoff"]["base_minutes"] * (2 ** (cf - 1)),
-                           p["backoff"]["max_minutes"]) * 60
-                last = self._last_failure_ts(role, task_id) or 0
-                if time.time() - last < wait:
-                    return False, f"backoff {int(wait - (time.time()-last))}s remaining"
+        used = self._count(
+            "SELECT COUNT(*) FROM ledger WHERE role=? AND task_id=?", (role, task_id))
+        if used >= p["per_task_max_invocations"]:
+            self._dead_letter(role, task_id, f"per-task cap {used} reached")
+            return False, "per-task cap"
+        cf = self._consecutive_failures(role, task_id)
+        if cf >= p["circuit_breaker_consecutive_failures"]:
+            self._dead_letter(role, task_id, f"{cf} consecutive failures")
+            return False, "circuit breaker tripped"
+        if cf > 0:
+            wait = min(p["backoff"]["base_minutes"] * (2 ** (cf - 1)),
+                       p["backoff"]["max_minutes"]) * 60
+            last = self._last_failure_ts(role, task_id) or 0
+            if time.time() - last < wait:
+                return False, f"backoff {int(wait - (time.time()-last))}s remaining"
         today = self._count(
             "SELECT COUNT(*) FROM ledger WHERE role=? AND ts>=?", (role, self._day_start()))
         if today >= p["per_day_max"][role]:
