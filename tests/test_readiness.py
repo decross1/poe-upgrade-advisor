@@ -204,6 +204,17 @@ def test_merge_automation_warns_canary_and_fails_unattended(tmp_path, monkeypatc
     assert _by_name(evaluate(root, mailroom, "unattended-7d"))["merge_automation"].verdict == "fail"
 
 
+def test_placeholder_coverage_floor_is_not_reported_active(tmp_path, monkeypatch):
+    root, mailroom = _fixture(tmp_path)
+    monkeypatch.setattr(
+        "scripts.check_agent_readiness.shutil.which", lambda command: f"/bin/{command}"
+    )
+    (root / "agents/merge_robot/coverage_floor.json").write_text('{"floor": 0.0}')
+    check = _by_name(evaluate(root, mailroom, "canary"))["coverage_floor"]
+    assert check.verdict == "warn"
+    assert "inactive" in check.detail
+
+
 def test_mode_matrix_escalates_only_at_the_documented_boundary(tmp_path, monkeypatch):
     root, mailroom = _fixture(tmp_path)
     monkeypatch.setattr("scripts.check_agent_readiness.shutil.which", lambda command: f"/bin/{command}")

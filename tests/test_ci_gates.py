@@ -31,6 +31,14 @@ def test_coverage_floor_blocks_regression_and_accepts_floor(tmp_path):
     assert _coverage_run(tmp_path, 68.0, 67.9).returncode == 0
 
 
+def test_committed_coverage_floor_is_active_and_matches_measured_formula():
+    floor = json.loads(
+        (ROOT / "agents/merge_robot/coverage_floor.json").read_text()
+    )["floor"]
+    assert floor == 79.8
+    assert floor >= 60.0
+
+
 def test_required_checks_have_real_ci_jobs(monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "example/repo")
     monkeypatch.setenv("MERGE_ROBOT_TOKEN", "test-only")

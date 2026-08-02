@@ -367,7 +367,12 @@ def evaluate(root: Path, mailroom: Path, mode: str, environ: dict[str, str] | No
         floor = float(json.loads((root / "agents/merge_robot/coverage_floor.json").read_text())["floor"])
     except (OSError, ValueError, KeyError, TypeError):
         floor = 0.0
-    checks.append(_result(mode, "coverage_floor", floor > 0, f"coverage floor={floor}"))
+    checks.append(_result(
+        mode,
+        "coverage_floor",
+        floor >= 60.0,
+        f"coverage floor={floor}" if floor >= 60.0 else f"coverage floor inactive: {floor}",
+    ))
 
     packets_ok, packet_detail, ready_count = _packets(root)
     checks.append(_result(mode, "task_packets", packets_ok, packet_detail))
