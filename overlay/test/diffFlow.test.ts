@@ -367,11 +367,13 @@ describe("diffFlow — chip tap → one re-diff (I3/§7, issue #64)", () => {
     let calls = 0;
     const server = await stub(() => (++calls === 1 ? { status: 200, json: upgradeMappingJson } : { status: 500 }));
     const { states, onState } = collectStates();
+    const clock = new ManualClock();
     const flow = createDiffFlow({
       readClipboard: () => SAMPLE_ITEM_TEXT,
       postDiff: bindGeneratedDiff(server.url),
       onState,
       transientMs: 20, // injected; production default is TRANSIENT_MESSAGE_MS (3000)
+      clock,
     });
     await flow.onHotkey();
     await flow.onChipTap(chip(upgradeMapping, "config.elemental_overload"));
@@ -384,13 +386,15 @@ describe("diffFlow — chip tap → one re-diff (I3/§7, issue #64)", () => {
       transientMessage: RECOMPUTE_FAILED_MESSAGE,
     });
 
-    await sleep(60); // transient window elapses → original sentence restored
+    expect(clock.pendingCount()).toBe(1);
+    clock.advanceBy(20); // transient window elapses → original sentence restored
     expect(states.at(-1)).toEqual({
       kind: "VERDICT",
       card: upgradeMapping,
       appliedOverrides: [],
       transientMessage: null,
     });
+    expect(clock.pendingCount()).toBe(0);
   });
 
   it("RULING-21: each failed retry keeps its own transient message visible for the full duration", async () => {
