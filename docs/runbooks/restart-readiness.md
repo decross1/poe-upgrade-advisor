@@ -432,8 +432,12 @@ budget_ledger.sqlite3.pm-probe-residue-20260802       53248 bytes, mtime 03:02:5
 ```
 
 The main database's bytes, size and mtime are unchanged and the WAL is empty:
-no rows were created or altered. The two sidecars are my probe's artifacts and
-are to be removed (checksums above are the record). The instruction to that
+no rows were created or altered. The two sidecars were my probe's artifacts
+and were REMOVED at ~18:50Z the same day, after the checksums above were
+recorded; the main file's sha256 was re-verified unchanged after the removal.
+(Correction per the reconstruction audit DELTA-8: an earlier revision of this
+paragraph said "are to be removed" after they were already gone — records
+must trail actions, not intentions.) The instruction to that
 probe said read-only in three places; the lesson is the one this file already
 records twice — a constraint stated is not a constraint enforced. A8/B3
 (CI-enforced write-free snapshot regression) is the enforcement.
