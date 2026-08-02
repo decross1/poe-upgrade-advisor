@@ -1,0 +1,144 @@
+# Restart readiness record
+
+**Status: IN PROGRESS — no verdict issued.** This is a living record; it is
+updated as each unit is verified, not written from memory at the end. A verdict
+appears at the bottom only when every mandatory gate for the claimed level has
+an evidence row.
+
+- Program: `poe_autonomous_org_restart_program_v1.0.md`, narrowed per **ADR-0007**
+- Current state: `docs/agent-org/current-state-2026-08-02.md` (Phase 0)
+- Baseline: `a04c8b3` · Integration branch: `main`
+- Loops: **halted**. `mailroom/HALT` present since 2026-07-27T22:07, verified at
+  every unit acceptance.
+
+Evidence tags: `[O]` observed · `[E]` estimate · `[A]` assumption · `[X]` experiment required.
+
+---
+
+## 1. Unit status
+
+Eleven units, two lanes, executed concurrently against a frozen interface seam
+(`agents/interfaces/`). Every accepted unit was verified by pm independently —
+mechanically, then structurally, then by mutation where there was logic to break.
+
+| Unit | Lane | Status | Evidence |
+|---|---|---|---|
+| W1-1 characterisation tests | A | **ACCEPTED** | `d897de2`. 57 tests. `budget_governor.py` 20.3% -> 89.9%, `ledger.py` 19.6% -> 98.6%. Zero production diff. **9/9 mutation probes caught.** |
+| W1-2 governed dispatcher | A | **ACCEPTED** | `1a985dd`+`5fb068f`+`7b839f6`. Attempt ledger increments before invoke; per-message cap; ORG exemption deleted. **7/7 mutation probes caught** after the ORG per-task-cap follow-up. |
+| W1-3 preflight + no-op suppression | A | **ACCEPTED** | `f13c3c8`+`3192395`. 39 tests. All ★ cases. **4/4 mutation probes caught**, including three ways of breaking the blocker fingerprint. |
+| W1-4 worktree recovery | A | in progress | production `5804a08`; tests in flight |
+| W1-5 CI hard blockers | B | **ACCEPTED** | `e932f32`+`405d74f`. `web-test`/`overlay-test`/`coverage-floor` are real jobs and required checks; every required check maps to a real job; coverage gate exits 1 below floor. |
+| W1-6 readiness gate | B | in progress | — |
+| W2-1 telemetry + metrics | B | not started | — |
+| W2-2 pm-lite scheduler | B | not started | — |
+| W2-3 run budgets + degradation | B | not started | — |
+| W2-4 anti-loop controller | A | not started | — |
+| W2-5 task packets + stage identity | B | not started | — |
+
+**Integration:** trial merge of both lanes run early rather than at checkpoint.
+`merge-tree` clean both ways; integrated suite **235 passed**; lint, doctrine
+invariants and fixture coverage green; integrated coverage **83.03%** `[O]`.
+
+---
+
+## 2. Mandatory gates for `GO-CANARY`
+
+| Gate | Status | Evidence |
+|---|---|---|
+| HALT works and is honoured | **PASS** | `[O]` present throughout; `agent_loop.sh` idles on it; W1-4 adds an in-worker re-check |
+| Readiness checker | pending | W1-6 |
+| One governed dispatcher | **PASS** | `agents/dispatch.py`; no bare model command remains in `agent_loop.sh` `[O]` |
+| Preflight + structured results | **PASS** | W1-3; `exit 0` is not success — enforced and mutation-tested |
+| Telemetry | partial | `JsonlTelemetry` live and fail-open; durable store is W2-1 |
+| Task budgets | **PASS** | `execution_classes` green/yellow/red/org; packet overrides may only tighten |
+| Worktree recovery | pending | W1-4 tests in flight |
+| Core orchestration tests | **PASS** | 235 integrated |
+| Human observing | operator | not a code gate |
+
+## 3. Mandatory gates for `GO-SUPERVISED`
+
+All canary gates plus:
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Task packets | pending | W2-5 |
+| Loop detection | pending | W2-4 |
+| Frontend CI | **PASS** | `web-test` + `overlay-test` required `[O]` |
+| Contract + generated-client gates | **partial** | contract validation exists; generated-client drift check **not implemented** |
+| Resource locks | **not implemented** | deferred per ADR-0007 (no observed contention yet) |
+| Multi-role test at conservative concurrency | pending | canary |
+| Accepted-task metrics | pending | W2-1 |
+
+## 4. `GO-UNATTENDED-7D` — **not reachable by this program**
+
+Recorded here so a later session does not read a supervised verdict as an
+implementation failure. Three prerequisites are human-only and unprovisioned:
+
+| Prerequisite | State |
+|---|---|
+| `MERGE_ROBOT_TOKEN` | unset `[O]` (401s observed in the ledger) |
+| Branch protection on `main` | absent `[O]` |
+| Distinct bot identities | absent — all roles and the human share one login (ADR-0003) `[O]` |
+
+**And provisioning all three is necessary but not sufficient.** See
+`current-state-2026-08-02.md` §7 blocker 2a: the evidence-bearing-approval read
+path has never worked. Replayed against the two live approved PRs, merge-robot
+condition 2/3 fails on both — #87 has zero review objects (its evidence is in a
+PR issue comment the robot never reads), #91 has one review whose state is
+`COMMENTED`, which the `APPROVED` filter drops. Neither failure is the shared
+identity ADR-0003 substitutes for. That is a code fix, tracked to W2-5.
+
+---
+
+## 5. Findings that changed the plan
+
+Each of these contradicted a premise shared by all four planning documents.
+
+1. **The cascade was ~20× larger than documented.** 1,408 invocations, not the
+   "~50 burned" every document states; ~1,239 (~88%) produced nothing. Six `pm`
+   messages re-fanned 100–180 times each. The seven message IDs in `pm.log` are
+   exactly the seven still unacked today. `[O]`
+2. **Every one of those 1,408 invocations exited `rc=0`.** The process exit code
+   carried zero bits about whether anything happened. `[O]`
+3. **Coverage baseline is 68.4%, not 43%** — and integrated, 83.03%. Setting the
+   floor from the documents would have weakened the gate by ~39 points under a
+   commit message claiming to activate it. `[O]`
+4. **Kimi is already retired.** No metered provider remains in the live path, so
+   the binding constraint is entirely subscription capacity — which no CLI is
+   known to report. Promotes `allowance_pct_source` from supplementary to load-
+   bearing. `[O]`
+5. **Three read-path bugs of identical shape**, none ever observed because the
+   robot never ran: coverage read from a check-run summary CI never wrote;
+   `TEST_SIG` matching `sys.exit(`; the approval gate reading a location the org
+   does not write to. `[O]`
+6. **Dead-letters evaporated with the throwaway worktree** — `_dead_letter`
+   wrote into the `.fan` worktree that cleanup removes, so the artifact would
+   have been lost even had the breaker fired. `[O]`
+7. **A PM ruling sat unanswered for six days** because the message requesting it
+   could not be acknowledged. PR #91 was blocked the whole time. Resolved in
+   ADR-0008. The missing ack path cost decisions, not only capacity.
+
+---
+
+## 6. Accepted risks, with expiry
+
+| Risk | Mitigation | Expires |
+|---|---|---|
+| No sandbox — agents run with permission bypasses because host userns fails (`RTM_NEWADDR EPERM`) `[O]` | Branch-push-only scope; protected paths enforced by a **deployed** merge robot; HALT; concurrency cap | Wave 3, or on the first protected-path violation attempt |
+| `server/calculator.py` at 47% coverage remains Red | Routed to frontier only; property tests deferred | First verdict-correctness incident |
+| Allowance percentage is estimated, not provider-reported `[A]` | Daily manual dashboard reading + calibration factor (W2-1) | When a provider exposes it |
+| 13 dirty `.fan` worktrees hold unrecovered work `[O]` | Preserved untouched; **must not be pruned**; triage after W1-4 lands | Before `HALT` is lifted |
+| 8 unacknowledged ledger messages, 7 of them the ones that looped `[O]` | Triaged in `unacked-queue-triage-2026-08-02.md`; operator acks | Before `HALT` is lifted |
+| Every budget number in the planning documents is `[E]` from a run measured at 1/5th its true invocation count | Ship structure with values marked placeholder; re-derive from W2-1 telemetry | First shakedown |
+
+---
+
+## 7. Verdict
+
+**None issued.** Five of eleven units accepted. The verdict section is written
+only when every mandatory gate for the claimed level carries an evidence row
+above, and it will not claim a level whose prerequisites are absent.
+
+Expected ceiling on current evidence: **`GO-CANARY`**, with `GO-SUPERVISED`
+conditional on W2-4 and W2-5 landing. `GO-UNATTENDED-7D` is out of reach for the
+reasons in §4 and no amount of further lane execution changes that.
