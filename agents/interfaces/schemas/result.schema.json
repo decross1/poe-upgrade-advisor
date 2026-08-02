@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poe-upgrade-advisor/agent-result.schema.json",
+  "title": "AgentResult",
+  "description": "The structured result an executor MUST write before its message can be acknowledged. Process exit code 0 is NOT success; this file is. A missing or schema-invalid file is an invalid attempt (dispatcher increments the attempt ledger and does not ack).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "task_id", "status", "summary"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "run_id": { "type": "string", "minLength": 8 },
+    "task_id": { "type": "string", "pattern": "^TASK-[0-9]+(-S[0-9]+)?$|^ORG$" },
+    "parent_task_id": { "type": ["string", "null"], "pattern": "^TASK-[0-9]+$|^ORG$" },
+    "status": {
+      "enum": ["completed", "blocked", "needs_retry", "terminated", "dead_lettered"]
+    },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "commit_sha": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$" },
+    "pushed": { "type": "boolean", "default": false },
+    "branch": { "type": ["string", "null"] },
+    "files_modified": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "lines_added": { "type": ["integer", "null"], "minimum": 0 },
+    "lines_deleted": { "type": ["integer", "null"], "minimum": 0 },
+    "acceptance_criteria": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "not_attempted"] },
+          "evidence": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "exit_code"],
+        "properties": {
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "summary": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "blocked_reason": { "type": ["string", "null"] },
+    "resume_condition": { "type": ["string", "null"] },
+    "escalation_reason": { "type": ["string", "null"] },
+    "rollback_note": { "type": ["string", "null"] },
+    "error_fingerprint": { "type": ["string", "null"] },
+    "route": {
+      "type": ["object", "null"],
+      "description": "Router INPUTS recorded for later offline routing analysis (HANDOFF 2.7). Not a live routing decision.",
+      "additionalProperties": true,
+      "properties": {
+        "tier_assigned": { "type": ["string", "null"] },
+        "reasoning_effort": { "type": ["string", "null"] },
+        "subsystems_touched": { "type": "array", "items": { "type": "string" } },
+        "protected_path_touched": { "type": "boolean" },
+        "prior_failures": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "blocked" } }, "required": ["status"] },
+      "then": { "required": ["blocked_reason", "resume_condition"] }
+    },
+    {
+      "if": { "properties": { "status": { "const": "completed" } }, "required": ["status"] },
+      "then": { "required": ["commit_sha", "pushed", "acceptance_criteria"] }
+    }
+  ]
+}
