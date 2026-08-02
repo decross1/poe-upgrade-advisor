@@ -29,6 +29,13 @@ class Governor:
         )
         self.db.commit()
         self.repo = Path(policy_path).resolve().parents[2]  # repo root
+        cb = self.policy.get("circuit_breaker_consecutive_failures", 0)
+        if cb > 10:
+            import sys
+            print(f"WARNING: circuit_breaker_consecutive_failures={cb} "
+                  f"exceeds the LIMIT 10 window in _consecutive_failures — "
+                  f"the breaker can never trip at this setting",
+                  file=sys.stderr)
 
     # ------------------------------------------------------------ queries
     def _day_start(self) -> float:
@@ -44,6 +51,10 @@ class Governor:
         return self.db.execute(q, args).fetchone()[0]
 
     def _consecutive_failures(self, role: str, task_id: str) -> int:
+        # LIMIT 10 caps the observable streak: a breaker threshold above 10
+        # can NEVER trip (12 straight failures count as 10). Pinned in the
+        # W1-1 characterisation suite; __init__ warns when a policy crosses
+        # the coupling. W2-4's anti-loop controller is the deeper defence.
         rows = self.db.execute(
             "SELECT success FROM ledger WHERE role=? AND task_id=? ORDER BY ts DESC LIMIT 10",
             (role, task_id)).fetchall()

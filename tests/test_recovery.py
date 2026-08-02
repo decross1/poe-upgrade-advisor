@@ -457,7 +457,7 @@ def test_checkpoints_written_during_long_invocation(mailroom, worktree,
     ctx = tmp_path / "ctx.json"
     ctx.write_text("{}")
     t0 = time.time()
-    rc, stderr_tail, stop_reason = dispatch_mod._run_capped(
+    rc, stdout_tail, stderr_tail, stop_reason = dispatch_mod._run_capped(
         [fake("dirty_sleeper_agent.py"), str(ctx)], worktree, mailroom,
         wall_cap=2, task_id="TASK-9", run_id="run-ckpt", role="backend")
 

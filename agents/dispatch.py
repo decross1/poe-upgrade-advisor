@@ -180,14 +180,45 @@ def build_prompt(role: str, msg: dict, run_id: str, mailroom: Path) -> str:
 
 
 def role_command(role: str, prompt: str, mailroom: Path) -> list[str]:
-    """The model CLI for a role. This is the ONLY place a model is spawned."""
+    """The model CLI for a role. This is the ONLY place a model is spawned.
+
+    Machine-readable output is enabled on both CLIs (Lane B W2-1 seam): the
+    final usage object is recovered from stdout and fed to accounting —
+    subscription-capacity draw must never be disguised as zero cost.
+    """
     if role == "pm":
         return ["env", "-u", "ANTHROPIC_API_KEY", "claude", "-p", prompt,
+                "--output-format", "stream-json",
                 "--dangerously-skip-permissions", "--add-dir", str(mailroom)]
-    return ["codex", "exec", "--dangerously-bypass-approvals-and-sandbox",
+    return ["codex", "exec", "--json",
+            "--dangerously-bypass-approvals-and-sandbox",
             "-m", os.environ.get("CODEX_MODEL", "gpt-5.6-sol"),
             "-c", f"model_reasoning_effort={os.environ.get('CODEX_EFFORT', 'high')}",
             prompt]
+
+
+def _provider_usage(role: str, stdout_tail: str) -> dict:
+    """Lane B's usage parser, guarded until agents.accounting integrates.
+
+    Contract (HANDOFFed): provider_usage(provider, raw_stdout_tail) ->
+    dict with any of cash_usd / input_tokens / output_tokens /
+    cached_input_tokens / allowance_pct_estimated / allowance_pct_source /
+    invocation_weight — or None. Absent data stays None, never zero; a
+    parse failure is loud, never silent.
+    """
+    if not stdout_tail.strip():
+        return {}
+    provider = "anthropic" if role == "pm" else "openai"
+    try:
+        from agents.accounting import provider_usage  # noqa: PLC0415
+    except ImportError:
+        return {}
+    try:
+        return provider_usage(provider, stdout_tail) or {}
+    except Exception as e:  # noqa: BLE001 — fail-open, loudly
+        print(f"TELEMETRY-DEGRADED: provider usage parse failed: {e}",
+              file=sys.stderr)
+        return {}
 
 
 def write_dead_letter(root: Path, *, task_id: str, role: str, message_id: str,
@@ -259,10 +290,11 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
       - a SIGTERM handler (the supervisor's `timeout` sends one): bundle
         before dying, never after.
     Each abnormal stop writes a full recovery bundle BEFORE terminating the
-    child. Returns (rc, stderr_tail, stop_reason) where stop_reason is one
-    of None (child exited), "timeout", "sigterm", "halt" — each distinct in
-    telemetry; a supervisor SIGTERM is not a wall-clock timeout. rc is None
-    on any abnormal stop.
+    child. Returns (rc, stdout_tail, stderr_tail, stop_reason) where
+    stop_reason is one of None (child exited), "timeout", "sigterm",
+    "halt" — each distinct in telemetry; a supervisor SIGTERM is not a
+    wall-clock timeout. rc is None on any abnormal stop. stdout_tail
+    carries the CLI's machine-readable usage payload (W2-1 seam).
     """
     import signal  # noqa: PLC0415
     import tempfile  # noqa: PLC0415
@@ -297,13 +329,20 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
             proc.kill()
             proc.wait()
 
+    def _stdout_tail() -> str:
+        try:
+            out_f.seek(0)
+            return _tail(out_f.read())
+        except (OSError, ValueError):
+            return ""
+
     stop_reason: str | None = None
     try:
         try:
             proc = subprocess.Popen(cmd, cwd=worktree, stdout=out_f,
                                     stderr=err_f, text=True)
         except FileNotFoundError as e:
-            return 127, str(e), None
+            return 127, "", str(e), None
         next_ckpt = started = time.time()
         next_ckpt += recovery_mod.CHECKPOINT_INTERVAL
         while True:
@@ -328,11 +367,123 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
                                               task_id=task_id, run_id=run_id)
                 next_ckpt = now + recovery_mod.CHECKPOINT_INTERVAL
             time.sleep(0.1)
-        return rc, _stderr_tail(), stop_reason
+        return rc, _stdout_tail(), _stderr_tail(), stop_reason
     finally:
         signal.signal(signal.SIGTERM, prev_handler)
         out_f.close()
         err_f.close()
+
+
+def _assess_anti_loop(mailroom: Path, worktree: Path, *, task_id: str,
+                      tier: str, packet: dict | None, res: dict | None,
+                      result_error: str | None, stderr_tail: str):
+    """Build an AttemptState from what this invocation left behind and let
+    the controller judge it. Result fields win where a valid result exists;
+    git supplies the diff either way (the breakers must see what actually
+    changed, not what the agent claims changed)."""
+    import hashlib  # noqa: PLC0415
+
+    from agents import anti_loop as al  # noqa: PLC0415
+
+    def _git(*args: str) -> str:
+        try:
+            p = subprocess.run(["git", "-C", str(worktree), *args],
+                               capture_output=True, text=True, timeout=60)
+            return p.stdout if p.returncode == 0 else ""
+        except (OSError, subprocess.TimeoutExpired):
+            return ""
+
+    diff_text = _git("diff", "HEAD")
+    status = _git("status", "--porcelain")
+    if res and res.get("files_modified"):
+        files_changed = list(res["files_modified"])
+        lines_changed = (res.get("lines_added") or 0) + \
+            (res.get("lines_deleted") or 0)
+    else:
+        files_changed, lines_changed = [], 0
+        for ln in _git("diff", "HEAD", "--numstat").splitlines():
+            parts = ln.split("\t")
+            if len(parts) == 3:
+                files_changed.append(parts[2])
+                for n in parts[:2]:
+                    if n.isdigit():
+                        lines_changed += int(n)
+    tests = (res or {}).get("tests") or []
+    criteria = (res or {}).get("acceptance_criteria") or []
+    state = al.AttemptState(
+        last_error=result_error or stderr_tail or "",
+        files_changed=files_changed,
+        lines_changed=lines_changed,
+        tests_run=[t.get("command", "") for t in tests],
+        failing_tests=sum(1 for t in tests if t.get("exit_code") != 0)
+        if tests else None,
+        proposed_next_action=(res or {}).get("escalation_reason")
+        or (res or {}).get("blocked_reason")
+        or ((res or {}).get("summary") or "")[-200:],
+        criteria_passed=sum(1 for c in criteria
+                            if c.get("status") == "passed")
+        if criteria else None,
+        stated_plan=(res or {}).get("summary") or "",
+        worktree_hash=hashlib.sha256(
+            (status + diff_text).encode()).hexdigest()[:16]
+        if (status or diff_text) else "",
+        tier=tier,
+        cost_usd=None,
+    )
+    ctrl = al.AntiLoopController(mailroom, task_id)
+    return ctrl.assess(state, packet=packet, diff_text=diff_text,
+                       previously_passing_now_failing=_regression_check(
+                           mailroom, task_id, res))
+
+
+def _regression_check(mailroom: Path, task_id: str,
+                      res: dict | None) -> bool:
+    """A previously-passing required check now failing is a breaker trip.
+
+    Baseline: <mailroom>/governor/test_baseline/<task_id>.json — commands
+    observed green on an earlier attempt. Updated with this attempt's green
+    commands after comparison.
+    """
+    p = mailroom / "governor" / "test_baseline" / f"{task_id}.json"
+    try:
+        baseline = set(json.loads(p.read_text()))
+    except (OSError, json.JSONDecodeError):
+        baseline = set()
+    tests = (res or {}).get("tests") or []
+    now_red = {t.get("command") for t in tests if t.get("exit_code") != 0}
+    now_green = {t.get("command") for t in tests if t.get("exit_code") == 0}
+    regressed = bool(baseline & now_red)
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(sorted(baseline | now_green)))
+    except OSError:
+        pass
+    return regressed
+
+
+#: Consecutive degraded-preflight invocations allowed before dispatch stops
+#: spending on unverifiable work and probes for gh recovery instead
+#: (PM-agreed option 2). Clean invocations reset the counter — accumulated
+#: unrelated blips must never halt a healthy org.
+DEGRADED_STREAK_LIMIT = 10
+
+
+def _degraded_streak(mailroom: Path) -> int:
+    try:
+        return int(json.loads(
+            (mailroom / "governor" / "degraded_streak.json").read_text()
+        )["count"])
+    except (OSError, json.JSONDecodeError, KeyError, ValueError):
+        return 0
+
+
+def _set_degraded_streak(mailroom: Path, count: int) -> None:
+    try:
+        p = mailroom / "governor" / "degraded_streak.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"count": count, "updated_at": time.time()}))
+    except OSError:
+        pass
 
 
 def run_preflight(msg: dict, packet: dict | None, *, role: str,
@@ -477,6 +628,31 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                             check_count=rec["check_count"])
         return out
 
+    # PM-agreed degraded budget (W2-4): consecutive invocations that ran with
+    # degraded preflight checks are counted; past the limit, dispatch stops
+    # spending on unverifiable work and probes for gh recovery instead —
+    # degrade-to-idle-with-reason, self-resuming, never a halt. A clean
+    # invocation resets the counter (accumulated unrelated blips must never
+    # stop a healthy org).
+    degraded_run = bool(verdict is not None and verdict.degraded_checks)
+    if degraded_run and not dry_run \
+            and _degraded_streak(mailroom) >= DEGRADED_STREAK_LIMIT:
+        probe = preflight_mod._gh_cli("auth", "status")
+        if probe is None:
+            out = Outcome(
+                decision=DispatchDecision.SUPPRESSED_GOVERNOR.value,
+                reason=f"degraded budget exhausted: "
+                       f"{DEGRADED_STREAK_LIMIT} consecutive degraded "
+                       f"invocations and the gh probe is still failing",
+                message_id=message_id, task_id=task_id, role=role,
+                extra={"degraded_checks": verdict.degraded_checks})
+            tele.suppressed(role=role, task_id=task_id,
+                            message_id=message_id,
+                            suppressed_reason="degraded_budget",
+                            degraded_checks=verdict.degraded_checks)
+            return out
+        _set_degraded_streak(mailroom, 0)
+
     # 5 — per-task governor. A role the policy does not know is a denial, not
     # a crash (the raw governor raises KeyError — pinned in W1-1).
     gov = Governor(worktree / "agents" / "governor" / "policy.yaml",
@@ -567,6 +743,13 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                             degradation_level=rbv.degradation_level)
         return out
 
+    # Anti-loop tier escalation wins over the packet/default class (W2-4):
+    # a task escalated to yellow must not quietly run green again.
+    if os.environ.get("ANTI_LOOP", "1") != "0":
+        from agents import anti_loop as anti_loop_mod  # noqa: PLC0415
+        escalated = anti_loop_mod.tier_override(mailroom, task_id)
+        if escalated:
+            tier = escalated
     budgets = resolve_budgets(policy, packet, tier)
     max_attempts = int(budgets.get("max_attempts", 2))
 
@@ -633,8 +816,16 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             prepass_results.append({"cmd": cmd, "rc": None,
                                     "timeout": PREPASS_TIMEOUT})
 
-    # 10 — the model call, wall-clock capped.
+    # 10 — the model call, wall-clock capped. A pending anti-loop strategy
+    # note is embedded (and consumed): the re-prompt names the loop and
+    # forbids the prior approach.
     prompt = build_prompt(role, msg, run_id, mailroom)
+    if os.environ.get("ANTI_LOOP", "1") != "0":
+        from agents import anti_loop as anti_loop_mod  # noqa: PLC0415
+        note = anti_loop_mod.pending_strategy_note(mailroom, task_id)
+        if note:
+            prompt = f"{prompt}\n\n{note}"
+            anti_loop_mod.consume_strategy_note(mailroom, task_id)
     wall_cap = int(budgets.get("max_wall_clock_seconds", 1200))
     if fake_agent:
         # Context goes to a tempfile, not the worktree: the dispatcher must
@@ -654,12 +845,20 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     else:
         cmd = role_command(role, prompt, mailroom)
     started = time.time()
-    rc, stderr_tail, stop_reason = _run_capped(
+    rc, stdout_tail, stderr_tail, stop_reason = _run_capped(
         cmd, worktree, mailroom, wall_cap=wall_cap, task_id=task_id,
         run_id=run_id, role=role)
     duration = time.time() - started
     timed_out = stop_reason == "timeout"
     halted = stop_reason == "halt"
+    # Usage parsing runs for fake agents too: the fake harness is how the
+    # capture seam is proven without a live invocation (PM constraint).
+    usage = _provider_usage(role, stdout_tail)
+    # Degraded-budget accounting: this invocation happened; whether it ran
+    # on degraded checks decides the streak.
+    _set_degraded_streak(mailroom,
+                         _degraded_streak(mailroom) + 1 if degraded_run
+                         else 0)
 
     # 11 — the result file is the only truth. rc==0 carried zero bits of
     # information across 1,408 measured invocations; it is not consulted for
@@ -673,8 +872,10 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         res = load_result(worktree / RESULT_FILENAME)
         result_status = res["status"]
         if is_ackable(res):
+            # Decision only — applied AFTER the anti-loop assessment, which
+            # may pre-empt it: a "completed" result that modified a
+            # prohibited file terminates instead of acking as success.
             ack = AckDecision.ACK
-            ack_message(mailroom, role, message_id)
             success = result_status == "completed"
         # needs_retry: actionable, retained; step 7 retires it at the cap.
     except ResultError as e:
@@ -683,6 +884,54 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             result_error = f"timeout after {wall_cap}s; {result_error}"
         elif stop_reason:
             result_error = f"stopped ({stop_reason}); {result_error}"
+
+    # 11.5 — anti-loop controller (W2-4): every one of ~50 measured
+    # invocations of one task produced an identical error signature with
+    # zero new evidence; signature comparison alone would have caught it on
+    # attempt 2. Breakers terminate BEFORE any ack applies.
+    if os.environ.get("ANTI_LOOP", "1") != "0":
+        anti = _assess_anti_loop(mailroom, worktree, task_id=task_id,
+                                 tier=tier, packet=packet, res=res,
+                                 result_error=result_error,
+                                 stderr_tail=stderr_tail)
+        if anti.action in ("terminate", "dead_letter"):
+            dl = write_dead_letter(
+                mailroom, task_id=task_id, role=role, message_id=message_id,
+                reason=f"anti-loop {anti.action}: {anti.reason}",
+                attempts=attempts, exit_code=rc, stderr_tail=stderr_tail,
+                fingerprint=None)
+            ack_message(mailroom, role, message_id)
+            gov.record(role, task_id, False)
+            try:
+                bl.record_spend(role=role, task_id=task_id, run_id=run_id,
+                                success=False, **usage)
+            except BudgetLedgerUnavailable as e:
+                print(f"WARNING: spend record failed: {e}", file=sys.stderr)
+            tele.finish(run_id, result_status=result_status,
+                        anti_loop=anti.action, anti_loop_reason=anti.reason,
+                        exit_code=rc, stop_reason=stop_reason,
+                        duration_seconds=round(duration, 3),
+                        attempt_number=attempts, completed_at=time.time(),
+                        **usage)
+            return Outcome(decision=DispatchDecision.CIRCUIT_BROKEN.value,
+                           ack=AckDecision.ACK_DEAD_LETTER.value,
+                           reason=f"anti-loop {anti.action}: {anti.reason}",
+                           message_id=message_id, task_id=task_id, role=role,
+                           attempts=attempts, max_attempts=max_attempts,
+                           exit_code=rc if rc is not None else -1,
+                           invoked=True, result_status=result_status,
+                           extra={"dead_letter": str(dl)})
+        if anti.action == "escalate_tier":
+            tele.suppressed(role=role, task_id=task_id,
+                            message_id=message_id,
+                            suppressed_reason=f"anti_loop:escalated:"
+                                              f"{anti.next_tier}",
+                            attempt_number=attempts)
+        # force_strategy_change / continue: state persisted by the
+        # controller; the next attempt reads the note and the tier.
+
+    if ack is AckDecision.ACK:
+        ack_message(mailroom, role, message_id)
 
     # 12 — recovery: any unsaved work in the tree (dirty or unpushed) gets a
     # verified bundle before the supervisor may consider removal (W1-4).
@@ -705,15 +954,20 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     gov.record(role, task_id, success)
     try:
         bl.record_spend(role=role, task_id=task_id, run_id=run_id,
-                        success=success)
+                        success=success,
+                        cash_usd=usage.get("cash_usd"),
+                        allowance_pct=usage.get("allowance_pct_estimated"),
+                        input_tokens=usage.get("input_tokens"),
+                        output_tokens=usage.get("output_tokens"))
     except BudgetLedgerUnavailable as e:
         print(f"WARNING: spend record failed after invocation: {e}",
               file=sys.stderr)
     tele.finish(run_id, result_status=result_status, result_error=result_error,
                 exit_code=rc, timed_out=timed_out, halted=halted,
+                stop_reason=stop_reason,
                 duration_seconds=round(duration, 3),
                 attempt_number=attempts, prepass=prepass_results,
-                completed_at=time.time())
+                completed_at=time.time(), **usage)
     return Outcome(decision=DispatchDecision.INVOKE.value, ack=ack.value,
                    reason=result_error or (result_status or ""),
                    message_id=message_id, task_id=task_id, role=role,

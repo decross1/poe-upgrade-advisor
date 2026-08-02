@@ -131,10 +131,15 @@ def write_bundle(worktree: Path, mailroom: Path, *, task_id: str, run_id: str,
     d = bundle_dir(mailroom, task_id, run_id)
     try:
         d.mkdir(parents=True, exist_ok=True)
-        _, working = _git(worktree, "diff")
-        _, staged = _git(worktree, "diff", "--cached")
+        # --submodule=short: a submodule pointer change emits no plain-diff
+        # hunk and no untracked entry — without this a pointer-only dirty
+        # tree bundles NOTHING and verifies clean (found on the real
+        # frontend-a49a07be specimen, engine/vendor/PathOfBuilding).
+        _, working = _git(worktree, "diff", "--submodule=short")
+        _, staged = _git(worktree, "diff", "--cached", "--submodule=short")
         _, untracked = _git(worktree, "ls-files", "--others",
                             "--exclude-standard")
+        _, status_out = _git(worktree, "status", "--porcelain")
         _, branch = _git(worktree, "rev-parse", "--abbrev-ref", "HEAD")
         _, head = _git(worktree, "rev-parse", "HEAD")
         _, base = _git(worktree, "rev-parse", "origin/main")
@@ -185,6 +190,10 @@ def write_bundle(worktree: Path, mailroom: Path, *, task_id: str, run_id: str,
             "unpushed_commit_count": len(unpushed_commits(worktree)
                                          .splitlines()),
             "untracked_count": len(names),
+            "dirty_entry_count": len(status_out.splitlines()),
+            "captured_bytes": len(working) + len(staged)
+            + sum((worktree / n).stat().st_size for n in names
+                  if (worktree / n).is_file()),
         }, indent=2))
     except OSError as e:
         print(f"RECOVERY-DEGRADED: bundle write failed: {e}", file=sys.stderr)
@@ -198,10 +207,24 @@ def verify_bundle(d: Path) -> bool:
         meta = json.loads((d / "metadata.json").read_text())
         # untracked.tar is required: it is the ONLY copy of untracked
         # content — a bundle without it "verifies" a loss.
-        return all((d / n).exists() for n in
-                   ("working.patch", "staged.patch", "untracked-files.txt",
-                    "untracked.tar", "branch.txt", "commits.txt")) \
-            and meta.get("schema_version") == "1.0"
+        if not (all((d / n).exists() for n in
+                    ("working.patch", "staged.patch", "untracked-files.txt",
+                     "untracked.tar", "branch.txt", "commits.txt"))
+                and meta.get("schema_version") == "1.0"):
+            return False
+        # A dirty tree whose bundle captured NOTHING is a contradiction,
+        # not a verified recovery — "artifacts exist and parse" must never
+        # be mistaken for "the work was captured". captured_bytes absent
+        # (pre-field bundles) falls back to on-disk artifact sizes.
+        captured = meta.get("captured_bytes")
+        if captured is None:
+            captured = ((d / "working.patch").stat().st_size
+                        + (d / "staged.patch").stat().st_size
+                        + (d / "untracked.tar").stat().st_size)
+        if meta.get("dirty") and captured == 0 \
+                and not meta.get("unpushed_commit_count"):
+            return False
+        return True
     except (OSError, json.JSONDecodeError, KeyError):
         return False
 
