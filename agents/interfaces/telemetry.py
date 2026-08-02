@@ -90,13 +90,44 @@ class JsonlTelemetry:
     def _emit(self, record: dict) -> None:
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
+            # A short write (ENOSPC, quota) can leave a line with no trailing
+            # newline. Appending straight onto it concatenates two records and
+            # loses BOTH — the blast radius of a torn write must be exactly one.
+            prefix = ""
+            try:
+                if self.path.exists() and self.path.stat().st_size:
+                    with self.path.open("rb") as probe:
+                        probe.seek(-1, os.SEEK_END)
+                        if probe.read(1) != b"\n":
+                            prefix = "\n"
+            except OSError:
+                prefix = "\n"  # cannot tell: assume torn, cost is one blank line
             with self.path.open("a") as f:
-                f.write(json.dumps(record, default=str) + "\n")
+                f.write(prefix + json.dumps(record, default=str) + "\n")
                 f.flush()
                 os.fsync(f.fileno())
-        except Exception as e:  # noqa: BLE001 — fail-open is the whole point
+        except BaseException as e:  # noqa: BLE001 — fail-open is the whole point
+            self._degrade(e)
+
+    def _degrade(self, exc: BaseException) -> None:
+        """Announce degradation without ever becoming a new failure.
+
+        The obvious `print(marker, file=self._stderr)` inside the except block
+        is itself fail-CLOSED: one full filesystem fails the sink *and* stderr
+        — and `agent_loop.sh` redirects stderr into a log on the same disk, so
+        that is the expected correlation, not a corner case. The exception then
+        escapes and analytics halts the org, which is precisely what the
+        fail-open contract exists to forbid.
+        """
+        try:
             self.degraded = True
-            print(f"{TELEMETRY_DEGRADED}: {type(e).__name__}: {e}", file=self._stderr)
+        except BaseException:  # noqa: BLE001, S110
+            pass
+        try:
+            print(f"{TELEMETRY_DEGRADED}: {type(exc).__name__}: {exc}",
+                  file=self._stderr)
+        except BaseException:  # noqa: BLE001, S110
+            pass  # nothing left to report with; silence beats halting
 
     def start(self, **fields: Any) -> str:
         run_id = fields.pop("run_id", None) or uuid.uuid4().hex
