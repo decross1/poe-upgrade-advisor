@@ -14,7 +14,7 @@
       "minLength": 8,
       "description": "Stable per logical message. Postmaster drops duplicates. Convention: <task_id>:<intent>:<short-hash-of-body>."
     },
-    "task_id": { "type": "string", "pattern": "^TASK-[0-9]+(-S[0-9]+)?$|^ORG$", "description": "ORG only for non-task org messages (retro, bootstrap). Stage IDs (TASK-210-S1, ADR-0008) are accepted; the parent is DERIVED via agents/interfaces/packet.py::parent_of, never declared separately, so a stage cannot disagree with its own ID." },
+    "task_id": { "type": "string", "pattern": "^TASK-[0-9]+$|^ORG$", "description": "ORG only for non-task org messages (retro, bootstrap)." },
     "thread_id": { "type": "string", "description": "First message_id in the thread. Omit on thread start." },
     "in_reply_to": { "type": "string" },
     "from_role": { "enum": ["pm", "backend", "frontend", "intake", "human"] },
