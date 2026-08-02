@@ -7,7 +7,7 @@ Requires: pip install requests
 Env: GITHUB_REPOSITORY, MERGE_ROBOT_TOKEN, PR_NUMBER (or sweeps all labeled PRs)
 """
 from __future__ import annotations
-import fnmatch, json, os, re, sys
+import fnmatch, os, re, sys
 import requests
 
 from agents.merge_robot.patterns import BANNED, PROTECTED, TEST_SIG
@@ -18,7 +18,8 @@ TOK = os.environ["MERGE_ROBOT_TOKEN"]
 H = {"Authorization": f"Bearer {TOK}", "Accept": "application/vnd.github+json"}
 
 REQUIRED_CHECKS = {"lint", "test", "contracts", "doctrine-invariants",
-                   "assumptions-fixtures"}
+                   "assumptions-fixtures", "web-test", "overlay-test",
+                   "coverage-floor"}
 
 
 def gh(path: str, **kw):
@@ -75,17 +76,7 @@ def check_pr(pr_number: int) -> None:
                 if any(re.match(sig, line) for sig in TEST_SIG):
                     fail(pr_number, f"(7) test deletion/skip in {f['filename']}")
 
-    # 8 — coverage ratchet (artifact written by CI to check-run output; best-effort v0)
-    floor_path = "agents/merge_robot/coverage_floor.json"
-    try:
-        floor = json.load(open(floor_path))["floor"]
-        cov_run = next((r for r in runs if r["name"] == "test"), None)
-        summary = (cov_run or {}).get("output", {}).get("summary") or ""
-        mm = re.search(r"COVERAGE:\s*([\d.]+)", summary)
-        if mm and float(mm.group(1)) < floor - 0.1:
-            fail(pr_number, f"(8) coverage {mm.group(1)} below floor {floor}")
-    except FileNotFoundError:
-        pass  # ratchet activates once the first floor file is committed
+    # 8 is enforced directly by the required coverage-floor CI job.
 
     # 9 — mergeability, then merge
     if pr.get("mergeable_state") == "behind":

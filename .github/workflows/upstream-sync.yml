@@ -16,8 +16,7 @@ jobs:
           git checkout "$TAG"
           echo "POB_TAG=$TAG" >> "$GITHUB_ENV"
       - name: run corpus (fails PR if league patch broke us)
-        run: |
-          if [ -f engine/run_corpus.sh ]; then bash engine/run_corpus.sh; fi
+        run: python3 -m unittest discover -s engine/tests -v
       - uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.SYNC_BOT_TOKEN }}
