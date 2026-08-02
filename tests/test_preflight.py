@@ -722,16 +722,35 @@ def test_pr_reject_label_blocks():
     assert "PR #9 labelled ['parked']" in v.reason
 
 
-def test_degraded_issue_does_not_block_protected_scope():
-    """gh unavailable => the protected-change label may exist unseen. The
-    check degrades rather than blocking on unverifiable state (W1-3 review
-    fix) — a durable block whose resume condition is already satisfied is
-    worse than a surfaced degraded check."""
-    packet = {"files_in_scope": ["agents/dispatch.py"]}
-    v = preflight(make_msg(), packet=packet, gh=gh_stub(issue=None))
-    assert v.ok is True
-    assert "issue_state" in v.degraded_checks
-    assert "protected_change" in v.degraded_checks
+def test_degraded_gh_blocks_protected_scope_but_not_unprotected():
+    """ASYMMETRIC degradation policy (PM-agreed): BOTH directions asserted,
+    so a future edit can neither soften the protected block nor turn it
+    into a blanket block.
+
+    Direction 1: gh degraded + scope matching a PROTECTED glob => BLOCK
+    (label state unverifiable; false pass would burn invocations on
+    unmergeable work and soften an authorisation control).
+    Direction 2: gh degraded + scope NOT matching => still passes, with
+    issue_state surfaced as degraded (a transient outage must not write
+    durable blocks for ordinary work).
+    The outage-era block is cheap: its fingerprint is stable, so re-checks
+    suppress at zero cost, and gh recovery changes the fingerprint.
+    """
+    protected = {"files_in_scope": ["agents/dispatch.py"]}
+    v = preflight(make_msg(), packet=protected, gh=gh_stub(issue=None))
+    assert v.ok is False
+    assert "unverifiable" in v.reason
+    assert v.resume_condition == "gh issue label state readable again"
+
+    unprotected = {"files_in_scope": ["web/src/App.tsx"]}
+    v2 = preflight(make_msg(), packet=unprotected, gh=gh_stub(issue=None))
+    assert v2.ok is True
+    assert "issue_state" in v2.degraded_checks
+
+    # Same degraded gh, same protected scope, fingerprints equal across
+    # volatile noise: the outage block suppresses repeats for free.
+    v3 = preflight(make_msg(), packet=protected, gh=gh_stub(issue=None))
+    assert v3.fingerprint == v.fingerprint
 
 
 # ------------------------------------------------------------ record_block

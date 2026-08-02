@@ -178,6 +178,7 @@ def write_bundle(worktree: Path, mailroom: Path, *, task_id: str, run_id: str,
             "task_id": task_id, "run_id": run_id, "role": role,
             "trigger": trigger, "exit_code": exit_code,
             "created_at": time.time(),
+            "worktree": str(worktree),
             "head_sha": head.strip(), "origin_main_sha": base.strip(),
             "branch": branch.strip(),
             "dirty": is_dirty(worktree),
@@ -195,26 +196,36 @@ def verify_bundle(d: Path) -> bool:
     """A bundle is verified when its required artifacts exist and parse."""
     try:
         meta = json.loads((d / "metadata.json").read_text())
+        # untracked.tar is required: it is the ONLY copy of untracked
+        # content — a bundle without it "verifies" a loss.
         return all((d / n).exists() for n in
                    ("working.patch", "staged.patch", "untracked-files.txt",
-                    "branch.txt", "commits.txt")) \
+                    "untracked.tar", "branch.txt", "commits.txt")) \
             and meta.get("schema_version") == "1.0"
     except (OSError, json.JSONDecodeError, KeyError):
         return False
 
 
 def inspect_worktree(worktree: Path, mailroom: Path, *, task_id: str,
-                     run_id: str, acked: bool, role: str = "",
+                     run_id: str, role: str = "",
                      exit_code: int | None = None,
                      stderr_tail: str = "") -> Path | None:
     """Dispatch step 12: bundle whenever the tree holds unsaved work.
 
-    Dirty tree or unpushed commits after an invocation — acked or not —
-    means work exists only here; the supervisor may remove the worktree
-    only when a verified bundle exists (or the tree is clean).
+    Dirty tree or unpushed commits after an invocation means work exists
+    only here; the supervisor may remove the worktree only when a verified
+    bundle exists (or the tree is clean).
+
+    If an abnormal-stop bundle (timeout/sigterm/halt) already exists for
+    this run, it is kept as-is: the tree has not changed since the child
+    died, and re-bundling would overwrite the trigger provenance — the
+    on-disk record of WHY the run stopped.
     """
     if not is_git_worktree(worktree):
         return None
+    d = bundle_dir(mailroom, task_id, run_id)
+    if (d / "metadata.json").exists():
+        return d
     if not is_dirty(worktree) and not unpushed_commits(worktree):
         return None
     return write_bundle(worktree, mailroom, task_id=task_id, run_id=run_id,
@@ -228,8 +239,8 @@ def cmd_list(mailroom: Path) -> None:
     if not root.is_dir():
         print("no recovery bundles")
         return
-    for task in sorted(root.iterdir()):
-        for run in sorted(task.iterdir()):
+    for task in sorted(p for p in root.iterdir() if p.is_dir()):
+        for run in sorted(p for p in task.iterdir() if p.is_dir()):
             ok = "verified" if verify_bundle(run) else "INCOMPLETE"
             print(f"{task.name}  {run.name}  {ok}")
 
@@ -238,7 +249,7 @@ def cmd_show(mailroom: Path, task_id: str) -> None:
     root = mailroom / "recovery" / task_id
     if not root.is_dir():
         sys.exit(f"no bundles for {task_id}")
-    for run in sorted(root.iterdir()):
+    for run in sorted(p for p in root.iterdir() if p.is_dir()):
         meta = {}
         try:
             meta = json.loads((run / "metadata.json").read_text())

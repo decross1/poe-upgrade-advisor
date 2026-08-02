@@ -295,10 +295,15 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
 
     # 3 — protected-change authorisation, when the packet's scope touches a
     # protected path. List is IMPORTED from merge_robot patterns, not copied.
-    # When the issue's labels could not be read (gh degraded) the label may
-    # exist unseen: mark the check degraded rather than blocking on state we
-    # cannot verify — a durable block with an already-satisfied resume
-    # condition is worse than a surfaced degraded check.
+    # ASYMMETRIC degradation policy (PM-agreed, 2026-08-02): read-only state
+    # (issue_state/pr_state) degrades freely, but an authorisation check on
+    # a PROTECTED scope blocks when the label state is unverifiable — a
+    # false block delays one task; a false pass burns invocations on work
+    # that cannot merge and softens an authorisation control. The block is
+    # cheap under an outage: its fingerprint is stable (UNKNOWN state), so
+    # re-checks are zero-cost SUPPRESSED_UNCHANGED_BLOCKER, and gh recovery
+    # changes the fingerprint, which auto-clears or re-blocks on the real
+    # label state.
     if reason is None and packet is not None:
         globs = _protected_globs()
         if globs is None:
@@ -309,7 +314,10 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
             touched = sorted({f for f in scope
                               for g in globs if fnmatch.fnmatch(f, g)})
             if touched and "issue_state" in degraded:
-                degraded.append("protected_change")
+                reason = (f"packet scope touches protected paths {touched} "
+                          f"but label state is unverifiable (gh degraded)")
+                resume = "gh issue label state readable again"
+                missing.append("label-verification")
             elif touched and "protected-change" not in labels:
                 reason = (f"packet scope touches protected paths {touched} "
                           f"without protected-change authorisation")

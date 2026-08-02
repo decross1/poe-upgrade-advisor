@@ -259,7 +259,10 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
       - a SIGTERM handler (the supervisor's `timeout` sends one): bundle
         before dying, never after.
     Each abnormal stop writes a full recovery bundle BEFORE terminating the
-    child. Returns (rc, stderr_tail, timed_out, halted); rc None on kill.
+    child. Returns (rc, stderr_tail, stop_reason) where stop_reason is one
+    of None (child exited), "timeout", "sigterm", "halt" — each distinct in
+    telemetry; a supervisor SIGTERM is not a wall-clock timeout. rc is None
+    on any abnormal stop.
     """
     import signal  # noqa: PLC0415
     import tempfile  # noqa: PLC0415
@@ -294,13 +297,13 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
             proc.kill()
             proc.wait()
 
-    timed_out = halted = False
+    stop_reason: str | None = None
     try:
         try:
             proc = subprocess.Popen(cmd, cwd=worktree, stdout=out_f,
                                     stderr=err_f, text=True)
         except FileNotFoundError as e:
-            return 127, str(e), False, False
+            return 127, str(e), None
         next_ckpt = started = time.time()
         next_ckpt += recovery_mod.CHECKPOINT_INTERVAL
         while True:
@@ -310,22 +313,22 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
             now = time.time()
             if got_term["flag"]:
                 _stop("sigterm", proc)
-                rc, timed_out = None, True
+                rc, stop_reason = None, "sigterm"
                 break
             if (mailroom / "HALT").exists():
                 _stop("halt", proc)
-                rc, halted = None, True
+                rc, stop_reason = None, "halt"
                 break
             if now - started >= wall_cap:
                 _stop("timeout", proc)
-                rc, timed_out = None, True
+                rc, stop_reason = None, "timeout"
                 break
             if now >= next_ckpt:
                 recovery_mod.write_checkpoint(worktree, mailroom,
                                               task_id=task_id, run_id=run_id)
                 next_ckpt = now + recovery_mod.CHECKPOINT_INTERVAL
             time.sleep(0.1)
-        return rc, _stderr_tail(), timed_out, halted
+        return rc, _stderr_tail(), stop_reason
     finally:
         signal.signal(signal.SIGTERM, prev_handler)
         out_f.close()
@@ -651,10 +654,12 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     else:
         cmd = role_command(role, prompt, mailroom)
     started = time.time()
-    rc, stderr_tail, timed_out, halted = _run_capped(
+    rc, stderr_tail, stop_reason = _run_capped(
         cmd, worktree, mailroom, wall_cap=wall_cap, task_id=task_id,
         run_id=run_id, role=role)
     duration = time.time() - started
+    timed_out = stop_reason == "timeout"
+    halted = stop_reason == "halt"
 
     # 11 — the result file is the only truth. rc==0 carried zero bits of
     # information across 1,408 measured invocations; it is not consulted for
@@ -674,15 +679,16 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         # needs_retry: actionable, retained; step 7 retires it at the cap.
     except ResultError as e:
         result_error = str(e)
-        if timed_out:
+        if stop_reason == "timeout":
             result_error = f"timeout after {wall_cap}s; {result_error}"
+        elif stop_reason:
+            result_error = f"stopped ({stop_reason}); {result_error}"
 
     # 12 — recovery: any unsaved work in the tree (dirty or unpushed) gets a
     # verified bundle before the supervisor may consider removal (W1-4).
     from agents.recovery import inspect_worktree  # noqa: PLC0415
     inspect_worktree(worktree, mailroom, task_id=task_id, run_id=run_id,
-                     acked=(ack is not AckDecision.RETAIN), role=role,
-                     exit_code=rc, stderr_tail=stderr_tail)
+                     role=role, exit_code=rc, stderr_tail=stderr_tail)
 
     # Persist this attempt's diagnostics so a later cap-trip dead-letter has
     # evidence to carry (the trip itself never invokes).
