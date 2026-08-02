@@ -149,6 +149,70 @@ def _protected_globs():
         return None
 
 
+def _packet_preconditions(packet: dict, *, issue_state: str,
+                          labels: list[str], head_sha: str | None,
+                          missing: list[str], degraded: list[str],
+                          blocked_dir, issue) -> tuple[str | None, str | None]:
+    """Evaluate `packet["preconditions"]` — schema shape: array of
+    {check, expect, require, forbid, require_if_touching, ...} objects.
+
+    Returns (reason, resume) — (None, None) when everything passes. Checks
+    that need state this run could not fetch, or that preflight does not
+    evaluate yet (`baseline_checks` — running arbitrary commands belongs to
+    the dispatcher's packet enforcement, W2-5), are surfaced in `degraded`,
+    never silently dropped.
+    """
+    import fnmatch  # noqa: PLC0415
+    scope = packet.get("files_in_scope") or []
+    for pc in packet.get("preconditions") or []:
+        check = pc.get("check")
+        if check == "issue_state":
+            want = pc.get("expect") or "OPEN"
+            if issue_state == "UNKNOWN":
+                degraded.append("precondition:issue_state")
+            elif issue_state != want:
+                return (f"precondition issue_state: {issue_state} != {want}",
+                        f"issue #{issue} state becomes {want}")
+        elif check == "issue_labels":
+            need = set(pc.get("require") or []) - set(labels)
+            hit = set(pc.get("forbid") or []) & set(labels)
+            if need:
+                missing.extend(sorted(need))
+                return (f"precondition issue_labels: missing {sorted(need)}",
+                        f"labels {sorted(need)} on #{issue}")
+            if hit:
+                return (f"precondition issue_labels: forbidden {sorted(hit)}",
+                        f"labels {sorted(hit)} removed from #{issue}")
+        elif check == "labels_for_scope":
+            for glob, label in (pc.get("require_if_touching") or {}).items():
+                touched = [f for f in scope if fnmatch.fnmatch(f, glob)]
+                if touched and label not in labels:
+                    missing.append(label)
+                    return (f"precondition labels_for_scope: {touched} "
+                            f"require label {label}",
+                            f"label {label} on #{issue}")
+        elif check == "review_not_complete_at_head":
+            # The built-in same-SHA skip (check 5) already enforces this for
+            # REVIEW_REQUEST; declaring it on other intents has no extra
+            # state to consult here.
+            continue
+        elif check == "blocker_fingerprint":
+            continue  # built-in check 6 is the implementation
+        elif check == "resource_lock":
+            root = Path(blocked_dir).parent if blocked_dir else None
+            if root is None:
+                degraded.append("precondition:resource_lock")
+                continue
+            held = [name for name in (pc.get("forbid") or [])
+                    if (root / "locks" / f"resource-{name}.lock").exists()]
+            if held:
+                return (f"precondition resource_lock: held {sorted(held)}",
+                        f"locks released: {sorted(held)}")
+        elif check == "baseline_checks":
+            degraded.append("precondition:baseline_checks")
+    return None, None
+
+
 def preflight(message: dict, packet: dict | None = None, gh=None,
               blocked_dir: str | Path | None = None,
               role: str | None = None) -> PreflightVerdict:
@@ -201,16 +265,25 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
                     resume = f"labels {sorted(hit)} removed from #{issue}"
 
     # 5 / 7 — PR state; a review already approved at the same head SHA is a
-    # no-op (5 duplicate verdicts on record).
+    # no-op (5 duplicate verdicts on record). PR reject labels count too — a
+    # message referencing only a parked PR must stop exactly like a parked
+    # issue.
     if reason is None and pr is not None:
         info = _pr_view(gh, pr)
         if info is None:
             degraded.append("pr_state")
         else:
             head_sha = info.get("headRefOid")
+            pr_labels = [l["name"] if isinstance(l, dict) else str(l)
+                         for l in info.get("labels", [])]
+            labels = sorted(set(labels) | set(pr_labels))
+            hit = REJECT_LABELS & set(pr_labels)
             if info.get("state") == "MERGED":
                 reason = f"PR #{pr} already merged"
                 resume = "superseding work only"
+            elif hit:
+                reason = f"PR #{pr} labelled {sorted(hit)}"
+                resume = f"labels {sorted(hit)} removed from PR #{pr}"
             elif message.get("intent") == "REVIEW_REQUEST":
                 approved = [r for r in info.get("reviews", [])
                             if r.get("state") == "APPROVED"
@@ -222,6 +295,10 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
 
     # 3 — protected-change authorisation, when the packet's scope touches a
     # protected path. List is IMPORTED from merge_robot patterns, not copied.
+    # When the issue's labels could not be read (gh degraded) the label may
+    # exist unseen: mark the check degraded rather than blocking on state we
+    # cannot verify — a durable block with an already-satisfied resume
+    # condition is worse than a surfaced degraded check.
     if reason is None and packet is not None:
         globs = _protected_globs()
         if globs is None:
@@ -231,21 +308,23 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
             scope = (packet.get("files_in_scope") or [])
             touched = sorted({f for f in scope
                               for g in globs if fnmatch.fnmatch(f, g)})
-            if touched and "protected-change" not in labels:
+            if touched and "issue_state" in degraded:
+                degraded.append("protected_change")
+            elif touched and "protected-change" not in labels:
                 reason = (f"packet scope touches protected paths {touched} "
                           f"without protected-change authorisation")
                 resume = f"protected-change label on #{issue}"
                 missing.append("protected-change label")
 
-    # 8 — required tools / worktree / credentials, from the packet.
+    # 8 — packet-declared preconditions, evaluated per the packet schema:
+    # an ARRAY of typed check objects (the field the audit says pays for the
+    # whole schema). Built-in checks above are the floor a packet cannot
+    # weaken; these only add.
     if reason is None and packet is not None:
-        for tool in (packet.get("preconditions") or {}).get("required_tools", []) \
-                if isinstance(packet.get("preconditions"), dict) else []:
-            if shutil.which(tool) is None:
-                missing.append(f"tool:{tool}")
-        if missing:
-            reason = f"missing prerequisites: {sorted(missing)}"
-            resume = f"prerequisites available: {sorted(missing)}"
+        reason, resume = _packet_preconditions(
+            packet, issue_state=issue_state, labels=labels,
+            head_sha=head_sha, missing=missing, degraded=degraded,
+            blocked_dir=blocked_dir, issue=issue)
 
     fp = blocker_fingerprint(issue_state=issue_state, labels=labels,
                              head_sha=head_sha, missing_prerequisites=missing,
