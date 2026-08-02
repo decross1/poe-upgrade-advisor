@@ -14,9 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from agents.accounting import (  # noqa: E402
-    AnalyticsTelemetry,
+from agents.accounting import (
     AccountingBudgetLedger,
+    AnalyticsTelemetry,
     read_invocations,
     weighted_seconds,
 )
@@ -82,13 +82,29 @@ def filter_records(
     return selected
 
 
-def _nullable_sum(records: list[dict[str, Any]], field: str) -> float | int | None:
+def _nullable_sum(
+    records: list[dict[str, Any]], field: str
+) -> tuple[float | int | None, int, int]:
     values = [record.get(field) for record in records if record.get(field) is not None]
-    return sum(values) if values else None
+    return (sum(values) if values else None, len(values), len(records))
 
 
 def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     invoked = [r for r in records if not r.get("suppressed") and r.get("result_status") != "suppressed"]
+    aggregates = {
+        field: _nullable_sum(invoked, field)
+        for field in (
+            "cash_cost_usd",
+            "allowance_pct_estimated",
+            "input_tokens",
+            "output_tokens",
+        )
+    }
+    measurements = {}
+    for field, (total, known, rows) in aggregates.items():
+        measurements[field] = total
+        measurements[f"{field}_known_rows"] = known
+        measurements[f"{field}_rows"] = rows
     return {
         "records": len(records),
         "invocations": len(invoked),
@@ -96,10 +112,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         "accepted": sum(r.get("accepted") is True for r in invoked),
         "crashed": sum(r.get("result_status") == "crashed" for r in invoked),
         "incomplete": sum(r.get("incomplete") is True for r in invoked),
-        "cash_cost_usd": _nullable_sum(invoked, "cash_cost_usd"),
-        "allowance_pct_estimated": _nullable_sum(invoked, "allowance_pct_estimated"),
-        "input_tokens": _nullable_sum(invoked, "input_tokens"),
-        "output_tokens": _nullable_sum(invoked, "output_tokens"),
+        **measurements,
     }
 
 

@@ -7,6 +7,7 @@ and allow the caller to continue.
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 import sys
@@ -77,8 +78,20 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
         """
         if source not in ALLOWANCE_SOURCES:
             raise ValueError(f"invalid allowance source: {source}")
-        if not 0 <= pct <= 100:
+        if (
+            isinstance(pct, bool)
+            or not isinstance(pct, (int, float))
+            or not math.isfinite(pct)
+            or not 0 <= pct <= 100
+        ):
             raise ValueError("allowance percentage must be between 0 and 100")
+        if weighted_seconds is not None and (
+            isinstance(weighted_seconds, bool)
+            or not isinstance(weighted_seconds, (int, float))
+            or not math.isfinite(weighted_seconds)
+            or weighted_seconds < 0
+        ):
+            raise ValueError("weighted_seconds must be a finite non-negative number or None")
         now = time.time() if ts is None else ts
         try:
             self.db.execute("BEGIN IMMEDIATE")
@@ -108,18 +121,19 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
                 (now, role, source, prior_ts, prior_pct, pct, delta, weighted_seconds, factor),
             )
             self.db.execute("COMMIT")
-        except BudgetLedgerUnavailable:
+        except BaseException as exc:
             try:
-                self.db.execute("ROLLBACK")
+                if self.db.in_transaction:
+                    self.db.execute("ROLLBACK")
             except sqlite3.Error:
                 pass
+            if isinstance(exc, BudgetLedgerUnavailable):
+                raise
+            if isinstance(exc, (sqlite3.Error, OSError)):
+                raise BudgetLedgerUnavailable(
+                    f"budget ledger write failed: {exc}"
+                ) from exc
             raise
-        except (sqlite3.Error, OSError) as exc:
-            try:
-                self.db.execute("ROLLBACK")
-            except sqlite3.Error:
-                pass
-            raise BudgetLedgerUnavailable(f"budget ledger write failed: {exc}") from exc
         return {
             "role": role,
             "source": source,
@@ -148,15 +162,41 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
             where += " AND role = ?"
             args += (role,)
         row = self._x(
-            """SELECT COUNT(*), SUM(cash_usd), SUM(allowance_pct),
-                      SUM(input_tokens), SUM(output_tokens)
+            """SELECT COUNT(*),
+                      SUM(cash_usd), COUNT(cash_usd),
+                      SUM(allowance_pct), COUNT(allowance_pct),
+                      SUM(input_tokens), COUNT(input_tokens),
+                      SUM(output_tokens), COUNT(output_tokens)
                FROM spend""" + where,
             args,
         ).fetchone()
-        return dict(zip(
-            ("invocations", "cash_usd", "allowance_pct", "input_tokens", "output_tokens"),
-            row,
-        ))
+        (
+            rows,
+            cash,
+            cash_known,
+            allowance,
+            allowance_known,
+            input_tokens,
+            input_known,
+            output_tokens,
+            output_known,
+        ) = row
+        return {
+            "invocations": rows,
+            "cash_usd": cash,
+            "cash_usd_known_rows": cash_known,
+            "cash_usd_unknown_rows": rows - cash_known,
+            "allowance_pct": allowance,
+            "allowance_pct_known_rows": allowance_known,
+            "allowance_pct_unknown_rows": rows - allowance_known,
+            "input_tokens": input_tokens,
+            "input_tokens_known_rows": input_known,
+            "input_tokens_unknown_rows": rows - input_known,
+            "output_tokens": output_tokens,
+            "output_tokens_known_rows": output_known,
+            "output_tokens_unknown_rows": rows - output_known,
+            "complete": rows > 0 and cash_known == rows and allowance_known == rows,
+        }
 
 
 def empty_invocation() -> dict[str, Any]:
@@ -265,9 +305,9 @@ def read_events(path: str | Path) -> tuple[list[dict[str, Any]], list[str]]:
         try:
             value = json.loads(line)
             if not isinstance(value, dict):
-                raise ValueError("event is not an object")
+                raise TypeError("event is not an object")
             events.append(value)
-        except (json.JSONDecodeError, ValueError) as exc:
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
             errors.append(f"line {number}: {exc}")
     return events, errors
 
