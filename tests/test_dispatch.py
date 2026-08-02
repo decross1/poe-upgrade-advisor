@@ -62,6 +62,20 @@ def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
                         lambda *a, **k: AlwaysAllow(warn=lambda m: None))
 
 @pytest.fixture(autouse=True)
+def completion_proofs_pass(monkeypatch: pytest.MonkeyPatch):
+    """Pin the CC-2 completion proofs to all-pass for dispatch-unit tests.
+
+    These tests exercise DISPATCH semantics (attempt caps, governor,
+    idempotency, spend rows) with fakes whose completion claims (deadbeef
+    SHAs, no real push, non-git worktrees) are fixtures, not fabrications
+    under test. The proofs have their own suite with REAL git worktrees and
+    the pin removed: tests/test_completion.py.
+    """
+    monkeypatch.setattr(dispatch_mod, "verify_completion",
+                        lambda res, **kw: [])
+
+
+@pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom, wired in via POB_LEDGER_DIR before any dispatch call.
 

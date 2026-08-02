@@ -67,7 +67,16 @@ from agents.interfaces.result import (  # noqa: E402
     load_result,
     sweep_result,
 )
-from agents.interfaces.states import AckDecision, DispatchDecision  # noqa: E402
+from agents.completion import (  # noqa: E402
+    proofs_telemetry,
+    refusal,
+    verify_completion,
+)
+from agents.interfaces.states import (  # noqa: E402
+    AckDecision,
+    DispatchDecision,
+    DispatcherTerminalStatus,
+)
 from agents.interfaces.telemetry import JsonlTelemetry  # noqa: E402
 from agents.postmaster import ledger as ledger_mod  # noqa: E402
 from agents import preflight as preflight_mod  # noqa: E402
@@ -180,10 +189,13 @@ def build_prompt(role: str, msg: dict, run_id: str, mailroom: Path) -> str:
         f"{RESULT_FILENAME} in the worktree root conforming to "
         f"{RESULT_SCHEMA_REL} (schema_version \"1.0\", run_id \"{run_id}\", "
         f"task_id \"{msg['task_id']}\", status one of completed|blocked|"
-        f"needs_retry|terminated; \"completed\" requires commit_sha, pushed, "
-        f"and acceptance_criteria). Do NOT acknowledge the ledger message — "
-        f"the dispatcher owns acknowledgment; an exit code of 0 means nothing "
-        f"without a valid result file."
+        f"needs_retry; \"completed\" requires commit_sha, pushed, branch, "
+        f"and acceptance_criteria, and the dispatcher VERIFIES the claim — "
+        f"the commit must exist, the branch must be pushed to origin with "
+        f"your commit at its tip, or the message is retained). Do NOT "
+        f"acknowledge the ledger message — the dispatcher owns "
+        f"acknowledgment; an exit code of 0 means nothing without a valid "
+        f"result file."
     )
 
 
@@ -257,6 +269,9 @@ def write_dead_letter(root: Path, *, task_id: str, role: str, message_id: str,
         return fp
     fp.write_text(json.dumps({
         "schema_version": "1.0",
+        # CC-2/A7: terminal statuses are authored HERE, by the control
+        # plane — the agent-result schema can no longer express them.
+        "status": DispatcherTerminalStatus.DEAD_LETTERED.value,
         "task_id": task_id,
         "role": role,
         "message_id": message_id,
@@ -903,6 +918,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     success = False
     ack = AckDecision.RETAIN
     res: dict | None = None
+    completion_proofs: list | None = None
     try:
         res = load_result(worktree / RESULT_FILENAME)
         result_status = res["status"]
@@ -910,8 +926,33 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             # Decision only — applied AFTER the anti-loop assessment, which
             # may pre-empt it: a "completed" result that modified a
             # prohibited file terminates instead of acking as success.
-            ack = AckDecision.ACK
-            success = result_status == "completed"
+            if result_status == "completed" and \
+                    os.environ.get("COMPLETION_PROOFS", "1") != "0":
+                # 11.1 — CC-2: "completed" is a CLAIM. The dispatcher
+                # verifies the completion proofs (commit exists, push is
+                # real, branch conforms, ls-remote evidence persisted —
+                # agents/completion.py) before any ack applies. A failing
+                # proof beats the self-report: the message is retained and
+                # the refusal, proof by proof, rides telemetry. The
+                # fabricated payload {"status": "completed", "pushed":
+                # false, "commit_sha": "0000000", ...} was ackable here on
+                # the agent's word alone. COMPLETION_PROOFS=0 is the
+                # operator rollback lever (ANTI_LOOP idiom); default ON.
+                proofs = verify_completion(res, worktree=worktree,
+                                           mailroom=mailroom, run_id=run_id,
+                                           packet=packet)
+                completion_proofs = proofs_telemetry(proofs)
+                refused = refusal(proofs)
+                if refused:
+                    result_error = refused
+                else:
+                    ack = AckDecision.ACK
+                    success = True
+            elif result_status == "completed":
+                ack = AckDecision.ACK  # proofs disabled by operator flag
+                success = True
+            else:  # blocked — ackable, never a success
+                ack = AckDecision.ACK
         # needs_retry: actionable, retained; step 7 retires it at the cap.
     except ResultError as e:
         result_error = str(e)
@@ -963,6 +1004,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             tele.finish(run_id, result_status=result_status,
                         anti_loop=anti.action, anti_loop_reason=anti.reason,
                         usage_parse_error=usage_parse_error,
+                        completion_proofs=completion_proofs,
                         exit_code=rc, stop_reason=stop_reason,
                         duration_seconds=round(duration, 3),
                         attempt_number=attempts, completed_at=time.time(),
@@ -1018,6 +1060,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
               file=sys.stderr)
     tele.finish(run_id, result_status=result_status, result_error=result_error,
                 usage_parse_error=usage_parse_error,
+                completion_proofs=completion_proofs,
                 exit_code=rc, timed_out=timed_out, halted=halted,
                 stop_reason=stop_reason,
                 duration_seconds=round(duration, 3),

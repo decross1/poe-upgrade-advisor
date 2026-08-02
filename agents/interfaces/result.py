@@ -109,9 +109,16 @@ def sweep_result(worktree: str | Path, mailroom: str | Path,
 
 
 def is_ackable(result: dict) -> bool:
-    """True when a *valid* result authorises retiring the ledger message.
+    """True when a *valid* result MAY authorise retiring the ledger message.
 
     `needs_retry` is deliberately excluded: it remains actionable, and only the
-    dispatcher-side attempt cap may retire it.
+    dispatcher-side attempt cap may retire it. `terminated` / `dead_lettered`
+    are no longer in this set — or in the schema at all (CC-2/A7): they are
+    dispatcher-authored states (states.DispatcherTerminalStatus), and an agent
+    must not be able to self-authorise its own termination path.
+
+    For `completed` this is necessary, not sufficient: the dispatcher's
+    completion proofs (agents/completion.py) must also pass before the ack
+    applies — a self-reported "completed" is a claim, not a verdict.
     """
-    return result.get("status") in {"completed", "blocked", "terminated", "dead_lettered"}
+    return result.get("status") in {"completed", "blocked"}

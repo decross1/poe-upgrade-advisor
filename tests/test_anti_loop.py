@@ -88,6 +88,16 @@ def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
                         lambda *a, **k: AlwaysAllow(warn=lambda m: None))
 
 @pytest.fixture(autouse=True)
+def completion_proofs_pass(monkeypatch: pytest.MonkeyPatch):
+    """Pin the CC-2 completion proofs to all-pass — this module exercises
+    the anti-loop controller, not completion verification; the fakes'
+    completion claims are fixtures. Real-proof coverage:
+    tests/test_completion.py."""
+    monkeypatch.setattr(dispatch_mod, "verify_completion",
+                        lambda res, **kw: [])
+
+
+@pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom via POB_LEDGER_DIR, set BEFORE any dispatch/controller
     call. Autouse: no test here can ever touch the real mailroom."""

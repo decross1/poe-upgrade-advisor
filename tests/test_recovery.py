@@ -96,6 +96,18 @@ def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
                         lambda *a, **k: AlwaysAllow(warn=lambda m: None))
 
 @pytest.fixture(autouse=True)
+def completion_proofs_pass(monkeypatch: pytest.MonkeyPatch):
+    """Pin the CC-2 completion proofs to all-pass (same rationale as the
+    test_dispatch pin): this module tests recovery + the A1 sweep with
+    fakes whose completion claims are fixtures. Real-proof coverage lives
+    in tests/test_completion.py. In-process pin only — the subprocess
+    signal tests here use non-completing fakes, so no env escape is
+    needed."""
+    monkeypatch.setattr(dispatch_mod, "verify_completion",
+                        lambda res, **kw: [])
+
+
+@pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom via POB_LEDGER_DIR, set BEFORE any dispatch/recovery call.
 

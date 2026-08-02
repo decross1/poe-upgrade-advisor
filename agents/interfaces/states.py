@@ -28,6 +28,21 @@ class TaskState(str, Enum):
     RECOVERY_REQUIRED = "recovery_required"
 
 
+class DispatcherTerminalStatus(str, Enum):
+    """Terminal statuses only the CONTROL PLANE (dispatcher / pm-lite) may
+    author. CC-2/A7: these were removed from the agent-result schema enum
+    entirely — an agent could previously write `terminated` or
+    `dead_lettered` and self-authorise its own termination path, and
+    `is_ackable` would retire the message on its word. A status the agent
+    schema cannot express cannot regress into acceptance. These values
+    appear in dead-letter records and telemetry authored by the dispatcher,
+    never in `.agent-result.json`.
+    """
+
+    TERMINATED = "terminated"
+    DEAD_LETTERED = "dead_lettered"
+
+
 class DispatchDecision(str, Enum):
     """What the dispatcher decided to do with one ledger message."""
 

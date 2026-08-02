@@ -110,10 +110,35 @@ def test_load_result_accepts_a_good_file(tmp_path):
 
 
 def test_needs_retry_is_never_ackable_on_its_own():
-    """Only the dispatcher-side attempt cap may retire a needs_retry message."""
+    """Only the dispatcher-side attempt cap may retire a needs_retry message.
+
+    Inverted 2026-08-02 (CC-2/A7): `terminated` and `dead_lettered` were
+    agent-writable AND ackable — an agent could self-authorise its own
+    termination path. They are dispatcher-authored now; if they ever read
+    as ackable agent statuses again, that is the regression this pins.
+    """
     assert not is_ackable({"status": "needs_retry"})
-    for s in ("completed", "blocked", "terminated", "dead_lettered"):
+    for s in ("completed", "blocked"):
         assert is_ackable({"status": s})
+    for s in ("terminated", "dead_lettered"):
+        assert not is_ackable({"status": s})
+
+
+def test_agent_schema_cannot_express_dispatcher_terminal_statuses():
+    """A7's stronger branch: the statuses are gone from the SCHEMA, not
+    merely gated — a status the schema cannot express cannot regress into
+    acceptance. Re-adding either to the agent enum must fail here."""
+    from agents.interfaces.result import RESULT_SCHEMA_PATH
+    from agents.interfaces.states import DispatcherTerminalStatus
+
+    enum = json.loads(RESULT_SCHEMA_PATH.read_text())["properties"]["status"]["enum"]
+    assert enum == ["completed", "blocked", "needs_retry"]
+    for s in ("terminated", "dead_lettered"):
+        with pytest.raises(ResultError):
+            validate_result(_completed(status=s))
+    # The values still exist — as control-plane vocabulary, not agent vocabulary.
+    assert {m.value for m in DispatcherTerminalStatus} == {
+        "terminated", "dead_lettered"}
 
 
 # ------------------------------------------------------- result sweep (CC-3)

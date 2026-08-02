@@ -1,0 +1,18 @@
+# Completion-proof contract (CC-2). Data, not code: the active proof list
+# and its parameters live here so pm-ratified values from plan v1.0 drop in
+# without a code change. Checkers are registered in agents/completion.py.
+#
+# Proofs #5-#15 of the plan are ABSENT deliberately: the base contract
+# (plan v1.0) is not on disk and pm's ANSWER is pending. Do not invent
+# entries here — an unratified proof is not a control.
+schema_version: "1.0"
+
+# Ratified task-branch pattern. null = pm ANSWER pending; the branch_pattern
+# proof reports not-evaluable (recorded, never inferred) until it is set.
+branch_pattern: null
+
+proofs:
+  - id: commit_exists
+  - id: pushed_remote_agreement
+  - id: branch_pattern
+  - id: ls_remote_recorded
