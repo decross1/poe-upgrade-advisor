@@ -286,3 +286,80 @@ M1/M4 ledger-atomicity tests; a real GitHub exercise of the merge robot.
 
 *Verdict issued by pm on 2026-08-02 against `main`. The organization remains
 offline until an operator completes §7 and the readiness checker exits 0.*
+
+---
+
+## Post-push CI evidence — appended 2026-08-02 after `main` was pushed
+
+The push to `origin/main` at `cfc503e` was the **first time any of the new CI
+jobs had ever executed**. §7 recorded "no CI job has run" as a limit of the
+verification; that is now resolved, and it produced three findings that local
+runs could not.
+
+### Passing, first time in the repository's history
+
+`web-test` — **green**. 5,003 lines of `web/` had no mechanical gate at all
+before this program. `lint`, `contracts`, `doctrine-invariants`,
+`assumptions-fixtures`, `engine-integration`, `windows-runtime-build`,
+`windows-package-cleanroom`, `windows-worker-pipes` and
+`runtime-parity-cross-platform` also green.
+
+### Two CI-only defects in my own work, fixed in `bfe0751`
+
+1. **`packet-validation`** installed only `jsonschema`, but
+   `agents/packets/validate.py` imports `agents.interfaces`, whose `__init__`
+   pulls `policy.py` -> `yaml`. An AST scan of the script's own imports missed
+   it because the dependency arrives through a package `__init__`.
+2. **`test` and `coverage-floor`** both failed on
+   `test_every_unique_example_required_check_exists_and_runs`, which shelled
+   `npm --prefix web run test` from a Python-only job. It failed on a missing
+   toolchain rather than a bad packet. Narrowed to assert the check is
+   well-formed and its workspace exists, and to execute only where the
+   toolchain is present — running the npm suites is `web-test`/`overlay-test`'s
+   job, and both are required checks.
+
+Both reproduced against a clean `git archive` export before being fixed.
+
+### `overlay-test` — a real, pre-existing defect the gate caught immediately
+
+```
+FAIL test/diffFlow.test.ts > diffFlow — chip tap -> one re-diff (I3/§7, issue #64)
+  × RULING-21: each failed retry keeps its own transient state
+  × a re-diff timing out counts as failure (RULING-19/21)
+  AssertionError: expected { kind: 'ERROR_UNAVAILABLE' }
+                  to deeply equal { kind: 'VERDICT', ...(3) }
+2 failed of 17 in diffFlow.test.ts — reproduced identically on two consecutive
+CI runs (30731148600, 30731359010), so it is deterministic under CI load rather
+than intermittent.
+```
+
+**Not a CI configuration problem.** `overlay/test/diffFlow.test.ts` asserts
+request-supersession semantics using wall-clock delays (`setTimeout(r, 100)`,
+`sleep(50)`). Locally the suite passes **5 runs out of 5**; on a loaded CI
+runner the ordering inverts and a request that should return a verdict reports
+unavailable.
+
+This is the clearest justification for the program that exists. `overlay/` is
+2,401 lines that had **never been mechanically checked**, its `node_modules`
+was not even installed on this box, and the very first CI execution surfaced a
+latent timing defect. The audit predicted exactly this: *"initial red builds on
+latent failures. That is information, not cost."*
+
+**Disposition — the gate stays required.** `overlay-test` remains in
+`REQUIRED_CHECKS`. Removing it to make `main` green would be gate-weakening,
+which `AGENTS.md` calls the one behaviour treated as adversarial, and it would
+discard the only mechanical check the overlay has ever had. Fixing the overlay
+tests is frontend product work and an explicit non-goal of this program
+(ADR-0007).
+
+**It becomes the first canary task.** A flaky required check is a merge blocker
+and erodes trust in the gate faster than a missing one, so it is not something
+to sit on — but it is also precisely the right shape for the canary: bounded,
+well-specified, in a single subsystem, with a mechanical pass condition, and
+now covered by a gate. The control plane's first real job is fixing the defect
+its own gate found.
+
+**Consequence for the verdict:** unchanged. `CONDITIONAL GO-CANARY` already
+required an operator to clear §7 before anything runs. This adds a known-red
+required check to the record rather than a new class of risk, and the canary
+task is now identified rather than hypothetical.
