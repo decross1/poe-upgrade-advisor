@@ -26,7 +26,7 @@ mechanically, then structurally, then by mutation where there was logic to break
 | W1-1 characterisation tests | A | **ACCEPTED** | `d897de2`. 57 tests. `budget_governor.py` 20.3% -> 89.9%, `ledger.py` 19.6% -> 98.6%. Zero production diff. **9/9 mutation probes caught.** |
 | W1-2 governed dispatcher | A | **ACCEPTED** | `1a985dd`+`5fb068f`+`7b839f6`. Attempt ledger increments before invoke; per-message cap; ORG exemption deleted. **7/7 mutation probes caught** after the ORG per-task-cap follow-up. |
 | W1-3 preflight + no-op suppression | A | **ACCEPTED** | `f13c3c8`+`3192395`. 39 tests. All ★ cases. **4/4 mutation probes caught**, including three ways of breaking the blocker fingerprint. |
-| W1-4 worktree recovery | A | in progress | production `5804a08`; tests in flight |
+| W1-4 worktree recovery | A | **ACCEPTED** | `5804a08`+`00488d6`. 239 tests, +126 test functions. Validated against **real data**: 13 unrecovered `.fan` worktrees, **166,770 bytes** of six-day-old staged/unstaged/untracked work captured, 12/13 non-empty, every bundle verified. |
 | W1-5 CI hard blockers | B | **ACCEPTED** | `e932f32`+`405d74f`. `web-test`/`overlay-test`/`coverage-floor` are real jobs and required checks; every required check maps to a real job; coverage gate exits 1 below floor. |
 | W1-6 readiness gate | B | **ACCEPTED** | `a4ec5cc`. 14 tests. All four modes exit 1 correctly; mode escalation matrix verified; ran against real state with a before/after mailroom snapshot — **wrote nothing**. |
 | W2-1 telemetry + metrics | B | not started | — |
@@ -140,9 +140,14 @@ Each of these contradicted a premise shared by all four planning documents.
 
    pm verified the **flags** exist `[O]` (`codex exec --help` -> `--json  Print
    events to stdout as JSONL`; `claude --help` -> `--output-format ... "stream-json"`).
-   The **field names** are Lane B's `[O]` from installed CLI help and binary
-   protocol strings, not independently re-verified by pm — doing so requires a
-   live invocation, which is refused while `HALT` is set.
+   The **field names** are `[E]` — Lane B took them from strings in the
+   installed binaries, not from a documented output schema or a live
+   invocation, and said so unprompted when asked to distinguish. They may
+   change under a CLI update. W2-1's adapter therefore accepts both snake_case
+   and camelCase variants and, for a non-empty `usage` object with no
+   recognised fields, records every measurement as `None` and emits
+   `TELEMETRY-DEGRADED` with the observed keys — it neither records zero nor
+   fails silently.
 
    Consequence: per-invocation token and cash accounting is mechanically
    obtainable and should not be estimated. But the **binding** constraint —

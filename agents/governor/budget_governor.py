@@ -12,16 +12,24 @@ Also provides a stall watchdog CLI:
 finds tasks with recent invocations but no new commits and parks them.
 """
 from __future__ import annotations
-import argparse, sqlite3, subprocess, time
+import argparse, sqlite3, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from agents.interfaces.policy import load_policy  # noqa: E402
 
 
 class Governor:
     def __init__(self, policy_path: Path, ledger_path: Path):
-        self.policy = yaml.safe_load(Path(policy_path).read_text())
+        # Merged view of policy.yaml (Lane A keys) + run_policy.yaml (Lane B:
+        # per_day_max, daily_reset_hour_utc since pm's atomic move 7d95d79).
+        # load_policy raises on a key defined in both files, so the lane
+        # boundary stays a test failure rather than a silent overwrite.
+        self.policy = load_policy(Path(policy_path).parent)
         self.db = sqlite3.connect(ledger_path)
         self.db.execute(
             """CREATE TABLE IF NOT EXISTS ledger (
