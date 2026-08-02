@@ -72,9 +72,18 @@ class SqliteBudgetLedger:
              input_tokens INTEGER, output_tokens INTEGER, success INTEGER)""",
     )
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(self, path: str | Path, *, read_only: bool = False) -> None:
         self.path = Path(path)
+        self.read_only = read_only
         try:
+            if read_only:
+                if not self.path.is_file():
+                    raise BudgetLedgerUnavailable(
+                        f"read-only budget ledger absent: {self.path}"
+                    )
+                uri = f"{self.path.resolve().as_uri()}?mode=ro&immutable=1"
+                self.db = sqlite3.connect(uri, uri=True, isolation_level=None)
+                return
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.db = sqlite3.connect(self.path, isolation_level=None)
             self.db.execute("PRAGMA journal_mode=WAL")
@@ -94,6 +103,8 @@ class SqliteBudgetLedger:
         return row[0] if row else 0
 
     def increment_attempt(self, message_id: str, task_id: str, role: str) -> int:
+        if self.read_only:
+            raise BudgetLedgerUnavailable("read-only budget ledger cannot increment attempts")
         now = time.time()
         self._x(
             """INSERT INTO attempts (message_id, task_id, role, n, first_ts, last_ts)
@@ -115,6 +126,8 @@ class SqliteBudgetLedger:
         output_tokens: int | None = None,
         success: bool = False,
     ) -> None:
+        if self.read_only:
+            raise BudgetLedgerUnavailable("read-only budget ledger cannot record spend")
         self._x(
             "INSERT INTO spend VALUES (?,?,?,?,?,?,?,?,?)",
             (time.time(), role, task_id, run_id, cash_usd, allowance_pct,

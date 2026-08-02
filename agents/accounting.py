@@ -41,8 +41,10 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
              pct_per_weighted_second REAL)""",
     )
 
-    def __init__(self, path: str | Path) -> None:
-        super().__init__(path)
+    def __init__(self, path: str | Path, *, read_only: bool = False) -> None:
+        super().__init__(path, read_only=read_only)
+        if read_only:
+            return
         for statement in self._ACCOUNTING_SCHEMA:
             self._x(statement)
 
@@ -56,6 +58,8 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
         reason: str | None = None,
         ts: float | None = None,
     ) -> None:
+        if self.read_only:
+            raise BudgetLedgerUnavailable("read-only budget ledger cannot record decisions")
         self._x(
             "INSERT INTO governor_decisions VALUES (?,?,?,?,?,?)",
             (time.time() if ts is None else ts, role, task_id, run_id, decision, reason),
@@ -76,6 +80,8 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
         invocation weight since the previous reading.  A first reading is a
         baseline and therefore has no calibration factor.
         """
+        if self.read_only:
+            raise BudgetLedgerUnavailable("read-only budget ledger cannot record allowance")
         if source not in ALLOWANCE_SOURCES:
             raise ValueError(f"invalid allowance source: {source}")
         if (

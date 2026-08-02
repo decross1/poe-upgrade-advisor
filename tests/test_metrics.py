@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -11,12 +13,25 @@ from agents.accounting import (
 )
 from scripts.agent_metrics import (
     accepted_cost,
+    build_parser,
     filter_records,
     main,
     record_allowance,
     summarize,
     wasted_runs,
 )
+
+
+def _manifest(root: Path) -> dict[str, tuple[int, int, str]]:
+    return {
+        str(path.relative_to(root)): (
+            path.stat().st_size,
+            path.stat().st_mtime_ns,
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
 
 
 def _seed(path):
@@ -198,3 +213,46 @@ def test_every_required_cli_query_form_runs(tmp_path, capsys):
     for command in commands:
         assert main(prefix + command) == 0
         json.loads(capsys.readouterr().out)
+
+
+def test_parser_build_never_resolves_mailroom_and_dry_run_requires_explicit_path(
+    monkeypatch, capsys
+):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("parser/dry-run must not discover a live mailroom")
+
+    monkeypatch.setattr("scripts.agent_metrics.find_mailroom", forbidden)
+    build_parser()
+    assert main([
+        "--dry-run", "record-allowance", "--role", "pm", "--pct", "34"
+    ]) == 2
+    assert "requires an explicit --mailroom" in capsys.readouterr().err
+
+
+def test_dry_run_calibration_is_a_read_only_preview(tmp_path, capsys):
+    mailroom = tmp_path / "mailroom"
+    telemetry_path = mailroom / "telemetry/invocations.jsonl"
+    records = _seed(telemetry_path)
+    assert records
+    ledger = AccountingBudgetLedger(
+        mailroom / "governor/budget_ledger.sqlite3"
+    )
+    ledger.record_allowance(
+        role="pm",
+        pct=10.0,
+        source="manual_daily_reading",
+        weighted_seconds=0.0,
+        ts=100.0,
+    )
+    ledger.db.close()
+    before = _manifest(mailroom)
+
+    assert main([
+        "--mailroom", str(mailroom), "--dry-run",
+        "record-allowance", "--role", "pm", "--pct", "15",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["dry_run"] is True
+    assert output["allowance_delta_pct"] == 5.0
+    assert _manifest(mailroom) == before

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import time
 from collections import defaultdict
@@ -204,11 +205,62 @@ def record_allowance(
     return result
 
 
+def preview_allowance(
+    *,
+    ledger: AccountingBudgetLedger,
+    records: list[dict[str, Any]],
+    role: str,
+    pct: float,
+    ts: float | None = None,
+) -> dict[str, Any]:
+    """Compute a calibration without mutating allowance or telemetry stores."""
+    if not math.isfinite(pct) or not 0 <= pct <= 100:
+        raise ValueError("allowance percentage must be between 0 and 100")
+    now = time.time() if ts is None else ts
+    prior = ledger.latest_allowance(role)
+    prior_ts = float(prior["ts"]) if prior is not None else 0.0
+    prior_pct = float(prior["pct"]) if prior is not None else None
+    weighted = weighted_seconds(records, role=role, since_ts=prior_ts)
+    delta = None if prior_pct is None else (
+        pct - prior_pct if pct >= prior_pct else pct
+    )
+    factor = (
+        delta / weighted
+        if delta is not None and weighted > 0
+        else None
+    )
+    backfilled = sum(
+        1
+        for record in records
+        if record.get("role") == role
+        and _started(record) > prior_ts
+        and not record.get("suppressed")
+        and record.get("result_status") != "suppressed"
+        and record.get("duration_seconds") is not None
+        and record.get("invocation_weight") is not None
+    ) if factor is not None else 0
+    return {
+        "dry_run": True,
+        "role": role,
+        "source": "manual_daily_reading",
+        "ts": now,
+        "prior_ts": prior_ts if prior is not None else None,
+        "prior_pct": prior_pct,
+        "pct": pct,
+        "allowance_delta_pct": delta,
+        "cycle_reset": prior_pct is not None and pct < prior_pct,
+        "weighted_seconds": weighted,
+        "pct_per_weighted_second": factor,
+        "backfilled_invocations": backfilled,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mailroom", type=Path, default=find_mailroom())
+    parser.add_argument("--mailroom", type=Path)
     parser.add_argument("--telemetry", type=Path)
     parser.add_argument("--ledger", type=Path)
+    parser.add_argument("--dry-run", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)
     summary = sub.add_parser("summary")
     summary.add_argument("--since", default="7d")
@@ -229,8 +281,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    telemetry_path = args.telemetry or args.mailroom / "telemetry/invocations.jsonl"
-    ledger_path = args.ledger or args.mailroom / "governor/budget_ledger.sqlite3"
+    if args.mailroom is None:
+        if args.dry_run:
+            print("--dry-run requires an explicit --mailroom", file=sys.stderr)
+            return 2
+        mailroom = find_mailroom()
+    else:
+        mailroom = args.mailroom
+    telemetry_path = args.telemetry or mailroom / "telemetry/invocations.jsonl"
+    ledger_path = args.ledger or mailroom / "governor/budget_ledger.sqlite3"
     records, errors = read_invocations(telemetry_path)
     if errors:
         print(f"TELEMETRY-DEGRADED: {len(errors)} unreadable event(s)", file=sys.stderr)
@@ -247,6 +306,14 @@ def main(argv: list[str] | None = None) -> int:
             output = wasted_runs(records)
         elif args.command == "accepted-cost":
             output = accepted_cost(records, args.group_by)
+        elif args.dry_run:
+            ledger = AccountingBudgetLedger(ledger_path, read_only=True)
+            output = preview_allowance(
+                ledger=ledger,
+                records=records,
+                role=args.role,
+                pct=args.pct,
+            )
         else:
             ledger = AccountingBudgetLedger(ledger_path)
             output = record_allowance(
