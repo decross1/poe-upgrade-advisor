@@ -26,14 +26,14 @@ mechanically, then structurally, then by mutation where there was logic to break
 | W1-1 characterisation tests | A | **ACCEPTED** | `d897de2`. 57 tests. `budget_governor.py` 20.3% -> 89.9%, `ledger.py` 19.6% -> 98.6%. Zero production diff. **9/9 mutation probes caught.** |
 | W1-2 governed dispatcher | A | **ACCEPTED** | `1a985dd`+`5fb068f`+`7b839f6`. Attempt ledger increments before invoke; per-message cap; ORG exemption deleted. **7/7 mutation probes caught** after the ORG per-task-cap follow-up. |
 | W1-3 preflight + no-op suppression | A | **ACCEPTED** | `f13c3c8`+`3192395`. 39 tests. All ★ cases. **4/4 mutation probes caught**, including three ways of breaking the blocker fingerprint. |
-| W1-4 worktree recovery | A | **ACCEPTED** | `5804a08`+`00488d6`. 239 tests, +126 test functions. Validated against **real data**: 13 unrecovered `.fan` worktrees, **166,770 bytes** of six-day-old staged/unstaged/untracked work captured, 12/13 non-empty, every bundle verified. |
+| W1-4 worktree recovery | A | **ACCEPTED** | `5804a08`+`00488d6`+`03a5f88`. Validated against **real data**: 13 unrecovered `.fan` worktrees, **166,770 bytes** of six-day-old work captured. Submodule-pointer gap found and closed. |
 | W1-5 CI hard blockers | B | **ACCEPTED** | `e932f32`+`405d74f`. `web-test`/`overlay-test`/`coverage-floor` are real jobs and required checks; every required check maps to a real job; coverage gate exits 1 below floor. |
 | W1-6 readiness gate | B | **ACCEPTED** | `a4ec5cc`. 14 tests. All four modes exit 1 correctly; mode escalation matrix verified; ran against real state with a before/after mailroom snapshot — **wrote nothing**. |
-| W2-1 telemetry + metrics | B | not started | — |
-| W2-2 pm-lite scheduler | B | not started | — |
-| W2-3 run budgets + degradation | B | not started | — |
-| W2-4 anti-loop controller | A | not started | — |
-| W2-5 task packets + stage identity | B | not started | — |
+| W2-1 telemetry + metrics | B | **ACCEPTED** | `05bfc16`. Fail-closed at open, write and read; fail-open telemetry; unknown never zero. 33-agent adversarial pass: every *high* downgraded. |
+| W2-2 pm-lite scheduler | B | **ACCEPTED** | `28f3eef`. Injected model spawn into `poll()` -> **CAUGHT**. Judgement triggers idempotent across polls. |
+| W2-3 run budgets + degradation | B | **ACCEPTED** | `c8355d6`+`87f2342`. Seven postures; stale allowance denies headroom; weekly reset read as new-cycle use; mode-aware. |
+| W2-4 anti-loop controller | A | **ACCEPTED** | `03a5f88`+`a54ac8f`+`aabc201`. 4/4 fingerprint mutations caught after the strategy-component follow-up. |
+| W2-5 task packets + stage identity | B | **ACCEPTED** | `aed57f6`. ADR-0008 stage logic; `Fixes` on a stage PR refused; diagnostic split landed. |
 
 **Integration:** trial merge of both lanes run early rather than at checkpoint.
 `merge-tree` clean both ways; integrated suite **235 passed**; lint, doctrine
@@ -180,10 +180,109 @@ Each of these contradicted a premise shared by all four planning documents.
 
 ## 7. Verdict
 
-**None issued.** Five of eleven units accepted. The verdict section is written
-only when every mandatory gate for the claimed level carries an evidence row
-above, and it will not claim a level whose prerequisites are absent.
+## **CONDITIONAL GO-CANARY**
 
-Expected ceiling on current evidence: **`GO-CANARY`**, with `GO-SUPERVISED`
-conditional on W2-4 and W2-5 landing. `GO-UNATTENDED-7D` is out of reach for the
-reasons in §4 and no amount of further lane execution changes that.
+All eleven units are implemented, integrated and independently verified. The
+control plane is ready. **The readiness checker exits 1 for every mode**, and it
+is right to — the org's own operational state is not yet clean. Every failure is
+an operator action; none is a code defect.
+
+A bare `GO` without an operational level is invalid, and a `GO-CANARY` whose
+readiness checker fails is a claim contradicted by the tool built to test it. So
+the verdict is conditional, in the program's required format:
+
+```
+approved_mode:        GO-CANARY — one bounded task, concurrency 1, actively observed
+temporary_exception:  none; no gate is waived
+risk:                 low — per-task budgets, attempt cap, preflight, recovery
+                      and the anti-loop controller are all live and mutation-tested
+mitigation:           the seven conditions below are mechanical, enumerated, and
+                      each verifiable by re-running the readiness checker
+owner:                human operator (Derrick)
+expiration_date:      2026-08-16 — re-verify if the canary has not run by then
+shutdown_condition:   touch mailroom/HALT
+work_required_for_full_go: sections 3 and 4 below
+```
+
+### The seven conditions, in order
+
+Four collapse to one action:
+
+1. **Create `mailroom/readiness.yaml`** from
+   `docs/runbooks/readiness.example.yaml`, set `operating_mode: canary`, and
+   fill `worktrees`, `model_clis` and `github` from observed state. This clears
+   `operating_mode`, `model_clis`, `github_auth` and `worktrees`.
+2. **Clear the 9 stale running markers** — every PID confirmed dead
+   (`mailroom/locks/running/`).
+3. **Acknowledge the 8 unacked ledger messages** per
+   `docs/agent-org/unacked-queue-triage-2026-08-02.md`. Two of them
+   (PRs #87, #91) should be merged or deliberately parked first. **This is not
+   housekeeping** — those seven `pm` messages are the ones that were re-fanned
+   977 times, and lifting `HALT` with them queued restarts the cascade on the
+   first poll.
+4. **Create `mailroom/telemetry/`.**
+
+Then `python3 scripts/check_agent_readiness.py --mode canary` must exit 0. Do
+not start anything until it does.
+
+### Gate evidence at `main`
+
+| Gate | Result |
+|---|---|
+| Test suite | **389 passed** (from 55 at baseline) |
+| Lint | clean |
+| Doctrine invariants + fixture coverage | OK |
+| Coverage | **87.45%**, floor **86.8** — ratchet active and proven to fire |
+| `agent_loop.sh` bare model commands | **0** (4 `dispatch.py` call sites) |
+| `mailroom/HALT` | **set** throughout |
+| Live loop processes | **0** |
+| Ledger corpus | 296 messages, unmodified |
+| Dirty `.fan` worktrees | 13, **preserved untouched** |
+
+### What is NOT approved
+
+**`GO-SUPERVISED`** — reachable, but it needs the canary to have run first and
+the merge-automation warning cleared.
+
+**`GO-UNATTENDED-7D` / `-10D`** — **NO-GO**, and not reachable by this program at
+any level of execution quality. `MERGE_ROBOT_TOKEN` is unset, `main` is
+unprotected, and all roles share one GitHub identity. Provisioning those is
+necessary but **not sufficient**: §4 records that the evidence-bearing-approval
+read path never worked, so both live approved PRs would still fail merge-robot
+condition 2/3 on the day the token appears. That is now fixed in code; it has
+never been exercised against real GitHub.
+
+The readiness checker enforces this itself — `unattended-7d` fails 10 checks and
+`unattended-10d` fails 11, including `shakedown` and `reserve_budget`, which
+cannot be satisfied except by running the 48-hour shakedown with its hour-24
+injected fault. **No shakedown has been run.** Nothing in this program should be
+read as approving unattended operation.
+
+### Honest limits of this verification
+
+- **No model was invoked.** `HALT` was set throughout; every executor is a fake.
+  The dispatcher has never driven a real model end to end.
+- **No CI job has run.** `web-test`, `overlay-test` and `coverage-floor` are
+  defined and their underlying commands pass locally; the *jobs* are unverified
+  until they run on GitHub.
+- **The merge robot has still never executed.** Its logic is now tested against
+  monkeypatched fixtures, not GitHub.
+- **Nothing is pushed.** All work is local on `main`.
+- Provider usage **field names** are `[E]`, taken from binary strings, not a
+  documented schema.
+
+### Follow-ups carried, none blocking
+
+`agents/interfaces/` accumulated three defects of the same class — the frozen
+seam both lanes were forbidden to edit proved the least reliable file in the
+repo, and each was found by adversarial probing rather than by review. The
+standing question that would have caught all of them, and the five gate defects
+in §5: **what writes the thing this gate reads?**
+
+Outstanding: `github.authenticated` should be measured rather than attested;
+M1/M4 ledger-atomicity tests; a real GitHub exercise of the merge robot.
+
+---
+
+*Verdict issued by pm on 2026-08-02 against `main`. The organization remains
+offline until an operator completes §7 and the readiness checker exits 0.*
