@@ -13,8 +13,8 @@ import yaml
 
 from agents.accounting import AccountingBudgetLedger
 from agents.interfaces.budget import BudgetLedgerUnavailable
-from agents.interfaces.run_budget import RunBudgetVerdict
 from agents.interfaces.policy import PolicyError, load_policy
+from agents.interfaces.run_budget import RunBudgetVerdict
 
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ class RunBudget:
         return defaults.get(role)
 
     def _roles_for_budget(self, budget: str) -> tuple[str, ...]:
-        known = set((self.policy.get("roles") or {})) | {"pm", "backend", "frontend"}
+        known = set(self.policy.get("roles") or {}) | {"pm", "backend", "frontend"}
         return tuple(sorted(
             role for role in known
             if (self._role_config(role) or {}).get("budget") == budget
@@ -283,9 +283,14 @@ class RunBudget:
         if tier in {"red", "frontier", "frontier_cash"}:
             cash = ((self.run.get("budgets") or {}).get("frontier_cash") or {})
             cash_roles = tuple(sorted((self.policy.get("per_day_max") or {}).keys()))
-            _, total_used, _ = self._spend(
-                roles=cash_roles, field="cash_usd", measured_only=True
+            _, total_used, total_unknown = self._spend(
+                roles=cash_roles, field="cash_usd"
             )
+            if total_unknown:
+                return self._verdict(
+                    allowed=False, reason="frontier cash total usage unknown", level=1,
+                    role=role, task_id=task_id,
+                )
             total = float(cash["total_usd"])
             reserve = float((self.run.get("reserve") or {}).get("cash_usd", 0.0))
             effective_total = total if self._reserve_unlocked(now) else total - reserve
@@ -294,9 +299,14 @@ class RunBudget:
                     allowed=False, reason="frontier cash total cap reached", level=3,
                     role=role, task_id=task_id,
                 )
-            _, task_cash, _ = self._spend(
-                roles=cash_roles, task_id=task_id, field="cash_usd", measured_only=True
+            _, task_cash, task_cash_unknown = self._spend(
+                roles=cash_roles, task_id=task_id, field="cash_usd"
             )
+            if task_cash_unknown:
+                return self._verdict(
+                    allowed=False, reason="frontier cash task usage unknown", level=1,
+                    role=role, task_id=task_id,
+                )
             if float(task_cash or 0.0) >= float(cash["per_task_usd"]):
                 return self._verdict(
                     allowed=False, reason="frontier cash per-task cap reached", level=3,
@@ -307,9 +317,14 @@ class RunBudget:
                 roles=cash_roles, field="cash_usd", base_daily=daily_base,
                 day_start=day_start,
             )
-            _, daily_cash, _ = self._spend(
-                roles=cash_roles, since=day_start, field="cash_usd", measured_only=True
+            _, daily_cash, daily_cash_unknown = self._spend(
+                roles=cash_roles, since=day_start, field="cash_usd"
             )
+            if daily_cash_unknown:
+                return self._verdict(
+                    allowed=False, reason="frontier cash daily usage unknown", level=1,
+                    role=role, task_id=task_id,
+                )
             if float(daily_cash or 0.0) >= daily_limit:
                 return self._verdict(
                     allowed=False, reason="frontier cash daily cap; throttle role", level=1,

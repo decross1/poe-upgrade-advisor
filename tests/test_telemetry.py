@@ -7,13 +7,13 @@ import sqlite3
 import pytest
 
 from agents.accounting import (
-    AnalyticsTelemetry,
     AccountingBudgetLedger,
+    AnalyticsTelemetry,
     provider_usage,
     read_invocations,
 )
 from agents.interfaces.budget import BudgetLedgerUnavailable
-from agents.interfaces.states import DispatchDecision, SUPPRESSED_DECISIONS
+from agents.interfaces.states import SUPPRESSED_DECISIONS, DispatchDecision
 from agents.interfaces.telemetry import INVOCATION_FIELDS, TELEMETRY_DEGRADED
 
 
@@ -150,10 +150,17 @@ def test_provider_json_usage_normalizes_known_fields_and_keeps_unknown_none():
 
 def test_unexpected_provider_usage_shape_is_none_and_degrades_loudly():
     stderr = io.StringIO()
-    result = provider_usage("codex", {"usage": {"new_token_total": 99}}, stderr=stderr)
+    sentinel = "SENTINEL-SHOULD-NOT-APPEAR"
+    result = provider_usage(
+        "codex",
+        {"usage": {"new_token_total": sentinel, "api_key": "sk-ant-TOPSECRET"}},
+        stderr=stderr,
+    )
     assert all(value is None for value in result.values())
-    assert TELEMETRY_DEGRADED in stderr.getvalue()
-    assert "new_token_total" in stderr.getvalue()
+    marker = stderr.getvalue()
+    assert TELEMETRY_DEGRADED in marker
+    assert "new_token_total" in marker and "api_key" in marker
+    assert sentinel not in marker and "sk-ant-TOPSECRET" not in marker
 
 
 def test_lane_a_raw_stdout_contract_parses_final_anthropic_and_openai_events():

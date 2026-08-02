@@ -12,6 +12,7 @@ import fnmatch
 import os
 import re
 import sys
+from pathlib import Path
 
 import requests
 
@@ -37,6 +38,38 @@ def fail(pr: int, cond: str) -> None:
                   json={"body": f"MERGE BLOCKED — failed condition: {cond}"})
     requests.delete(f"{API}/repos/{REPO}/issues/{pr}/labels/ready-to-merge", headers=H)
     print(f"PR #{pr}: BLOCKED — {cond}"); sys.exit(0)
+
+
+def _default_pause_merges_path() -> Path:
+    """Resolve the shared mailroom when invoked from a fan worktree."""
+    starts = (Path.cwd(), Path(__file__).resolve().parent)
+    visited: set[Path] = set()
+    for start in starts:
+        for directory in (start, *start.parents):
+            if directory in visited:
+                continue
+            visited.add(directory)
+            mailroom = directory / "mailroom"
+            if mailroom.is_dir():
+                return mailroom / "PAUSE_MERGES"
+    return Path.cwd() / "mailroom/PAUSE_MERGES"
+
+
+def pause_merges_reason(path: str | Path | None = None) -> str | None:
+    """Return a fail-closed reason when the local merge pause is active.
+
+    Hosted-runner transport is deliberately outside this reader. Operators may
+    set PAUSE_MERGES_PATH to the materialized read-only state location.
+    """
+    configured = path if path is not None else os.environ.get("PAUSE_MERGES_PATH")
+    pause_path = Path(configured) if configured else _default_pause_merges_path()
+    try:
+        if not pause_path.is_file():
+            return None
+        pause_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return f"PAUSE_MERGES state unreadable at {pause_path}: {exc}"
+    return f"PAUSE_MERGES active at {pause_path}"
 
 
 class TaskLinkError(ValueError):
@@ -106,6 +139,9 @@ def task_completion_comment(link: dict, pr_number: int) -> str:
 
 
 def check_pr(pr_number: int) -> None:
+    pause_reason = pause_merges_reason()
+    if pause_reason is not None:
+        fail(pr_number, f"(0) {pause_reason}")
     pr = gh(f"/repos/{REPO}/pulls/{pr_number}")
     sha, author = pr["head"]["sha"], pr["user"]["login"]
 

@@ -71,6 +71,74 @@ def test_merge_robot_enforces_the_shared_pattern_objects(monkeypatch):
     assert robot.TEST_SIG is patterns.TEST_SIG
 
 
+def test_pause_merges_gate_is_read_only_and_precedes_remote_inspection(
+    monkeypatch, tmp_path
+):
+    robot = _robot(monkeypatch)
+    pause = tmp_path / "PAUSE_MERGES"
+    pause.write_text("main is red\n")
+    monkeypatch.setenv("PAUSE_MERGES_PATH", str(pause))
+    observed = {}
+
+    def blocked(pr, reason):
+        observed.update(pr=pr, reason=reason)
+        raise RuntimeError("blocked")
+
+    monkeypatch.setattr(robot, "fail", blocked)
+    monkeypatch.setattr(
+        robot, "gh", lambda path, **kw: pytest.fail("remote inspection must not run")
+    )
+    with pytest.raises(RuntimeError, match="blocked"):
+        robot.check_pr(42)
+    assert observed == {
+        "pr": 42,
+        "reason": f"(0) PAUSE_MERGES active at {pause}",
+    }
+    assert pause.read_text() == "main is red\n"
+
+
+def test_default_pause_path_finds_shared_mailroom_from_fan_worktree(
+    monkeypatch, tmp_path
+):
+    robot = _robot(monkeypatch)
+    shared = tmp_path / "project/mailroom"
+    worktree = tmp_path / "project/worktrees/lane-b"
+    shared.mkdir(parents=True)
+    worktree.mkdir(parents=True)
+    pause = shared / "PAUSE_MERGES"
+    pause.write_text("main is red\n")
+    monkeypatch.delenv("PAUSE_MERGES_PATH", raising=False)
+    monkeypatch.chdir(worktree)
+    assert robot.pause_merges_reason() == f"PAUSE_MERGES active at {pause}"
+
+
+def test_pause_merges_reader_fails_closed_when_present_state_is_unreadable(
+    monkeypatch, tmp_path
+):
+    robot = _robot(monkeypatch)
+    pause = tmp_path / "PAUSE_MERGES"
+    pause.write_text("main is red\n")
+    original = robot.Path.read_text
+
+    def unreadable(self, *args, **kwargs):
+        if self == pause:
+            raise OSError("simulated unreadable state")
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(robot.Path, "read_text", unreadable)
+    reason = robot.pause_merges_reason(pause)
+    assert reason is not None
+    assert "unreadable" in reason and "simulated unreadable state" in reason
+    assert pause.is_file()
+
+
+def test_absent_pause_state_does_not_get_created(monkeypatch, tmp_path):
+    robot = _robot(monkeypatch)
+    pause = tmp_path / "PAUSE_MERGES"
+    assert robot.pause_merges_reason(pause) is None
+    assert not pause.exists()
+
+
 def _robot(monkeypatch):
     monkeypatch.setenv("GITHUB_REPOSITORY", "example/repo")
     monkeypatch.setenv("MERGE_ROBOT_TOKEN", "test-only")

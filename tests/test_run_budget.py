@@ -9,7 +9,6 @@ from agents.run_budget import (
     _run_started_at,
 )
 
-
 NOW = 1_800_000_000.0
 
 
@@ -184,6 +183,24 @@ def test_unknown_spend_measurement_refuses_to_certify_headroom(tmp_path):
     )
     assert not verdict.allowed
     assert "usage unknown" in verdict.reason
+
+
+def test_unknown_frontier_cash_refuses_to_certify_total_headroom(tmp_path):
+    ledger = _ledger(tmp_path)
+    _reading(ledger, "backend", 10.0)
+    _spend(
+        ledger,
+        ts=NOW - 10,
+        role="backend",
+        task="TASK-OTHER",
+        cash=None,
+        pct=0.1,
+    )
+    verdict = RunBudget(_policy(), ledger, now=lambda: NOW).check(
+        role="backend", task_id="TASK-NEW", tier="red"
+    )
+    assert not verdict.allowed
+    assert verdict.reason == "frontier cash total usage unknown"
 
 
 def test_unconfigured_loader_state_denies_instead_of_allowing():
