@@ -237,6 +237,29 @@ def test_org_is_subject_to_per_task_cap_breaker_and_backoff(
     assert len(fake_subprocess.calls) == 1  # gh label attempt, stubbed
 
 
+def test_org_is_subject_to_the_per_task_cap_specifically(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fake_subprocess: _FakeSubprocess,
+) -> None:
+    """The breaker must not be able to satisfy this test on the cap's behalf.
+
+    PM's W1-2 mutation probe restored `used = 0 if task_id == "ORG"` (ORG
+    exempt from the per-task cap ONLY) and the whole suite passed: the
+    flipped ORG test recorded 6 failures, so the breaker (3) always fired
+    first and its reason satisfied a disjunctive assertion. Here the cap is
+    driven with SUCCESSES so `_consecutive_failures` stays 0 and nothing but
+    the cap can produce the denial — asserted as the exact tuple.
+    """
+    g = _governor(tmp_path, per_day_max={"backend": 1000, "pm": 10})
+    for _ in range(5):  # per_task_max_invocations
+        g.record("backend", "ORG", True)
+
+    assert g.allow("backend", "ORG") == (False, "per-task cap")
+    assert _dead_letters(tmp_path) == ["ORG.md"]
+    assert len(fake_subprocess.calls) == 1
+
+
 def test_org_is_still_subject_to_daily_cap(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
