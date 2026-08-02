@@ -228,6 +228,46 @@ def test_spend_since_aggregates_by_role(tmp_path):
     assert led.spend_since(since_ts=0, role="pm")["invocations"] == 1
 
 
+def test_unknown_spend_never_aggregates_to_zero(tmp_path):
+    """Unknown cost must not read as free.
+
+    The original implementation used COALESCE(SUM(cash_usd), 0), which reports
+    "spent nothing" for "we do not know what we spent" — the one failure this
+    layer exists to prevent, shipped in the module that defines the rule.
+    Found by adversarial verification of W2-1, in pm's own frozen interface.
+    """
+    led = SqliteBudgetLedger(tmp_path / "budget.sqlite3")
+    led.record_spend(role="pm", task_id="TASK-1", run_id="r1")   # cost unknown
+    led.record_spend(role="pm", task_id="TASK-1", run_id="r2")   # cost unknown
+
+    agg = led.spend_since(since_ts=0)
+    assert agg["invocations"] == 2
+    assert agg["cash_usd"] is None, "two unknown-cost invocations must not sum to 0"
+    assert agg["cash_usd_unknown_rows"] == 2
+    assert agg["complete"] is False
+
+
+def test_partial_unknown_spend_is_flagged_not_silently_summed(tmp_path):
+    """A known $5 plus two unknowns is not '$5 spent'."""
+    led = SqliteBudgetLedger(tmp_path / "budget.sqlite3")
+    led.record_spend(role="pm", task_id="TASK-1", run_id="r1")
+    led.record_spend(role="pm", task_id="TASK-1", run_id="r2")
+    led.record_spend(role="pm", task_id="TASK-1", run_id="r3", cash_usd=5.0)
+
+    agg = led.spend_since(since_ts=0)
+    assert agg["cash_usd"] == 5.0            # what is known
+    assert agg["cash_usd_unknown_rows"] == 2  # and what is not
+    assert agg["complete"] is False, "a caller must be able to refuse to certify headroom"
+
+
+def test_fully_known_spend_reports_complete(tmp_path):
+    led = SqliteBudgetLedger(tmp_path / "budget.sqlite3")
+    led.record_spend(role="pm", task_id="TASK-1", run_id="r1", cash_usd=1.0, allowance_pct=2.0)
+    agg = led.spend_since(since_ts=0)
+    assert agg["complete"] is True
+    assert agg["cash_usd"] == 1.0 and agg["allowance_pct"] == 2.0
+
+
 # --------------------------------------------------------------- policy
 
 def _write_policies(d, task: dict, run: dict | None = None):
