@@ -266,7 +266,7 @@ logout:
 loginctl enable-linger $USER
 ```
 
-`~/.config/systemd/user/poe-intake-bot.service`:
+`~/.config/systemd/user/poe-upgrade-bot.service`:
 
 ```ini
 [Unit]
@@ -284,6 +284,14 @@ RestartSec=10
 [Install]
 WantedBy=default.target
 ```
+
+> **Superseded — do not install.** `bot/bot.py` now shells `ledger.py`
+> directly (`bot/bot.py:142`); there is no `.mailroom/outbox/` and no flush
+> timer is deployed. Verified 2026-08-02: the only deployed unit is
+> `poe-upgrade-bot.service`, and 5 `INTAKE_TICKET` messages reached the shared
+> ledger without this bridge. The two unit files below are retained only to
+> explain the historical two-hop path described above; enabling them does
+> nothing useful.
 
 `~/.config/systemd/user/poe-intake-flush.service`:
 
@@ -315,9 +323,9 @@ Activate:
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now poe-intake-bot.service poe-intake-flush.timer
-systemctl --user status poe-intake-bot.service     # expect: active (running)
-journalctl --user -u poe-intake-bot -f              # watch startup
+systemctl --user enable --now poe-upgrade-bot.service
+systemctl --user status poe-upgrade-bot.service     # expect: active (running)
+journalctl --user -u poe-upgrade-bot -f              # watch startup
 ```
 
 ### 2.5 Fallback: loop script (no systemd --user available)
@@ -352,7 +360,7 @@ done
 
 Work through in order; every box must pass before TASK-401 can call deployment done.
 
-- [ ] **Process up**: `systemctl --user status poe-intake-bot` is
+- [ ] **Process up**: `systemctl --user status poe-upgrade-bot` is
       `active (running)` (or the loop script's python process exists); no
       traceback in the journal/log.
 - [ ] **Command visible**: `/suggest` autocompletes in the server. First deploy
@@ -390,7 +398,7 @@ Work through in order; every box must pass before TASK-401 can call deployment d
       → reply contains `(held for review)`, issue carries both `intake` and
       `quarantine` labels. (Note: a quarantined ticket still gets a public
       thread and confirmation — ⚠ GAP-13.)
-- [ ] **Restart durability**: `systemctl --user restart poe-intake-bot`, then
+- [ ] **Restart durability**: `systemctl --user restart poe-upgrade-bot`, then
       post another `[DECISION]` comment on #N → still relayed (proves BOT_DB
       persisted outside the clone).
 
