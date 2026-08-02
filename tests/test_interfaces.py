@@ -406,3 +406,28 @@ def _parses(s: str) -> bool:
         return True
     except json.JSONDecodeError:
         return False
+
+
+def test_readiness_example_covers_every_key_the_tooling_reads(tmp_path):
+    """The template must not drift from the code that consumes it.
+
+    readiness.yaml is doubly load-bearing — it gates every readiness mode AND
+    the run budget's operating_mode — and for most of this program it did not
+    exist, had no template, and its schema was discoverable only by reading
+    scripts/check_agent_readiness.py. A template that silently misses a key
+    reproduces that failure with extra steps.
+    """
+    import re
+    import yaml
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    example = yaml.safe_load((root / "docs/runbooks/readiness.example.yaml").read_text())
+
+    consumed = set()
+    for src in ("scripts/check_agent_readiness.py", "agents/run_budget.py"):
+        consumed |= set(re.findall(r'state\.get\("([a-z_]+)"', (root / src).read_text()))
+
+    missing = consumed - set(example)
+    assert not missing, f"readiness.example.yaml is missing keys the tooling reads: {sorted(missing)}"
+    assert example["operating_mode"] in {"canary", "supervised", "unattended-7d", "unattended-10d"}

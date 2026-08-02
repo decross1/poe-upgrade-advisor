@@ -1,0 +1,64 @@
+# mailroom/readiness.yaml — operator-maintained restart state.
+#
+#   cp docs/runbooks/readiness.example.yaml <project>/mailroom/readiness.yaml
+#
+# This file lives in the mailroom, OUTSIDE the repository, because it describes
+# the state of this box rather than the state of the code. It is read by:
+#
+#   scripts/check_agent_readiness.py   — every mode gate
+#   agents/run_budget.py               — operating_mode only
+#
+# Both fail closed when it is absent: readiness reports NOT READY, and the run
+# budget assumes `unattended-10d`, which denies invocation on a missing
+# allowance reading. A fresh checkout therefore cannot start the org by
+# accident, which is the intended behaviour.
+#
+# ---------------------------------------------------------------------------
+# ATTESTATION IS A LAST RESORT. Everything in here is an operator claim that
+# the tooling takes on trust. Anything mechanically checkable should be checked
+# instead — `github.authenticated` in particular duplicates `gh auth status`,
+# and an attested value keeps reading true after the token expires. Tracked as
+# a follow-up; see docs/runbooks/restart-readiness.md.
+# ---------------------------------------------------------------------------
+
+# Which operational mode the operator is claiming. Gates how much the run
+# budget tolerates: canary/supervised WARN on a missing allowance reading and
+# allow bounded invocation; unattended-* DENY. Never widen this to start a run
+# that would otherwise be refused — that is self-escalation of authority.
+operating_mode: canary          # canary | supervised | unattended-7d | unattended-10d
+
+# Worktrees the dispatcher may use. Each is checked for existence, writability
+# and a clean `git status --porcelain`.
+worktrees:
+  - /home/decross1/projects/poe-discord-proj/worktrees/pm
+  - /home/decross1/projects/poe-discord-proj/worktrees/backend
+  - /home/decross1/projects/poe-discord-proj/worktrees/frontend
+
+# Model CLIs, per role. `command` is resolved with shutil.which.
+model_clis:
+  pm:       { command: claude, authenticated: false }
+  backend:  { command: codex,  authenticated: false }
+  frontend: { command: codex,  authenticated: false }
+
+# GitHub access. Set only after confirming with:
+#   gh auth status && gh auth status --show-token >/dev/null
+github:
+  authenticated: false
+  scopes_sufficient: false
+
+# Durable stores. Defaults are shown; override only if they live elsewhere.
+budget_ledger_path: /home/decross1/projects/poe-discord-proj/mailroom/governor/budget_ledger.sqlite3
+telemetry_path:     /home/decross1/projects/poe-discord-proj/mailroom/telemetry/invocations.jsonl
+
+# Wired, not merely declared. `arbiter_fallback: backend` sat in a gitignored
+# config read by no code for the whole of the previous run; pm-lite now
+# consumes it. Leave false until you have seen it promote backend.
+arbiter_fallback_wired: false
+
+# 48-hour shakedown including the hour-24 injected tooling fault. Required for
+# unattended-7d and above. There is no way to satisfy this except by running it.
+shakedown_passed: false
+
+# Reserve tranche defined in run_policy.yaml and not yet drawn down.
+# Required for unattended-10d.
+reserve_unspent: false
