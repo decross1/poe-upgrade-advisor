@@ -28,7 +28,7 @@ mechanically, then structurally, then by mutation where there was logic to break
 | W1-3 preflight + no-op suppression | A | **ACCEPTED** | `f13c3c8`+`3192395`. 39 tests. All ★ cases. **4/4 mutation probes caught**, including three ways of breaking the blocker fingerprint. |
 | W1-4 worktree recovery | A | in progress | production `5804a08`; tests in flight |
 | W1-5 CI hard blockers | B | **ACCEPTED** | `e932f32`+`405d74f`. `web-test`/`overlay-test`/`coverage-floor` are real jobs and required checks; every required check maps to a real job; coverage gate exits 1 below floor. |
-| W1-6 readiness gate | B | in progress | — |
+| W1-6 readiness gate | B | **ACCEPTED** | `a4ec5cc`. 14 tests. All four modes exit 1 correctly; mode escalation matrix verified; ran against real state with a before/after mailroom snapshot — **wrote nothing**. |
 | W2-1 telemetry + metrics | B | not started | — |
 | W2-2 pm-lite scheduler | B | not started | — |
 | W2-3 run budgets + degradation | B | not started | — |
@@ -46,7 +46,7 @@ invariants and fixture coverage green; integrated coverage **83.03%** `[O]`.
 | Gate | Status | Evidence |
 |---|---|---|
 | HALT works and is honoured | **PASS** | `[O]` present throughout; `agent_loop.sh` idles on it; W1-4 adds an in-worker re-check |
-| Readiness checker | pending | W1-6 |
+| Readiness checker | **PASS** | `scripts/check_agent_readiness.py`, 4 modes, zero model calls, fails closed `[O]` |
 | One governed dispatcher | **PASS** | `agents/dispatch.py`; no bare model command remains in `agent_loop.sh` `[O]` |
 | Preflight + structured results | **PASS** | W1-3; `exit 0` is not success — enforced and mutation-tested |
 | Telemetry | partial | `JsonlTelemetry` live and fail-open; durable store is W2-1 |
@@ -117,6 +117,29 @@ Each of these contradicted a premise shared by all four planning documents.
 7. **A PM ruling sat unanswered for six days** because the message requesting it
    could not be acknowledged. PR #91 was blocked the whole time. Resolved in
    ADR-0008. The missing ack path cost decisions, not only capacity.
+8. **Provider CLIs *do* emit machine-readable token usage — but not allowance.**
+   Resolves `HANDOFF` §9 open questions 1 and 2, which every prior document
+   left as `[A]`. Determined without invoking a model.
+
+   | Question | Answer |
+   |---|---|
+   | `codex exec` machine-readable usage? | **yes** — `--json` prints JSONL events including `inputTokens`, `cachedInputTokens`, `outputTokens`, reasoning tokens |
+   | `claude -p` machine-readable usage? | **yes** — `--output-format json\|stream-json` exposes `usage` (input/output/cache tokens) and total cost |
+   | Subscription weekly-allowance percentage? | **no** — neither CLI exposes a trustworthy figure |
+
+   pm verified the **flags** exist `[O]` (`codex exec --help` -> `--json  Print
+   events to stdout as JSONL`; `claude --help` -> `--output-format ... "stream-json"`).
+   The **field names** are Lane B's `[O]` from installed CLI help and binary
+   protocol strings, not independently re-verified by pm — doing so requires a
+   live invocation, which is refused while `HALT` is set.
+
+   Consequence: per-invocation token and cash accounting is mechanically
+   obtainable and should not be estimated. But the **binding** constraint —
+   subscription capacity, now that Kimi is retired and no metered provider
+   remains — is not machine-readable, so `allowance_pct_source:
+   manual_daily_reading` and the W2-1 calibration factor are load-bearing
+   rather than supplementary. A run budget for the two subscription roles rests
+   on a human reading a dashboard once a day.
 
 ---
 
@@ -126,7 +149,7 @@ Each of these contradicted a premise shared by all four planning documents.
 |---|---|---|
 | No sandbox — agents run with permission bypasses because host userns fails (`RTM_NEWADDR EPERM`) `[O]` | Branch-push-only scope; protected paths enforced by a **deployed** merge robot; HALT; concurrency cap | Wave 3, or on the first protected-path violation attempt |
 | `server/calculator.py` at 47% coverage remains Red | Routed to frontier only; property tests deferred | First verdict-correctness incident |
-| Allowance percentage is estimated, not provider-reported `[A]` | Daily manual dashboard reading + calibration factor (W2-1) | When a provider exposes it |
+| Allowance percentage is not machine-readable `[O]` — confirmed, not assumed | Daily manual dashboard reading + W2-1 calibration factor over duration x invocation weight | When a provider exposes it |
 | 13 dirty `.fan` worktrees hold unrecovered work `[O]` | Preserved untouched; **must not be pruned**; triage after W1-4 lands | Before `HALT` is lifted |
 | 8 unacknowledged ledger messages, 7 of them the ones that looped `[O]` | Triaged in `unacked-queue-triage-2026-08-02.md`; operator acks | Before `HALT` is lifted |
 | Every budget number in the planning documents is `[E]` from a run measured at 1/5th its true invocation count | Ship structure with values marked placeholder; re-derive from W2-1 telemetry | First shakedown |
