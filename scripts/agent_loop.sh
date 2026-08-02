@@ -60,10 +60,18 @@ fan_worker() { # $1 = full message_id
   timeout "$INVOKE_TIMEOUT" python3 "$wt/agents/dispatch.py" \
     --role "$ROLE" --message-id "$id" --worktree "$wt" >>"$LOG" 2>&1 </dev/null
   echo "[$(date -Is)] [$ROLE:$id8] dispatch done rc=$?" >>"$LOG"
-  # Never delete work: remove only if clean; a dirty tree is left in place
-  # and logged (W1-4 adds the recovery bundle + quarantine on top of this).
-  git -C "$DIR" worktree remove "$wt" >/dev/null 2>&1 \
-    || echo "[$(date -Is)] [$ROLE:$id8] worktree dirty — left at $wt" >>"$LOG"
+  # Never delete work (W1-4). Remove only when the tree is clean AND has no
+  # unpushed commits — `worktree remove` succeeds on a clean tree with local
+  # commits, silently orphaning them in the shared object store. Anything
+  # else stays on disk, marked RECOVERY_REQUIRED; dispatch step 12 already
+  # bundled it under mailroom/recovery/<task>/<run>/.
+  if [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] && \
+     [ -z "$(git -C "$wt" log --oneline origin/main..HEAD 2>/dev/null)" ]; then
+    git -C "$DIR" worktree remove "$wt" >/dev/null 2>&1 \
+      || echo "[$(date -Is)] [$ROLE:$id8] clean worktree remove failed — left at $wt" >>"$LOG"
+  else
+    echo "[$(date -Is)] [$ROLE:$id8] RECOVERY_REQUIRED — unsaved work, worktree left at $wt (bundle: mailroom/recovery/)" >>"$LOG"
+  fi
 }
 
 export ROLE MAILROOM DIR FANROOT LOG INVOKE_TIMEOUT

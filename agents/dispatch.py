@@ -244,6 +244,94 @@ def _write_attempt_diag(root: Path, message_id: str, diag: dict) -> None:
         pass  # diagnostics, not accounting — never blocks the path
 
 
+def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
+                wall_cap: int, task_id: str, run_id: str,
+                role: str) -> tuple[int | None, str, bool, bool]:
+    """Run the agent process under supervision (W1-4).
+
+    A poll loop instead of subprocess.run(timeout=...), because three things
+    must happen DURING the invocation, not after it:
+      - a checkpoint (current patches, rewritten in place) every 300 s, so a
+        hard kill loses at most 5 minutes — one ~45-minute invocation lost
+        everything to a timeout kill on 2026-07-26;
+      - a HALT re-check: the operator's kill switch must stop in-flight work
+        at the next poll tick, not after INVOKE_TIMEOUT more seconds;
+      - a SIGTERM handler (the supervisor's `timeout` sends one): bundle
+        before dying, never after.
+    Each abnormal stop writes a full recovery bundle BEFORE terminating the
+    child. Returns (rc, stderr_tail, timed_out, halted); rc None on kill.
+    """
+    import signal  # noqa: PLC0415
+    import tempfile  # noqa: PLC0415
+
+    from agents import recovery as recovery_mod  # noqa: PLC0415
+
+    got_term = {"flag": False}
+
+    def _on_term(signum, frame):
+        got_term["flag"] = True
+
+    prev_handler = signal.getsignal(signal.SIGTERM)
+    signal.signal(signal.SIGTERM, _on_term)
+    out_f = tempfile.TemporaryFile("w+")
+    err_f = tempfile.TemporaryFile("w+")
+
+    def _stderr_tail() -> str:
+        try:
+            err_f.seek(0)
+            return _tail(err_f.read())
+        except (OSError, ValueError):
+            return ""
+
+    def _stop(trigger: str, proc) -> None:
+        recovery_mod.write_bundle(worktree, mailroom, task_id=task_id,
+                                  run_id=run_id, role=role, trigger=trigger,
+                                  stderr_tail=_stderr_tail())
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+    timed_out = halted = False
+    try:
+        try:
+            proc = subprocess.Popen(cmd, cwd=worktree, stdout=out_f,
+                                    stderr=err_f, text=True)
+        except FileNotFoundError as e:
+            return 127, str(e), False, False
+        next_ckpt = started = time.time()
+        next_ckpt += recovery_mod.CHECKPOINT_INTERVAL
+        while True:
+            rc = proc.poll()
+            if rc is not None:
+                break
+            now = time.time()
+            if got_term["flag"]:
+                _stop("sigterm", proc)
+                rc, timed_out = None, True
+                break
+            if (mailroom / "HALT").exists():
+                _stop("halt", proc)
+                rc, halted = None, True
+                break
+            if now - started >= wall_cap:
+                _stop("timeout", proc)
+                rc, timed_out = None, True
+                break
+            if now >= next_ckpt:
+                recovery_mod.write_checkpoint(worktree, mailroom,
+                                              task_id=task_id, run_id=run_id)
+                next_ckpt = now + recovery_mod.CHECKPOINT_INTERVAL
+            time.sleep(0.1)
+        return rc, _stderr_tail(), timed_out, halted
+    finally:
+        signal.signal(signal.SIGTERM, prev_handler)
+        out_f.close()
+        err_f.close()
+
+
 def run_preflight(msg: dict, packet: dict | None, *, role: str,
                   mailroom: Path, dry_run: bool):
     """W1-3 preflight. Feature flag PREFLIGHT=0 disables (rollback path).
@@ -563,18 +651,9 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     else:
         cmd = role_command(role, prompt, mailroom)
     started = time.time()
-    timed_out = False
-    try:
-        proc = subprocess.run(cmd, cwd=worktree, capture_output=True,
-                              text=True, timeout=wall_cap)
-        rc: int | None = proc.returncode
-        stderr_tail = _tail(proc.stderr or "")
-    except subprocess.TimeoutExpired as e:
-        rc, timed_out = None, True
-        stderr_tail = _tail((e.stderr or b"").decode(errors="replace")
-                            if isinstance(e.stderr, bytes) else (e.stderr or ""))
-    except FileNotFoundError as e:
-        rc, stderr_tail = 127, str(e)
+    rc, stderr_tail, timed_out, halted = _run_capped(
+        cmd, worktree, mailroom, wall_cap=wall_cap, task_id=task_id,
+        run_id=run_id, role=role)
     duration = time.time() - started
 
     # 11 — the result file is the only truth. rc==0 carried zero bits of
@@ -598,14 +677,12 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         if timed_out:
             result_error = f"timeout after {wall_cap}s; {result_error}"
 
-    # 12 — recovery hook (W1-4 lands the bundle writer; the hook is here so
-    # the order of operations is fixed now).
-    try:
-        from agents.recovery import inspect_worktree  # noqa: PLC0415
-        inspect_worktree(worktree, mailroom, task_id=task_id, run_id=run_id,
-                         acked=(ack is not AckDecision.RETAIN))
-    except ImportError:
-        pass
+    # 12 — recovery: any unsaved work in the tree (dirty or unpushed) gets a
+    # verified bundle before the supervisor may consider removal (W1-4).
+    from agents.recovery import inspect_worktree  # noqa: PLC0415
+    inspect_worktree(worktree, mailroom, task_id=task_id, run_id=run_id,
+                     acked=(ack is not AckDecision.RETAIN), role=role,
+                     exit_code=rc, stderr_tail=stderr_tail)
 
     # Persist this attempt's diagnostics so a later cap-trip dead-letter has
     # evidence to carry (the trip itself never invokes).
@@ -627,7 +704,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         print(f"WARNING: spend record failed after invocation: {e}",
               file=sys.stderr)
     tele.finish(run_id, result_status=result_status, result_error=result_error,
-                exit_code=rc, timed_out=timed_out,
+                exit_code=rc, timed_out=timed_out, halted=halted,
                 duration_seconds=round(duration, 3),
                 attempt_number=attempts, prepass=prepass_results,
                 completed_at=time.time())
@@ -636,7 +713,8 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                    message_id=message_id, task_id=task_id, role=role,
                    attempts=attempts, max_attempts=max_attempts,
                    exit_code=rc if rc is not None else -1, invoked=True,
-                   result_status=result_status)
+                   result_status=result_status,
+                   extra={"halted": halted} if halted else {})
 
 
 def record_suppressed(role: str, reason: str) -> Outcome:
