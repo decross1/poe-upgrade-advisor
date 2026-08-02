@@ -104,13 +104,24 @@ Each of these contradicted a premise shared by all four planning documents.
    floor from the documents would have weakened the gate by ~39 points under a
    commit message claiming to activate it. `[O]`
 4. **Kimi is already retired.** No metered provider remains in the live path, so
-   the binding constraint is entirely subscription capacity — which no CLI is
-   known to report. Promotes `allowance_pct_source` from supplementary to load-
-   bearing. `[O]`
-5. **Three read-path bugs of identical shape**, none ever observed because the
-   robot never ran: coverage read from a check-run summary CI never wrote;
-   `TEST_SIG` matching `sys.exit(`; the approval gate reading a location the org
-   does not write to. `[O]`
+   the binding constraint is entirely subscription capacity. Per finding 8 that
+   is the one quantity neither CLI reports, which promotes
+   `allowance_pct_source` from supplementary to load-bearing. `[O]`
+5. **Four gates of identical shape — each reading from a place nothing writes
+   to**, none ever observed because the components were never exercised: `[O]`
+
+   | Gate | Read from | Written by |
+   |---|---|---|
+   | coverage ratchet | check-run `output.summary` | nothing — CI printed to stdout |
+   | `TEST_SIG` condition 7 | `^\+.*xit\(` | matched `sys.exit(`, not just excluded tests |
+   | evidence-bearing approval | `/pulls/{n}/reviews` state `APPROVED` | org wrote issue comments and `COMMENTED` reviews |
+   | readiness `github_auth` | `mailroom/readiness.yaml` | nothing — file does not exist |
+
+   The fourth is in the readiness gate itself. It fails closed, so it cannot
+   cause an unsafe restart, but it reports operator attestation for a fact
+   (`gh auth status`) that is directly measurable. **This is the single most
+   repeated defect in this control plane** and it deserves a standing review
+   question: *what writes the thing this gate reads?*
 6. **Dead-letters evaporated with the throwaway worktree** — `_dead_letter`
    wrote into the `.fan` worktree that cleanup removes, so the artifact would
    have been lost even had the breaker fired. `[O]`
