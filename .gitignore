@@ -4,5 +4,6 @@ agents/postmaster/config.yaml
 node_modules/
 dist/
 coverage.json
+.coverage
 .env
 engine/.runtime/

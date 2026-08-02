@@ -10,18 +10,13 @@ from __future__ import annotations
 import fnmatch, json, os, re, sys
 import requests
 
+from agents.merge_robot.patterns import BANNED, PROTECTED, TEST_SIG
+
 API = "https://api.github.com"
 REPO = os.environ["GITHUB_REPOSITORY"]
 TOK = os.environ["MERGE_ROBOT_TOKEN"]
 H = {"Authorization": f"Bearer {TOK}", "Accept": "application/vnd.github+json"}
 
-PROTECTED = ["agents/*", ".github/*", "contracts/*", "PRODUCT_DOCTRINE.md",
-             "AGENTS.md", "engine/corpus/*", "scripts/check_invariants.py"]
-BANNED = [r"WriteProcessMemory", r"ReadProcessMemory", r"SendInput\b",
-          r"keybd_event", r"mouse_event", r"CreateRemoteThread",
-          r"OpenProcess\(", r"pathofexile\.com/(?!api/)"]
-TEST_SIG = [r"^-\s*def test_", r"^-\s*it\(", r"^-\s*test\(",
-            r"^\+.*@pytest\.mark\.skip", r"^\+.*\.skip\(", r"^\+.*xit\("]
 REQUIRED_CHECKS = {"lint", "test", "contracts", "doctrine-invariants",
                    "assumptions-fixtures"}
 
