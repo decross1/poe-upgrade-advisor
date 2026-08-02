@@ -13,8 +13,55 @@
 # single atomic commit: budget_governor.py does p["per_day_max"][role] with no
 # guard, so a window where neither file defines it would KeyError on every
 # governor call.
+#
+# EVERY NUMERIC CAP BELOW IS [E]: a placeholder derived from a three-day run
+# under different roles/models and before these controls existed. Replace the
+# numbers from measured shakedown telemetry before unattended operation.
+
 per_day_max:
   pm: 24
   backend: 36
   frontend: 36
 daily_reset_hour_utc: 4
+
+roles:
+  pm: {budget: claude, allowance_owner: pm}
+  backend: {budget: codex, allowance_owner: backend}
+  frontend: {budget: codex, allowance_owner: backend}
+
+run:
+  id: unattended-2026-08
+  target_days: 10
+  min_acceptable_days: 7
+  allowance_stale_hours: 30
+  budgets:
+    frontier_cash:
+      total_usd: 50.00
+      per_day_usd: 4.20
+      per_task_usd: 0.25
+    claude:
+      pct_weekly_per_day: 9.0
+      pct_weekly_total: 95.0
+      per_task_pct: 1.5
+    codex:
+      pct_weekly_per_day: 11.0
+      pct_weekly_total: 120.0
+      per_task_pct: 2.0
+  reserve:
+    cash_usd: 8.00
+    unlock_after_day: 8
+    unlock_also_if: ["main_red_over_6h", "dead_letter_count > 4"]
+  carry_forward_days: 2
+  on_daily_cap: throttle_role
+  on_total_cap: disable_role
+  on_role_disabled:
+    frontend: {reassign_to: backend}
+    pm: {promote: backend}
+
+degradation:
+  levels: 7
+  allowance_stale_hours: 30
+  dead_letters_elevated: 5
+  main_red_revert_hours: 6
+  reserve_unlock_red_hours: 12
+  halt_red_hours: 24

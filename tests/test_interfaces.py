@@ -361,3 +361,48 @@ def test_run_budget_verdict_carries_reassignment():
     v = RunBudgetVerdict(False, "frontend daily cap", degradation_level=1,
                          reassign_to="backend")
     assert not v.allowed and v.reassign_to == "backend"
+
+
+def test_fail_open_survives_a_dead_stderr(tmp_path):
+    """One root cause fails the sink AND the log — telemetry must still not raise.
+
+    agent_loop.sh redirects stderr into a log file on the same disk as the
+    telemetry sink, so a full filesystem takes out both. The obvious
+    `print(..., file=stderr)` inside the except block is itself fail-CLOSED and
+    lets the exception escape, halting the org on an analytics failure. Found
+    by adversarial verification of W2-1, in pm's own frozen interface.
+    """
+    class DeadStderr:
+        def write(self, *a, **k): raise OSError(28, "No space left on device")
+        def flush(self, *a, **k): raise OSError(28, "No space left on device")
+
+    blocked = tmp_path / "afile"
+    blocked.write_text("not a directory")
+    t = JsonlTelemetry(blocked / "sub" / "t.jsonl", stderr=DeadStderr())
+
+    rid = t.start(task_id="TASK-1")        # none of these may raise
+    t.finish(rid, result_status="completed")
+    t.suppressed(task_id="TASK-1")
+    t.crash(rid, "worker died")
+    assert t.degraded is True
+
+
+def test_a_torn_line_loses_one_record_not_two(tmp_path):
+    """A short write leaves no trailing newline; the next append must not fuse."""
+    p = tmp_path / "t.jsonl"
+    p.write_text('{"event": "start", "run_id": "torn"')   # truncated, no newline
+    t = JsonlTelemetry(p)
+    t.suppressed(task_id="TASK-2", decision="suppressed_halt")
+
+    lines = p.read_text().splitlines()
+    good = [x for x in lines if x.strip() and _parses(x)]
+    assert len(good) == 1, f"the healthy record was swallowed: {lines!r}"
+    assert json.loads(good[0])["task_id"] == "TASK-2"
+
+
+def _parses(s: str) -> bool:
+    try:
+        json.loads(s)
+        return True
+    except json.JSONDecodeError:
+        return False

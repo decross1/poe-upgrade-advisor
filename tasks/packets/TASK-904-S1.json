@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-904-S1",
+  "parent_task_id": "TASK-904",
+  "issue": null,
+  "owner_role": "backend",
+  "tier": "red",
+  "objective": "Change verdict-critical calculator behavior only with frontier reasoning and counterpart evidence review.",
+  "files_in_scope": ["server/calculator.py", "tests/test_server.py"],
+  "files_out_of_scope": ["contracts/**", "agents/**"],
+  "required_checks": ["python3 -m pytest tests/test_server.py -q"],
+  "acceptance_criteria": [{"id": "AC-1", "text": "Verdict calculations preserve all existing golden and edge-case tests."}],
+  "budgets": {"max_attempts": 3, "max_files_modified": 3, "max_diff_lines": 300, "max_wall_clock_seconds": 1800},
+  "routing": {"reasoning_effort": "high", "review_only_if": ["counterpart-evidence-review"]}
+}

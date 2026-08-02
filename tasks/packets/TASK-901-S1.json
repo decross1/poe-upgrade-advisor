@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-901-S1",
+  "parent_task_id": "TASK-901",
+  "issue": null,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Add a bounded verdict-card interaction without changing generated contracts.",
+  "files_in_scope": ["web/src/components/**", "web/test/**"],
+  "files_out_of_scope": ["web/src/generated/**", "contracts/**"],
+  "required_checks": ["npm --prefix web run test", "npm --prefix web run build"],
+  "acceptance_criteria": [{"id": "AC-1", "text": "The interaction is covered by a focused component test."}],
+  "budgets": {"max_attempts": 2, "max_files_modified": 4, "max_diff_lines": 250, "max_wall_clock_seconds": 900}
+}
