@@ -45,7 +45,15 @@ from agents.recovery import (
     write_bundle,
     write_checkpoint,
 )
-from tests.test_dispatch import INVOKE, RETAIN, acked, fake, tele_lines, write_message
+from tests.test_dispatch import (
+    ACK,
+    INVOKE,
+    RETAIN,
+    acked,
+    fake,
+    tele_lines,
+    write_message,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DISPATCH_PY = REPO_ROOT / "agents" / "dispatch.py"
@@ -577,6 +585,92 @@ def test_normal_exit_dirty_tree_bundles_post_invocation(mailroom, worktree):
     assert "quick dirty edit" in (run / "working.patch").read_text()
     untracked = (run / "untracked-files.txt").read_text().splitlines()
     assert "untracked-note.txt" in untracked
+
+
+# ------------------------------------------------------- result sweep (CC-3)
+def test_completed_run_leaves_tree_clean_and_result_in_run_record(
+        mailroom, worktree):
+    """CC-3 end-to-end: before this fix, every clean success left
+    `?? .agent-result.json` in the tree — the supervisor stranded the
+    worktree as RECOVERY_REQUIRED and step 12 bundled after every success.
+    Now the tree is clean, no bundle is written, and the artifact lives in
+    mailroom/runs/<run_id>/ (moved, not gitignore-hidden: the tree-level
+    assertion here is file-absence, so a reverted sweep fails this test
+    even with the .gitignore second defence in place)."""
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("good_agent.py"))
+
+    assert out.ack == ACK
+    assert out.result_status == "completed"
+    assert not (worktree / ".agent-result.json").exists()
+    assert is_dirty(worktree) is False
+    assert unpushed_commits(worktree) == ""
+    # The blast radius is dead: a clean success writes NO recovery bundle.
+    assert not (mailroom / "recovery").exists()
+    # The artifact is preserved in the run record, under the telemetry run_id.
+    swept = sorted((mailroom / "runs").glob("*/agent-result.json"))
+    assert len(swept) == 1
+    assert json.loads(swept[0].read_text())["status"] == "completed"
+    run_ids = {ln["run_id"] for ln in tele_lines(mailroom) if ln.get("run_id")}
+    assert swept[0].parent.name in run_ids
+
+
+def test_rogue_writer_ignoring_injected_path_is_still_swept(
+        mailroom, worktree):
+    """P2 standing test: the sweep keys off the worktree-path CONTRACT
+    (worktree root / RESULT_FILENAME), not off the ctx injection the agent
+    was handed — an agent that resolves the path itself gets identical
+    lifecycle treatment."""
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("rogue_result_writer_agent.py"))
+
+    assert out.ack == ACK
+    assert not (worktree / ".agent-result.json").exists()
+    assert is_dirty(worktree) is False
+    assert not (mailroom / "recovery").exists()
+    assert len(list((mailroom / "runs").glob("*/agent-result.json"))) == 1
+
+
+def test_schema_invalid_result_swept_and_message_retained(
+        mailroom, worktree):
+    """Malformed output stays an invalid attempt (RETAIN — unchanged
+    semantics), but the garbage is evidence: it moves to the run record and
+    stops dirtying the tree."""
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("malformed_agent.py"))
+
+    assert out.ack == RETAIN
+    assert not (worktree / ".agent-result.json").exists()
+    assert is_dirty(worktree) is False
+    swept = list((mailroom / "runs").glob("*/agent-result.json"))
+    assert len(swept) == 1
+    assert swept[0].read_text() == "{ not json"
+
+
+def test_bundle_result_json_sourced_from_run_record(mailroom, worktree):
+    """When a bundle IS warranted (genuinely dirty tree), its result.json
+    comes from the post-sweep home — and the run record keeps its copy
+    (recovery copies, never moves)."""
+    (worktree / "leftover.txt").write_text("real unsaved work\n")
+    msg = write_message(mailroom)
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("good_agent.py"))
+
+    assert out.result_status == "completed"
+    run = single_bundle(mailroom, "TASK-7")
+    assert verify_bundle(run) is True
+    bundled = json.loads((run / "result.json").read_text())
+    assert bundled["status"] == "completed"
+    swept = list((mailroom / "runs").glob("*/agent-result.json"))
+    assert len(swept) == 1
+    assert json.loads(swept[0].read_text()) == bundled
+    # The bundle exists because of leftover.txt, not the result artifact.
+    untracked = (run / "untracked-files.txt").read_text().splitlines()
+    assert "leftover.txt" in untracked
+    assert ".agent-result.json" not in untracked
 
 
 # ---------------------------------------------------------------------- CLI

@@ -65,6 +65,7 @@ from agents.interfaces.result import (  # noqa: E402
     ResultError,
     is_ackable,
     load_result,
+    sweep_result,
 )
 from agents.interfaces.states import AckDecision, DispatchDecision  # noqa: E402
 from agents.interfaces.telemetry import JsonlTelemetry  # noqa: E402
@@ -918,6 +919,15 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             result_error = f"timeout after {wall_cap}s; {result_error}"
         elif stop_reason:
             result_error = f"stopped ({stop_reason}); {result_error}"
+
+    # 11.2 — CC-3: sweep the result artifact into the durable run record
+    # BEFORE cleanliness is evaluated anywhere — the anti-loop changed-file
+    # set (11.5), the step-12 recovery inspection, and the supervisor's
+    # clean-tree removal guard all judge by what is in the tree. The agent
+    # writes the file in-worktree (contract unchanged); from the read
+    # onward its lifecycle is the dispatcher's. Valid or invalid it is
+    # evidence, so it moves — never deleted — to mailroom/runs/<run_id>/.
+    sweep_result(worktree, mailroom, run_id)
 
     # 11.5 — anti-loop controller (W2-4): every one of ~50 measured
     # invocations of one task produced an identical error signature with

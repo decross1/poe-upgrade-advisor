@@ -169,9 +169,15 @@ def write_bundle(worktree: Path, mailroom: Path, *, task_id: str, run_id: str,
                     tar.addfile(info, io.BytesIO(data))
         (d / "untracked.tar").write_bytes(buf.getvalue())
 
-        result_fp = worktree / ".agent-result.json"
-        if result_fp.exists():
-            (d / "result.json").write_text(scrub(result_fp.read_text()))
+        # CC-3: after dispatch step 11.2 the result artifact lives in the
+        # run record, not the tree. Prefer that home; fall back to the
+        # in-worktree path for bundles taken before the sweep runs (timeout
+        # and signal kills) or if the sweep itself failed.
+        for result_fp in (mailroom / "runs" / run_id / "agent-result.json",
+                          worktree / ".agent-result.json"):
+            if result_fp.exists():
+                (d / "result.json").write_text(scrub(result_fp.read_text()))
+                break
 
         test_summary = worktree / ".last-test-summary.txt"
         if test_summary.exists():

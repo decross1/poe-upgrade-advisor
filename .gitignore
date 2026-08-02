@@ -1,5 +1,9 @@
 __pycache__/
 *.sqlite3
+# CC-3 second defence: the dispatcher sweeps this into mailroom/runs/<run_id>/
+# right after reading it; if the sweep ever fails, git must still not count
+# the artifact as unsaved work worth stranding a worktree over.
+.agent-result.json
 agents/postmaster/config.yaml
 node_modules/
 dist/
