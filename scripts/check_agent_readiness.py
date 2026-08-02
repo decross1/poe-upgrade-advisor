@@ -311,6 +311,13 @@ def evaluate(root: Path, mailroom: Path, mode: str, environ: dict[str, str] | No
         state, state_error = {}, str(exc)
 
     checks: list[Check] = []
+    configured_mode = state.get("operating_mode")
+    checks.append(_result(
+        mode,
+        "operating_mode",
+        configured_mode == mode,
+        f"operating mode recorded as {configured_mode!r}; requested {mode!r}",
+    ))
     halt = (mailroom / "HALT").is_file()
     checks.append(_result(mode, "halt", halt, "HALT is set" if halt else "HALT is absent"))
     ok, detail = _locks_free(mailroom)

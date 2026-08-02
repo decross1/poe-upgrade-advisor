@@ -117,6 +117,12 @@ Each of these contradicted a premise shared by all four planning documents.
    | evidence-bearing approval | `/pulls/{n}/reviews` state `APPROVED` | org wrote issue comments and `COMMENTED` reviews |
    | readiness `github_auth` | `mailroom/readiness.yaml` | nothing — file does not exist |
 
+   `mailroom/readiness.yaml` also carries the operator-selected
+   `operating_mode` (`canary`, `supervised`, `unattended-7d`, or
+   `unattended-10d`). The run-budget loader reads that same value. A missing or
+   invalid value defaults to `unattended-10d`; it never silently grants the
+   supervised missing-allowance exception.
+
    The fourth is in the readiness gate itself. It fails closed, so it cannot
    cause an unsafe restart, but it reports operator attestation for a fact
    (`gh auth status`) that is directly measurable. **This is the single most

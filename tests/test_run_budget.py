@@ -6,6 +6,7 @@ from agents.run_budget import (
     RunBudget,
     UnconfiguredRunBudget,
     _day_start,
+    _operating_mode,
     _run_started_at,
 )
 
@@ -107,15 +108,64 @@ def test_total_allowance_cap_spans_weekly_reset(tmp_path):
     assert verdict.reason == "codex total cap reached"
 
 
-def test_missing_or_stale_allowance_never_reads_as_headroom(tmp_path):
+def test_missing_or_stale_allowance_denies_unattended_with_actionable_reason(tmp_path):
     ledger = _ledger(tmp_path)
-    budget = RunBudget(_policy(), ledger, now=lambda: NOW)
-    assert not budget.check(role="pm", task_id="TASK-X", tier="green").allowed
+    budget = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="unattended-7d"
+    )
+    missing = budget.check(role="pm", task_id="TASK-X", tier="green")
+    assert not missing.allowed
+    assert "no reading has ever been recorded" in missing.reason
+    assert "scripts/agent_metrics.py record-allowance --role pm" in missing.reason
     _reading(ledger, "pm", 10.0, ts=NOW - 31 * 3600)
     verdict = budget.check(role="pm", task_id="TASK-X", tier="green")
     assert not verdict.allowed
-    assert "missing or stale" in verdict.reason
+    assert "reading stale" in verdict.reason
     assert verdict.degradation_level == 1
+
+
+def test_missing_allowance_warns_and_allows_bounded_supervised_modes(tmp_path):
+    for mode in ("canary", "supervised"):
+        ledger = _ledger(tmp_path / mode)
+        verdict = RunBudget(
+            _policy(), ledger, now=lambda: NOW, operating_mode=mode
+        ).check(role="pm", task_id="TASK-X", tier="green")
+        assert verdict.allowed
+        assert f"WARNING ({mode} allows bounded invocation)" in verdict.reason
+        assert "no reading has ever been recorded" in verdict.reason
+        assert "record-allowance --role pm --pct <0-100>" in verdict.reason
+
+
+def test_stale_allowance_warns_and_allows_supervised_mode(tmp_path):
+    ledger = _ledger(tmp_path)
+    _reading(ledger, "backend", 10.0, ts=NOW - 31 * 3600)
+    verdict = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="supervised"
+    ).check(role="backend", task_id="TASK-X", tier="green")
+    assert verdict.allowed
+    assert "WARNING (supervised allows bounded invocation)" in verdict.reason
+    assert "codex allowance reading stale" in verdict.reason
+    assert "record-allowance --role backend --pct <0-100>" in verdict.reason
+
+
+def test_supervised_allowance_warning_does_not_bypass_other_caps(tmp_path):
+    ledger = _ledger(tmp_path)
+    day = _day_start(NOW, 4)
+    _spend(ledger, ts=day + 1, role="pm", pct=0.1)
+    _spend(ledger, ts=day + 2, role="pm", pct=0.1)
+    verdict = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="pm", task_id="TASK-X", tier="green")
+    assert not verdict.allowed
+    assert verdict.reason == "daily invocation cap; throttle role"
+
+
+def test_operating_mode_reads_readiness_state_and_defaults_unattended(tmp_path):
+    assert _operating_mode(tmp_path) == "unattended-10d"
+    (tmp_path / "readiness.yaml").write_text("operating_mode: canary\n")
+    assert _operating_mode(tmp_path) == "canary"
+    (tmp_path / "readiness.yaml").write_text("operating_mode: typo\n")
+    assert _operating_mode(tmp_path) == "unattended-10d"
 
 
 def test_carry_forward_accumulates_but_is_capped_at_two_days(tmp_path):

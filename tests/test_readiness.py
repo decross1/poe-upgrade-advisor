@@ -59,6 +59,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     cli.write_text("#!/bin/sh\nexit 0\n")
     cli.chmod(0o755)
     state = {
+        "operating_mode": "canary",
         "budget_ledger_path": str(mailroom / "governor/budget.sqlite3"),
         "telemetry_path": str(mailroom / "telemetry/invocations.jsonl"),
         "model_clis": {role: {"command": str(cli), "authenticated": True}
@@ -100,6 +101,15 @@ def test_missing_config_fails_complete_canary_passes_and_no_model_call(tmp_path,
     (mailroom / "readiness.yaml").unlink()
     missing = evaluate(root, mailroom, "canary")
     assert _by_name(missing)["model_clis"].verdict == "fail"
+
+
+def test_requested_mode_must_match_shared_budget_mode(tmp_path, monkeypatch):
+    root, mailroom = _fixture(tmp_path)
+    monkeypatch.setattr("scripts.check_agent_readiness.shutil.which", lambda _: "/bin/true")
+    assert _by_name(evaluate(root, mailroom, "canary"))["operating_mode"].verdict == "pass"
+    mismatch = _by_name(evaluate(root, mailroom, "supervised"))["operating_mode"]
+    assert mismatch.verdict == "fail"
+    assert "requested 'supervised'" in mismatch.detail
 
 
 def test_stale_running_marker_fails(tmp_path, monkeypatch):
