@@ -19,15 +19,34 @@ jobs:
         with: { python-version: '3.12' }
       - run: pip install pytest pytest-cov pyyaml jsonschema requests
       - name: run tests
-        run: |
-          pytest tests --cov --cov-report=json -q
-          python - << 'PY'
-          import json, os
-          cov = 0.0
-          if os.path.exists('coverage.json'):
-              cov = json.load(open('coverage.json'))['totals']['percent_covered']
-          print(f"COVERAGE: {cov:.1f}")
-          PY
+        run: pytest tests packaging -q
+  coverage-floor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pytest pytest-cov pyyaml jsonschema requests
+      - run: pytest tests --cov --cov-report=json -q
+      - run: python3 scripts/check_coverage_floor.py
+  web-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci --prefix web
+      - run: npm --prefix web run test
+      - run: npm --prefix web run build
+  overlay-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: overlay/package-lock.json }
+      - run: npm ci --prefix overlay
+      - run: npm --prefix overlay run test
+      - run: npm --prefix overlay run build
   engine-integration:
     runs-on: ubuntu-latest
     steps:

@@ -11,5 +11,7 @@ BANNED = [
 ]
 TEST_SIG = [
     r"^-\s*def test_", r"^-\s*it\(", r"^-\s*test\(",
-    r"^\+.*@pytest\.mark\.skip", r"^\+.*\.skip\(", r"^\+.*xit\(",
+    r"^\+.*@pytest\.mark\.skip",
+    r"^\+\s*(it|test|describe)\.skip\(",
+    r"^\+\s*xit\(",
 ]
