@@ -64,6 +64,13 @@ export interface DiffFlowDeps {
   timeoutMs?: number;
   /** RULING-21 transient-message duration; injectable for tests. */
   transientMs?: number;
+  /** Timer boundary for RULING-19/21; production uses the platform clock. */
+  clock?: DiffFlowClock;
+}
+
+export interface DiffFlowClock {
+  setTimeout: (callback: () => void, delayMs: number) => unknown;
+  clearTimeout: (handle: unknown) => void;
 }
 
 export interface DiffFlow {
@@ -124,6 +131,11 @@ function overrideEntries(map: ReadonlyMap<string, unknown>): OverrideEntry[] {
 export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
   const timeoutMs = deps.timeoutMs ?? DIFF_TIMEOUT_MS;
   const transientMs = deps.transientMs ?? TRANSIENT_MESSAGE_MS;
+  const clock: DiffFlowClock = deps.clock ?? {
+    setTimeout: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
+    clearTimeout: (handle) =>
+      globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
+  };
   let session: SessionState = INITIAL_SESSION;
   // Generation counter: a newer keypress supersedes any in-flight request so
   // a late response can never overwrite a fresher session (§8.4: any state
@@ -135,12 +147,12 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
   // failed re-diffs within one session share a generation, so without this
   // the first failure's stale timer would clear the second failure's message
   // before its full TRANSIENT_MESSAGE_MS (PR #84 review round 1).
-  let transientTimer: ReturnType<typeof setTimeout> | undefined;
+  let transientTimer: unknown | undefined;
 
   /** Invalidate any pending transient timer; the newest action owns the card. */
   function cancelTransientTimer(): void {
     if (transientTimer !== undefined) {
-      clearTimeout(transientTimer);
+      clock.clearTimeout(transientTimer);
       transientTimer = undefined;
     }
   }
@@ -152,9 +164,9 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
   /** One /diff request raced against the RULING-19 timeout (cancel on expiry). */
   async function request(body: DiffRequestBody): Promise<VerdictCard> {
     const req = deps.postDiff(body);
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timer: unknown | undefined;
     const timeout = new Promise<never>((_resolve, reject) => {
-      timer = setTimeout(() => {
+      timer = clock.setTimeout(() => {
         req.cancel(); // stop the in-flight HTTP request (RULING-19)
         reject(new Error(`diff timed out after ${timeoutMs} ms`));
       }, timeoutMs);
@@ -162,7 +174,7 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
     try {
       return await Promise.race([req as Promise<VerdictCard>, timeout]);
     } finally {
-      clearTimeout(timer);
+      if (timer !== undefined) clock.clearTimeout(timer);
     }
   }
 
@@ -205,7 +217,7 @@ export function createDiffFlow(deps: DiffFlowDeps): DiffFlow {
       session = rejectRediff(session);
       emit(); // VERDICT — reverted, transient retry message in sentence slot
       cancelTransientTimer(); // this failure now owns the sentence slot
-      transientTimer = setTimeout(() => {
+      transientTimer = clock.setTimeout(() => {
         transientTimer = undefined;
         if (gen !== generation) return; // a newer session owns the card now
         session = clearTransient(session);
