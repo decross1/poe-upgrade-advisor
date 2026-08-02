@@ -92,7 +92,11 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
             )
             prior_ts = prior[0] if prior else None
             prior_pct = prior[1] if prior else None
-            delta = pct - prior_pct if prior_pct is not None else None
+            # Dashboard percentages reset at the provider's weekly boundary.
+            # A decrease therefore starts a new cycle; it is not negative use.
+            delta = None
+            if prior_pct is not None:
+                delta = pct - prior_pct if pct >= prior_pct else pct
             factor = None
             if delta is not None and weighted_seconds is not None and weighted_seconds > 0:
                 factor = delta / weighted_seconds
@@ -123,6 +127,7 @@ class AccountingBudgetLedger(SqliteBudgetLedger):
             "prior_pct": prior_pct,
             "pct": pct,
             "allowance_delta_pct": delta,
+            "cycle_reset": prior_pct is not None and pct < prior_pct,
             "weighted_seconds": weighted_seconds,
             "pct_per_weighted_second": factor,
         }
@@ -324,40 +329,113 @@ def weighted_seconds(records: Iterable[dict[str, Any]], *, role: str, since_ts: 
     return total if found else 0.0
 
 
+def _json_documents(payload: str | dict[str, Any]) -> list[dict[str, Any]]:
+    if isinstance(payload, dict):
+        return [payload]
+    text = payload.strip()
+    if not text:
+        return []
+    try:
+        whole = json.loads(text)
+        if isinstance(whole, dict):
+            return [whole]
+    except json.JSONDecodeError:
+        pass
+    documents: list[dict[str, Any]] = []
+    for line in text.splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            documents.append(value)
+    return documents
+
+
+def _usage_envelopes(documents: list[dict[str, Any]]) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    found: list[tuple[dict[str, Any], dict[str, Any]]] = []
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            for key in ("usage", "tokenUsage"):
+                usage = value.get(key)
+                if isinstance(usage, dict):
+                    found.append((usage, value))
+            for key, child in value.items():
+                if key not in {"usage", "tokenUsage"}:
+                    walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    for document in documents:
+        walk(document)
+    return found
+
+
 def provider_usage(
-    provider: str, payload: dict[str, Any], *, stderr=None
+    provider: str, payload: str | dict[str, Any], *, stderr=None
 ) -> dict[str, int | float | None]:
-    """Normalize installed Codex/Claude JSON usage without inventing zeroes."""
-    usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else payload
-    if provider.lower() == "codex":
+    """Normalize raw Claude/Codex JSON output for the dispatcher seam.
+
+    Lane A passes the last 200 stdout lines using provider names
+    ``anthropic`` and ``openai``.  Dict input and legacy provider aliases are
+    retained for direct callers and fixtures.
+    """
+    sink = stderr if stderr is not None else sys.stderr
+    documents = _json_documents(payload)
+    envelopes = _usage_envelopes(documents)
+    aliases = {
+        "anthropic": "anthropic", "claude": "anthropic",
+        "openai": "openai", "codex": "openai",
+    }
+    normalized_provider = aliases.get(provider.lower())
+    empty = {
+        "cash_usd": None,
+        "cash_cost_usd": None,
+        "input_tokens": None,
+        "output_tokens": None,
+        "cached_input_tokens": None,
+        "invocation_weight": None,
+    }
+    if normalized_provider is None or not envelopes:
+        if (isinstance(payload, str) and payload.strip()) or documents:
+            print(
+                f"{TELEMETRY_DEGRADED}: no recognized {provider} usage envelope",
+                file=sink,
+            )
+        return empty
+
+    usage, envelope = envelopes[-1]
+    if normalized_provider == "openai":
+        cash = usage.get("cash_usd", usage.get("cashCostUsd"))
         result = {
+            "cash_usd": cash,
+            "cash_cost_usd": cash,
             "input_tokens": usage.get("input_tokens", usage.get("inputTokens")),
             "output_tokens": usage.get("output_tokens", usage.get("outputTokens")),
             "cached_input_tokens": usage.get(
                 "cached_input_tokens", usage.get("cachedInputTokens")
             ),
-            "cash_cost_usd": usage.get("cash_cost_usd", usage.get("cashCostUsd")),
-        }
-    elif provider.lower() == "claude":
-        result = {
-            "input_tokens": usage.get("input_tokens"),
-            "output_tokens": usage.get("output_tokens"),
-            "cached_input_tokens": usage.get("cache_read_input_tokens"),
-            "cash_cost_usd": payload.get("total_cost_usd"),
+            "invocation_weight": 1.0,
         }
     else:
+        cash = envelope.get("total_cost_usd", envelope.get("totalCostUsd"))
         result = {
-            "input_tokens": None,
-            "output_tokens": None,
-            "cached_input_tokens": None,
-            "cash_cost_usd": None,
+            "cash_usd": cash,
+            "cash_cost_usd": cash,
+            "input_tokens": usage.get("input_tokens", usage.get("inputTokens")),
+            "output_tokens": usage.get("output_tokens", usage.get("outputTokens")),
+            "cached_input_tokens": usage.get(
+                "cache_read_input_tokens",
+                usage.get("cached_input_tokens", usage.get("cachedInputTokens")),
+            ),
+            "invocation_weight": 1.0,
         }
-    supplied_usage = payload.get("usage")
-    if isinstance(supplied_usage, dict) and supplied_usage and all(
-        value is None for value in result.values()
-    ):
-        sink = stderr if stderr is not None else sys.stderr
-        keys = ",".join(sorted(str(key) for key in supplied_usage))
+    measured = tuple(key for key in result if key != "invocation_weight")
+    if usage and all(result[key] is None for key in measured):
+        result["invocation_weight"] = None
+        keys = ",".join(sorted(str(key) for key in usage))
         print(
             f"{TELEMETRY_DEGRADED}: unexpected {provider} usage schema keys={keys}",
             file=sink,

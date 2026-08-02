@@ -139,6 +139,19 @@ def test_record_allowance_derives_factor_and_backfills_invocations(tmp_path):
     assert all(r["allowance_pct_source"] == "manual_daily_reading" for r in backfilled)
 
 
+def test_weekly_allowance_reset_is_positive_new_cycle_usage(tmp_path):
+    ledger = AccountingBudgetLedger(tmp_path / "budget.sqlite3")
+    assert ledger.record_allowance(
+        role="pm", pct=90.0, source="manual_daily_reading", weighted_seconds=1.0, ts=100.0
+    )["allowance_delta_pct"] is None
+    reset = ledger.record_allowance(
+        role="pm", pct=7.0, source="manual_daily_reading", weighted_seconds=14.0, ts=200.0
+    )
+    assert reset["cycle_reset"] is True
+    assert reset["allowance_delta_pct"] == 7.0
+    assert reset["pct_per_weighted_second"] == 0.5
+
+
 def test_cli_commands_emit_json_and_incomplete_cost_exits_two(tmp_path, capsys):
     mailroom = tmp_path / "mailroom"
     telemetry_path = mailroom / "telemetry/invocations.jsonl"

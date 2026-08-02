@@ -114,24 +114,21 @@ def test_interim_jsonl_events_are_materialized_without_migration(tmp_path):
 
 
 def test_provider_json_usage_normalizes_known_fields_and_keeps_unknown_none():
-    assert provider_usage(
+    codex = provider_usage(
         "codex",
         {"usage": {"inputTokens": 12, "outputTokens": 3, "cachedInputTokens": 7}},
-    ) == {
-        "input_tokens": 12,
-        "output_tokens": 3,
-        "cached_input_tokens": 7,
-        "cash_cost_usd": None,
-    }
-    assert provider_usage(
+    )
+    assert (codex["input_tokens"], codex["output_tokens"], codex["cached_input_tokens"]) == (
+        12, 3, 7,
+    )
+    assert codex["cash_usd"] is None and codex["invocation_weight"] == 1.0
+    claude = provider_usage(
         "claude",
         {"usage": {"input_tokens": 9, "output_tokens": 4}, "total_cost_usd": 0.25},
-    ) == {
-        "input_tokens": 9,
-        "output_tokens": 4,
-        "cached_input_tokens": None,
-        "cash_cost_usd": 0.25,
-    }
+    )
+    assert claude["input_tokens"] == 9 and claude["output_tokens"] == 4
+    assert claude["cached_input_tokens"] is None
+    assert claude["cash_usd"] == claude["cash_cost_usd"] == 0.25
     assert provider_usage(
         "codex", {"usage": {"input_tokens": 5, "output_tokens": 2}}
     )["input_tokens"] == 5
@@ -140,14 +137,60 @@ def test_provider_json_usage_normalizes_known_fields_and_keeps_unknown_none():
 def test_unexpected_provider_usage_shape_is_none_and_degrades_loudly():
     stderr = io.StringIO()
     result = provider_usage("codex", {"usage": {"new_token_total": 99}}, stderr=stderr)
-    assert result == {
-        "input_tokens": None,
-        "output_tokens": None,
-        "cached_input_tokens": None,
-        "cash_cost_usd": None,
-    }
+    assert all(value is None for value in result.values())
     assert TELEMETRY_DEGRADED in stderr.getvalue()
     assert "new_token_total" in stderr.getvalue()
+
+
+def test_lane_a_raw_stdout_contract_parses_final_anthropic_and_openai_events():
+    anthropic = "\n".join([
+        json.dumps({"type": "system", "session_id": "s"}),
+        json.dumps({
+            "type": "result",
+            "total_cost_usd": 0.42,
+            "usage": {
+                "input_tokens": 101,
+                "output_tokens": 22,
+                "cache_read_input_tokens": 80,
+            },
+        }),
+    ])
+    parsed = provider_usage("anthropic", anthropic)
+    assert parsed == {
+        "cash_usd": 0.42,
+        "cash_cost_usd": 0.42,
+        "input_tokens": 101,
+        "output_tokens": 22,
+        "cached_input_tokens": 80,
+        "invocation_weight": 1.0,
+    }
+
+    openai = "\n".join([
+        json.dumps({"type": "thread.started", "thread_id": "t"}),
+        json.dumps({
+            "type": "turn.completed",
+            "usage": {
+                "input_tokens": 55,
+                "cached_input_tokens": 40,
+                "output_tokens": 13,
+            },
+        }),
+    ])
+    parsed = provider_usage("openai", openai)
+    assert parsed["input_tokens"] == 55
+    assert parsed["cached_input_tokens"] == 40
+    assert parsed["output_tokens"] == 13
+    assert parsed["cash_usd"] is None
+    assert parsed["invocation_weight"] == 1.0
+
+
+def test_nonempty_raw_output_without_usage_degrades_loudly_and_never_zeroes():
+    stderr = io.StringIO()
+    result = provider_usage(
+        "openai", json.dumps({"type": "turn.completed", "tokens": 12}), stderr=stderr
+    )
+    assert all(value is None for value in result.values())
+    assert TELEMETRY_DEGRADED in stderr.getvalue()
 
 
 def test_accounting_ledger_preserves_unknown_spend_and_records_decisions(tmp_path):
