@@ -462,3 +462,63 @@ def test_main_requires_subcommand(tmp_path, monkeypatch, capsys):
         _run(monkeypatch)
     assert exc.value.code == 2
     assert "required" in capsys.readouterr().err
+
+
+# --------------------------------------------- schema widening (ADR-0008)
+def test_stage_task_id_round_trips_through_transport(tmp_path, monkeypatch,
+                                                     capsys):
+    """A TASK_ASSIGN carrying a stage ID (TASK-210-S1) validates and round-
+    trips send -> inbox -> show -> ack.
+
+    The transport layer must speak stages (ADR-0008): the packet and result
+    schemas already did, and substituting the parent ID would load the
+    wrong packet and silently drop the stage's scope and budgets. The
+    parent is DERIVED (packet.parent_of), never declared.
+    """
+    root = _root(tmp_path, monkeypatch)
+    _run(monkeypatch, "send", "--from-role", "pm", "--to", "backend",
+         "--intent", "TASK_ASSIGN", "--task", "TASK-210-S1",
+         "--body", "stage one of the windows packaging split",
+         "--ref", "issue=79")
+    assert "sent " in capsys.readouterr().out
+
+    _run(monkeypatch, "inbox", "--role", "backend", "--json")
+    msgs = json.loads(capsys.readouterr().out)
+    assert len(msgs) == 1
+    assert msgs[0]["task_id"] == "TASK-210-S1"
+    mid = msgs[0]["message_id"]
+
+    _run(monkeypatch, "show", "--id", mid[:8])
+    assert json.loads(capsys.readouterr().out)["task_id"] == "TASK-210-S1"
+
+    _run(monkeypatch, "ack", "--role", "backend", "--id", mid[:8])
+    assert "acked 1" in capsys.readouterr().out
+    assert mid in ledger.acked_ids(root, "backend")
+
+    from agents.interfaces.packet import parent_of
+    assert parent_of("TASK-210-S1") == "TASK-210"
+
+
+def test_real_message_corpus_still_validates_after_widening():
+    """THE assertion that makes the stage widening a widening: every message
+    in the real, immutable, append-only mailroom corpus (296 at the time of
+    the change) still validates against the widened schema.
+
+    READ-ONLY on the real mailroom (reading is sanctioned; writing never).
+    On a box without the real mailroom this validates the empty set — the
+    CI contracts job repeats the schema check independently.
+    """
+    proj = Path(__file__).resolve()
+    real = None
+    for anc in proj.parents:
+        if (anc / "mailroom" / "messages").is_dir():
+            real = anc / "mailroom"
+            break
+    if real is None:
+        return  # no corpus on this box; contracts CI covers the schema
+    count = 0
+    for fp in sorted((real / "messages").glob("*.json")):
+        msg = json.loads(fp.read_text())
+        ledger.VALIDATOR.validate(msg)  # raises on any regression
+        count += 1
+    assert count >= 296, f"corpus shrank? {count} messages validated"
