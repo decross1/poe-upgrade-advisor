@@ -306,3 +306,71 @@ def test_stage_task_link_rejects_ambiguous_or_parent_closing_forms(
     issue = {"number": 79, "state": "open", "title": issue_title, "labels": []}
     with pytest.raises(robot.TaskLinkError, match=message):
         robot.resolve_task_link(pr, issue_loader=lambda path: issue)
+
+
+# --- L-31: verified proofs substitute for a counterpart approval ----------
+#
+# Three days of the org produced 45 lines of governance per line of product:
+# 140 commits, 6 touching app code, +502 product lines vs +22,365
+# control-plane lines. Condition 2/3 was the dominant cost — a second model
+# spending ~1.3M input tokens to write a verdict document about a ~100-line
+# diff whose required checks had already passed, then a third acking the
+# verdict, then pm ruling on the ack.
+
+
+def test_green_tier_proofs_replace_the_counterpart_approval():
+    from agents.merge_robot.merge_robot import (
+        PROOFS_VERIFIED_LABEL,
+        proofs_substitute_for_approval,
+    )
+    assert proofs_substitute_for_approval(
+        {PROOFS_VERIFIED_LABEL}, "green", touches_protected=False) is True
+
+
+def test_substitution_is_conjunctive_and_fails_closed():
+    """Every guard is load-bearing: drop any one and a real approval is
+    required again. An unknown tier never auto-merges."""
+    from agents.merge_robot.merge_robot import (
+        PROOFS_VERIFIED_LABEL,
+        proofs_substitute_for_approval,
+    )
+    L = {PROOFS_VERIFIED_LABEL}
+
+    # no label — the dispatcher never verified this
+    assert proofs_substitute_for_approval(set(), "green", False) is False
+    # a protected path is in the diff
+    assert proofs_substitute_for_approval(L, "green", True) is False
+    # tiers above green still need a human/model approval
+    for tier in ("yellow", "red", "org", "frontier", None, "", "GREEN"):
+        assert proofs_substitute_for_approval(L, tier, False) is False, tier
+
+
+def test_unknown_or_missing_packet_yields_no_tier():
+    """_packet_tier fails closed, so a PR whose packet is absent or malformed
+    cannot auto-merge."""
+    from agents.merge_robot.merge_robot import _packet_tier
+
+    assert _packet_tier(None) is None
+    assert _packet_tier("TASK-DOES-NOT-EXIST") is None
+    assert _packet_tier("../../etc/passwd") is None
+
+
+def test_a_real_green_packet_resolves_to_green():
+    """The substitution is inert unless real packets actually read as green."""
+    from agents.merge_robot.merge_robot import _packet_tier
+
+    assert _packet_tier("TASK-210-S4") == "green"
+
+
+def test_protected_paths_still_need_a_label_and_an_approval():
+    """L-31 must not become a protected-path bypass: matches_protected still
+    governs, and a protected diff drops straight back to needing approval."""
+    from agents.merge_robot.merge_robot import (
+        PROOFS_VERIFIED_LABEL,
+        matches_protected,
+        proofs_substitute_for_approval,
+    )
+    assert matches_protected("agents/dispatch.py")
+    assert proofs_substitute_for_approval(
+        {PROOFS_VERIFIED_LABEL, "protected-change"}, "green",
+        touches_protected=True) is False

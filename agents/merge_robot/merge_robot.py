@@ -8,6 +8,7 @@ Env: GITHUB_REPOSITORY, MERGE_ROBOT_TOKEN, PR_NUMBER (or sweeps all labeled PRs)
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -96,6 +97,73 @@ def pause_merges_reason(
             return "merge-pause state unreachable: malformed issue response"
         return f"merge-pause active: #{issue['number']} {issue['title']}"
     return None
+
+
+#: Label the dispatcher applies when a green-tier task passed every
+#: completion proof. It is NOT self-assertion by the agent: the dispatcher
+#: writes it after independently verifying the commit, the push, the required
+#: checks, the declared scope, the protected floor and the acceptance
+#: criteria — the same fifteen proofs that already gate the ack.
+PROOFS_VERIFIED_LABEL = "proofs-verified"
+
+#: Tiers where the proof bundle may stand in for a counterpart approval.
+AUTOMERGE_TIERS = frozenset({"green"})
+
+PROOF_SUBSTITUTION_NOTE = """L-31 (2026-08-03), operator ruling.
+
+For three days the org produced 45 lines of governance for every line of
+product: 140 commits, 6 of which touched app code, +502 product lines against
++22,365 control-plane lines. The dominant cost was this condition. A builder
+finished a ~100-line diff whose required checks had already run and passed;
+condition 2/3 then demanded a counterpart APPROVAL, so a second model spent
+~1.3M input tokens reading the diff to write a verdict document, a third
+acked the verdict, and pm ruled on the ack. Nearly every invocation in the
+org's busiest day was agents writing prose about each other's work.
+
+That review has caught approximately nothing. The gates that HAVE caught
+things are mechanical and cheap — proof #12 stopped real protected-path
+writes, #13 catches test weakening, and the required checks catch broken
+code. They all still run here.
+
+So for GREEN tier only, and only when the diff touches no PROTECTED path, the
+dispatcher's completion-proof bundle substitutes for the counterpart
+approval. This is not "merge without evidence" — it is merging on evidence a
+machine verified rather than evidence a model wrote an essay about.
+
+Unchanged: red/yellow/org tiers still require an evidence-bearing approval
+from a different identity; every protected path still requires both a
+`protected-change` label and a real approval; conditions 1 and 4-9 are
+untouched, so required CI must still be green.
+"""
+
+
+def _packet_tier(task_id: str | None) -> str | None:
+    """The declared tier for a task, read from its packet in the checkout.
+
+    Returns None when the packet is missing or unreadable, which fails the
+    substitution closed — an unknown tier never auto-merges.
+    """
+    if not task_id:
+        return None
+    packet = (Path(__file__).resolve().parents[2]
+              / "tasks" / "packets" / f"{task_id}.json")
+    try:
+        return json.loads(packet.read_text()).get("tier")
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def proofs_substitute_for_approval(labels: set[str], tier: str | None,
+                                   touches_protected: bool) -> bool:
+    """True when the dispatcher's verified proofs stand in for conditions 2/3.
+
+    Deliberately conjunctive and fail-closed: an unknown tier, a missing
+    label, or a single protected path in the diff all send the PR back to
+    requiring a real approval.
+    """
+    return (PROOFS_VERIFIED_LABEL in labels
+            and tier in AUTOMERGE_TIERS
+            and not touches_protected)
 
 
 def approval_failure(reviews: list[dict], author: str) -> str | None:
@@ -195,13 +263,10 @@ def check_pr(pr_number: int) -> None:
     if missing:
         fail(pr_number, f"(1) checks not green: {sorted(missing)}")
 
-    # 2+3 — evidence-bearing approval from a different identity
-    reviews = gh(f"/repos/{REPO}/pulls/{pr_number}/reviews")
-    approval_problem = approval_failure(reviews, author)
-    if approval_problem is not None:
-        fail(pr_number, approval_problem)
-
-    # 4 — whole-task Fixes or structurally derived stage Refs (ADR-0008)
+    # 4 — whole-task Fixes or structurally derived stage Refs (ADR-0008).
+    # Moved AHEAD of 2/3 (L-31): deciding whether the proof bundle may stand
+    # in for an approval needs the task's tier and the diff, and both come
+    # from the link and the file list resolved here.
     try:
         task_link = resolve_task_link(pr)
     except TaskLinkError as exc:
@@ -209,8 +274,25 @@ def check_pr(pr_number: int) -> None:
     issue = task_link["issue"]
     labels = {l["name"] for l in issue["labels"]}
 
-    # 5/6/7 — diff inspection
     files = gh(f"/repos/{REPO}/pulls/{pr_number}/files", params={"per_page": 300})
+    touches_protected = any(matches_protected(f["filename"]) for f in files)
+
+    # 2+3 — evidence-bearing approval from a different identity, UNLESS the
+    # dispatcher verified every completion proof for a green-tier task whose
+    # diff touches no protected path (L-31). See PROOF_SUBSTITUTION_NOTE.
+    pr_labels = labels | {lbl["name"] for lbl in (pr.get("labels") or [])}
+    if proofs_substitute_for_approval(
+            pr_labels, _packet_tier(task_link.get("task_id")),
+            touches_protected):
+        print(f"PR #{pr_number}: (2/3) satisfied by verified completion "
+              f"proofs — green tier, no protected paths (L-31)")
+    else:
+        reviews = gh(f"/repos/{REPO}/pulls/{pr_number}/reviews")
+        approval_problem = approval_failure(reviews, author)
+        if approval_problem is not None:
+            fail(pr_number, approval_problem)
+
+    # 5/6/7 — diff inspection
     for f in files:
         if matches_protected(f["filename"]) and "protected-change" not in labels:
             fail(pr_number, f"(5) protected path {f['filename']} without protected-change label")

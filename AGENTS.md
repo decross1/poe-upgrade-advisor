@@ -24,7 +24,14 @@ You are one of three autonomous agents running this repository. Load your role f
 
 - Code + tests on a branch; CI green; contract check green if API-adjacent.
 - PR opened with: task ID, what/why, how verified, risk notes, and `Fixes #<issue>`.
-- Review requested from your counterpart via ledger (`intent: REVIEW_REQUEST`).
+- **Green tier: do NOT request review.** Report completion and stop. The
+  dispatcher verifies your work with the fifteen completion proofs and the
+  packet's required checks; when they pass and the diff touches no PROTECTED
+  path, the merge robot lands it on CI green with no counterpart approval
+  (L-31). Requesting review on green work is the single most expensive thing
+  the org did in its first three days and it caught nothing.
+- **Yellow / red / org tier, or any PROTECTED path:** review requested from
+  your counterpart via ledger (`intent: REVIEW_REQUEST`), as before.
 - No TODOs without a filed issue.
 
 ## Review duties (when you are the reviewer)
