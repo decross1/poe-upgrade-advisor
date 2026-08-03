@@ -310,6 +310,31 @@ def p12_protected(res, ctx):
     from agents.merge_robot.patterns import PROTECTED  # noqa: PLC0415
     hit = [p for p in paths
            if any(fnmatch.fnmatch(p, g) for g in PROTECTED)]
+
+    # 2026-08-03 orchestrator ruling (L-4). CC-4 protected `tasks/packets/*`
+    # so a TASK agent cannot rewrite the constraints it is being judged
+    # against — a real control, kept. But this proof had no role awareness,
+    # so it also circuit-broke **pm authoring a packet**, which is pm's core
+    # planning job (SPEC.md: only the PM identity applies `protected-change`;
+    # ADR-0003 gives pm the merge exception). Observed live: the mission
+    # message dead-lettered for committing `tasks/packets/TASK-999-S2.json`,
+    # making the autonomous planning loop impossible.
+    #
+    # The carve-out is deliberately the narrowest that restores the role:
+    # pm, packets only. Every other protected glob — agents/*, .github/*,
+    # contracts/*, PRODUCT_DOCTRINE.md, AGENTS.md, engine/corpus/*,
+    # scripts/check_invariants.py — still circuit-breaks for pm too, and
+    # ALL of them still circuit-break for every non-pm role. Merge-time
+    # authorization is unchanged: the PR still needs `protected-change`,
+    # which is where a human sees it.
+    if hit and ctx.get("role") == "pm":
+        packets_only = [p for p in hit if fnmatch.fnmatch(p, "tasks/packets/*")]
+        if len(packets_only) == len(hit):
+            return Proof(12, "protected_paths", True,
+                         f"pm authored packet(s) {packets_only[:5]} — "
+                         "role-authorized protected change (L-4); merge-time "
+                         "`protected-change` label still required")
+
     if hit:
         return Proof(12, "protected_paths", False,
                      f"PROTECTED path in committed diff: {hit[:5]} — "
@@ -412,7 +437,8 @@ def verify_completion(res: dict, *, worktree: Path, mailroom: Path,
                       check_results: list | None = None,
                       attempts: int | None = None,
                       duration_seconds: float | None = None,
-                      usage: dict | None = None) -> list[Proof]:
+                      usage: dict | None = None,
+                      role: str | None = None) -> list[Proof]:
     """Run proofs #1–#14 in order (every one runs — the refusal should name
     everything wrong, not the first thing). #15 is appended by the
     dispatcher at ack time; its placeholder is emitted here so the bundle
@@ -424,7 +450,8 @@ def verify_completion(res: dict, *, worktree: Path, mailroom: Path,
                  "run_id": run_id, "packet": packet, "params": p,
                  "res": res, "base_sha": base_sha,
                  "check_results": check_results, "attempts": attempts,
-                 "duration_seconds": duration_seconds, "usage": usage}
+                 "duration_seconds": duration_seconds, "usage": usage,
+                 "role": role}
     results: list[Proof] = []
     for proof_id in active:
         if proof_id == "accounting_before_ack":
