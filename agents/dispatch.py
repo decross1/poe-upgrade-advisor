@@ -653,6 +653,12 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     # marker expires. Without this the 2026-07-27 shape recurs — the CLI
     # says "You've hit your session limit", exits rc=0, and each queued
     # message burns its attempts against a provider that is refusing.
+    #
+    # No task_id is reported here and that is not an omission: the gate sits
+    # ahead of the message load (step 3), so the message — and therefore its
+    # task — is not yet known. A cap is role-scoped; reading the message to
+    # decorate the suppression record would be work done on behalf of a
+    # provider that is already refusing.
     limit = provider_limit_mod.active(mailroom, role)
     if limit is not None:
         out = Outcome(
@@ -660,11 +666,10 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
             reason=(f"provider limit for {role}: {limit.get('matched')!r} "
                     f"({limit['seconds_remaining']}s remaining; "
                     f"rm mailroom/blocked/provider-limit-{role}.json to retry)"),
-            message_id=message_id, task_id=task_id, role=role,
+            message_id=message_id, role=role,
             extra={"provider_limit": limit})
         if not dry_run:
-            tele.suppressed(role=role, task_id=task_id,
-                            message_id=message_id,
+            tele.suppressed(role=role, message_id=message_id,
                             suppressed_reason="provider_limit")
         return out
 
