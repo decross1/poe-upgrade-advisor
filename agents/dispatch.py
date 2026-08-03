@@ -472,7 +472,8 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
 
 def _assess_anti_loop(mailroom: Path, worktree: Path, *, task_id: str,
                       tier: str, packet: dict | None, res: dict | None,
-                      result_error: str | None, stderr_tail: str):
+                      result_error: str | None, stderr_tail: str,
+                      role: str | None = None):
     """Build an AttemptState from what this invocation left behind and let
     the controller judge it. Result fields win where a valid result exists;
     git supplies the diff either way (the breakers must see what actually
@@ -542,7 +543,8 @@ def _assess_anti_loop(mailroom: Path, worktree: Path, *, task_id: str,
     ctrl = al.AntiLoopController(mailroom, task_id)
     return ctrl.assess(state, packet=packet, diff_text=diff_text,
                        previously_passing_now_failing=_regression_check(
-                           mailroom, task_id, res))
+                           mailroom, task_id, res),
+                       role=role)
 
 
 def _regression_check(mailroom: Path, task_id: str,
@@ -1168,7 +1170,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         anti = _assess_anti_loop(mailroom, worktree, task_id=task_id,
                                  tier=tier, packet=packet, res=res,
                                  result_error=result_error,
-                                 stderr_tail=stderr_tail)
+                                 stderr_tail=stderr_tail, role=role)
         if anti.action in ("terminate", "dead_letter"):
             dl = write_dead_letter(
                 mailroom, task_id=task_id, role=role, message_id=message_id,
