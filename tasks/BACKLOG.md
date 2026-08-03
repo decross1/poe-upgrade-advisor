@@ -91,7 +91,7 @@ the gate is open and canary bookkeeping is over.
    at `473c167`, S3 at `8cd7d0a`, S4 at `78765c1`. Issue #79 is closed and
    STAYS closed; PRs #110 and #112 close as superseded-by-main (their heads
    are content-identical to what merged). No S2/S3/S4 review is redispatched.
-   Ruling: ADR-0009 — packet preconditions gate dispatch, not review, and a
+   Ruling: ADR-0010 — packet preconditions gate dispatch, not review, and a
    closed parent is replaced rather than reopened.
 5. **TASK-211 — finish the Windows overlay** (issue #113, successor parent to
    #79): S1 build-snapshot deep link (once, then zero interaction — I1),

@@ -1,4 +1,4 @@
-# ADR-0009: Packet preconditions gate dispatch, not review; a closed parent never orphans merged work
+# ADR-0010: Packet preconditions gate dispatch, not review; a closed parent never orphans merged work
 
 - Status: accepted
 - Date: 2026-08-03
@@ -55,9 +55,23 @@ retroactively invalidate work that was correctly dispatched under it.
    remains, the PM mints a successor parent issue carrying the unshipped
    checklist, and subsequent stage packets point at it. Reopening a
    human-closed issue to satisfy a machine precondition inverts the
-   authority order.
+   authority order. This is ADR-0009 D3 applied to unshipped *scope* rather
+   than to lineage: where D3 says a sub-packet asks the PM for a dedicated
+   issue instead of reviving the parent, issue #113 is that issue for
+   TASK-210's remainder. ADR-0009 D3 governs; this clause only names the
+   instance.
 
 ## Consequences
+
+**Numbering.** This ADR was authored as 0009 and renumbered to 0010 on
+discovery that a concurrent pm invocation (TASK-210-S4) had already pushed
+`docs/adr/0009-duplicate-implementations-and-closed-parent-issues.md` at
+`0485133`. The two rulings are complementary, not competing: ADR-0009 rules on
+duplicate implementations and on lineage under a closed parent (D3); this one
+rules on *when* a precondition is evaluated. Where they touch, ADR-0009 D3
+governs. Concurrent ADR authorship racing on the next free number is itself
+retro material — the collision was caught by reading the remote, not by any
+mechanism.
 
 **Immediate.** #79 stays closed — its core (watcher, card, `POST /diff`,
 hotkey) is merged and the close is honest. Issue #113 becomes the open parent
@@ -83,6 +97,8 @@ is a correctness control, not a formality.
 
 ## Related
 
+- ADR-0009 — duplicate implementations; closed-parent lineage (D3 governs where
+  this ADR and it overlap)
 - ADR-0008 — stage PRs use `Refs`; parent closure semantics (§4)
 - ADR-0003 — shared-identity merge exception
 - AGENTS.md rule 6 — never weaken a gate to pass it
