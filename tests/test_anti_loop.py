@@ -14,6 +14,7 @@ recovery-style tmp origin + clone (policy committed as a tracked file).
 """
 from __future__ import annotations
 
+import fnmatch
 import json
 import sqlite3
 from pathlib import Path
@@ -861,3 +862,55 @@ def test_dispatcher_threads_intent_into_the_anti_loop_breaker():
 
     assert 'intent=msg.get("intent")' in inspect.getsource(dispatch.dispatch)
     assert "intent=intent" in inspect.getsource(dispatch._assess_anti_loop)
+
+
+# --- L-33: the coordination-evidence paths need BOTH readers --------------
+
+
+def test_pm_may_write_the_backlog_on_a_coordination_intent():
+    """L-32 admitted tasks/BACKLOG.md in completion proof #11 and stopped
+    there. This breaker runs FIRST and still terminated pm for it, so pm
+    could not do the backlog writing that is its core job. Third instance of
+    L-4's lesson: PROTECTED has more than one reader."""
+    from agents.anti_loop import prohibited_files
+
+    packet = {"files_out_of_scope": ["tasks/**"]}
+    changed = ["tasks/BACKLOG.md"]
+
+    # Building against a packet that denies it: still denied.
+    assert prohibited_files(changed, packet, role="pm",
+                            intent="TASK_ASSIGN") == changed
+
+    # Coordinating: admitted, and for any role — a reviewer writing
+    # docs/agent-org/ and a triager writing the backlog are the same case.
+    for role in ("pm", "backend", "frontend"):
+        for intent in ("STATUS", "REVIEW_REQUEST", "REVIEW_VERDICT", "SYNC"):
+            assert prohibited_files(changed, packet, role=role,
+                                    intent=intent) == [], (role, intent)
+    assert prohibited_files(["docs/agent-org/review.md"], packet,
+                            role="backend", intent="REVIEW_REQUEST") == []
+
+
+def test_l33_does_not_admit_anything_else():
+    """Only the coordination-evidence paths are cleared. PROTECTED still
+    binds every role on every intent, and other denied paths still hit."""
+    from agents.anti_loop import prohibited_files
+    from agents.completion import REVIEW_EVIDENCE_GLOBS
+    from agents.merge_robot.patterns import PROTECTED
+
+    packet = {"files_out_of_scope": ["tasks/**", "server/**"]}
+
+    # The control plane still circuit-breaks for everyone, coordinating or not.
+    for role in ("pm", "backend", "frontend"):
+        assert prohibited_files(["agents/dispatch.py"], packet, role=role,
+                                intent="STATUS") == ["agents/dispatch.py"]
+    # A sibling file in a denied tree is NOT admitted just because BACKLOG is.
+    assert prohibited_files(["tasks/NOTES.md"], packet, role="pm",
+                            intent="STATUS") == ["tasks/NOTES.md"]
+    # Product code stays denied for a coordinator.
+    assert prohibited_files(["server/app.py"], packet, role="backend",
+                            intent="REVIEW_VERDICT") == ["server/app.py"]
+    # And nothing admitted here is itself PROTECTED.
+    for glob in REVIEW_EVIDENCE_GLOBS:
+        probe = glob.replace("*", "x")
+        assert not any(fnmatch.fnmatch(probe, g) for g in PROTECTED), glob

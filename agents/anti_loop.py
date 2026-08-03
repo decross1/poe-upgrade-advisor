@@ -180,16 +180,37 @@ def prohibited_files(changed: list[str], packet: dict | None,
     builder's deny-list. PROTECTED still binds everyone; a role still only
     clears the globs listed for IT; every non-review intent is unchanged.
     """
-    from agents.completion import NON_BUILD_INTENTS  # noqa: PLC0415
+    from agents.completion import (  # noqa: PLC0415
+        NON_BUILD_INTENTS,
+        REVIEW_EVIDENCE_GLOBS,
+    )
 
     packet_deny = list((packet or {}).get("files_out_of_scope") or [])
     authorized = ROLE_AUTHORIZED_PROTECTED.get(role or "", ())
     deny = packet_deny + list(PROTECTED)
     hits = sorted({f for f in changed
                    for g in deny if fnmatch.fnmatch(f, g)})
+    reviewing = intent in NON_BUILD_INTENTS
+
+    # L-33 (2026-08-03): the coordination-evidence paths are admitted HERE
+    # too, not only in completion proof #11. L-32 added tasks/BACKLOG.md to
+    # #11 and stopped there — so pm updating the backlog passed the proof and
+    # was then terminated by THIS breaker, which runs first. That is L-4's
+    # lesson for the third time: PROTECTED has more than one reader, and a fix
+    # that reaches one of them leaves the role still dead-lettering. L-32's
+    # own commit message restated the lesson while only half-applying it.
+    #
+    # Note this clears the path for ANY role on a coordination intent, not
+    # just pm: a reviewer writing docs/agent-org/ and a triager writing the
+    # backlog are the same case, and neither path is PROTECTED, so #12 is
+    # unaffected either way.
+    if reviewing and hits:
+        hits = [f for f in hits
+                if not any(fnmatch.fnmatch(f, g)
+                           for g in REVIEW_EVIDENCE_GLOBS)]
+
     if not authorized:
         return hits
-    reviewing = intent in NON_BUILD_INTENTS
     return [f for f in hits
             if (not reviewing
                 and any(fnmatch.fnmatch(f, g) for g in packet_deny))
