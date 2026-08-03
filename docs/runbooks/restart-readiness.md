@@ -1227,3 +1227,63 @@ exemption from latching. Otherwise the breaker's success condition —
 "redesign the task and retry" — is unsatisfiable by construction, and the
 only exit is an operator reset like this one. Carry-list item; not fixed
 today.
+
+---
+
+## L-29: the ONLY real-money budget is the one we never measured
+
+The operator set a $50 wall on kimi-backed frontend work and asked to be told
+when it was exhausted. It cannot be told, because **not one cent of kimi
+spend has ever been recorded.**
+
+Every `spend` row for `frontend` is null across the board:
+
+    role      cash_usd  allowance_pct  input_tokens  output_tokens
+    frontend  None      None           None          None      (x14 today)
+
+The proximate cause is one line in `agents/dispatch.py::_provider_usage`:
+
+    provider = "anthropic" if role == "pm" else "openai"
+
+`agents/accounting.provider_usage` recognises exactly two vocabularies,
+`anthropic` and `openai`. frontend runs **kimi**, so it is parsed as openai,
+matches no envelope, and returns all-None. `run_budget`'s kimi branch then
+sums nothing, and the $50 ceiling can never be reached — not because spend is
+low, but because spend is invisible.
+
+The system said so, loudly, thirteen times:
+
+    TELEMETRY-DEGRADED: no recognized openai usage envelope
+
+That message is exactly the "never a silent None-forever" guard
+`_provider_usage`'s own docstring promises. It worked. Nobody read it.
+
+**This is not fixable by mapping kimi to a third provider alias.** The kimi
+CLI output we capture contains no usage envelope at all — no token counts, no
+cost keys, nothing matching `*tokens*` or `*cost*` anywhere in the frontend
+log. There is nothing to parse. Any dollar figure the org reported for kimi
+would have to be fabricated, so it reports none.
+
+The inverse error rides along: **pm accrues `cash_usd` (~$65.89 today) while
+being a subscription role.** pm's budget is `claude`, denominated in
+`pct_weekly_*`, so those dollars are a notional list-price valuation, not
+money anyone is charged. The ledger therefore shows phantom dollars for the
+role that costs nothing incrementally and zero for the role that costs actual
+money — the exact inverse of what a spend ledger is for.
+
+**Consequences, stated plainly:**
+
+1. The $50 kimi wall is **unenforced and unenforceable in-org today**. The
+   authoritative balance is the Kimi console (platform.kimi.ai); only the
+   operator can read it.
+2. Any past or future org claim about kimi spend is unsupported.
+3. `run_budget`'s kimi branch and its tests pass because they are exercised
+   with synthetic usage dicts — the tests are green and the pipeline feeding
+   them is dead. A test that supplies its own input cannot detect an input
+   that never arrives.
+
+**Fix requires evidence we do not have**: whether `kimi --output-format
+stream-json` can emit usage at all (a CLI/flag question), or failing that, a
+priced estimate from prompt/response sizes the dispatcher already sees —
+which must be recorded as an ESTIMATE in a separate column, never as
+`cash_usd`. Carry-list, escalated: this is the top accounting defect.
