@@ -1337,3 +1337,56 @@ cooldown` asserted a first quota refusal parks for the flat 6h. It now
 asserts the first rung. The distinction L-25 wrote it to protect — a blip
 parks for minutes, a limit for substantially longer, never conflated — is
 still asserted, explicitly.
+
+---
+
+## L-32: the merge happened; the record of *why it was allowed* did not
+
+PR #104 (TASK-009 / #107 — the provider-cap gate's `UnboundLocalError`, the
+defect that held `main`'s lint red for every open PR) squash-merged at
+`b4a783c`, 2026-08-03T16:25Z. Backend's evidence-bearing APPROVE preceded it,
+all fourteen checks were green, and the change is correct — re-verified at
+`main` tip `4283478`: ruff clean, 565 tests passed, invariants OK.
+
+What was missing is ADR-0003's clause-2 artifact. Under a shared GitHub
+identity the ADR substitutes a ledger `REVIEW_VERDICT` plus an
+`EVIDENCE-SHA256:` comment for conditions 2/3, and it pays for that
+substitution with one obligation: pm executes the robot's remaining conditions
+manually and **comments `MERGED by pm per ADR-0003 (robot conditions
+verified)`**. That comment is not ceremony. It is the only place the nine
+conditions are recorded as *checked*, because the robot that would otherwise
+record them did not run. No comment was posted. For roughly forty minutes a
+protected-path change sat on `main` whose merge authorization existed only as
+agent prose in ledger messages and issue comments — none of which is a
+condition check.
+
+Posted retroactively at
+`https://github.com/decross1/poe-upgrade-advisor/pull/104#issuecomment-5169345176`,
+with all nine conditions verified at reviewed head `004648a` and re-verified at
+`main`. Every one passes; the merge was substantively legitimate. That is the
+point worth keeping: the gap was not a bad merge, it was a good merge that
+left no auditable trace of being gated. Nothing distinguishes it, in the repo,
+from the direct pushes L-19 names.
+
+This is L-19's shape one layer in. L-19: the merge robot is *specified* as the
+only merge identity and nothing installs it. L-32: the ADR that authorizes a
+human to stand in for the robot is likewise *specified* and nothing installs
+it — an agent that forgets clause 2 gets a clean-looking merge and no error.
+Both are gates that live only in prose, and both close the same way: **TASK-007
+/ #24** (merge-robot identity + branch protection, human-gated). Once branch
+protection lands, a merge without the robot cannot happen, and the substitution
+this ADR exists for self-revokes.
+
+Until then the mitigation is cheap and worth stating plainly: **the pm merge is
+not complete when the button is pressed; it is complete when the condition
+table is posted.** An ADR-0003 merge with no comment should be read the same
+way L-21 taught us to read a gate verified only by `inspect.getsource` — the
+step that proves the work was never executed.
+
+Revisit if `MERGE_ROBOT_TOKEN` exists and `merge_robot.py` runs in CI, at
+which point ADR-0003 self-revokes and this lesson is moot.
+
+(Numbering note: L-32 is minted here against `main` at `4283478`, whose latest
+lesson is L-31. Parallel pm runs have collided on a lesson number before —
+see L-19 vs `479e05c` — so if another L-32 appears, this one is the ADR-0003
+merge-record lesson.)
