@@ -153,8 +153,10 @@ fire. Canonicalization stays off the critical path and TASK-210-S6 keeps its
 golden-item e2e. Revisit only if a player report shows a real clipboard shape
 the engine rejects — that becomes a fixture first (I8), then a fix.
 
-10. **TASK-213** (backend, issue #123 — P0, blocks everything). `main` is red
-    on the required `engine-integration` check and has been since `69a1f6a`.
+10. **TASK-213** (backend, issue #123 — ~~P0, blocks everything~~ **P0 LEG
+    LANDED 2026-08-03 at `ead5b5a`**; residual scope below is P2 and NOT
+    dispatchable to backend — see the routing note after this item). `main` was
+    red on the required `engine-integration` check and had been since `69a1f6a`.
     TASK-212-S1 correctly added a contract-schema assertion importing
     `jsonschema`, but that job's `pip install` lists only `pyyaml`, so
     `unittest discover` dies at collection. One-line fix in
@@ -164,6 +166,27 @@ the engine rejects — that becomes a fixture first (I8), then a fix.
     restart-readiness.md` records the `packet-validation` mirror image), so
     the task also asks for a recurrence guard or a filed issue saying why not.
     Nothing else should dispatch while a required check is red on main.
+
+    **Closed out (2026-08-03).** The one-line dep fix landed at `ead5b5a` and
+    `main` CI is green again (run 30842373663, `f08b119`). The orchestrator also
+    swept the rest of the workflow for the same class of drift: the other two
+    bare-`pyyaml` jobs are clean (`assumptions-fixtures` runs a stdlib-only
+    script, `windows-runtime-build` runs PowerShell, neither does test
+    discovery), so `engine-integration` was the only affected job. **Do not
+    dispatch a task to fix this regression — it is fixed.** What remains open on
+    #123 is only the recurrence guard, and `ead5b5a` explicitly left it undone.
+
+    **Routing note — the recurrence guard cannot be packeted (2026-08-03).** A
+    dependency-drift guard has to live in `.github/`, and no builder role can
+    touch `.github/` at all. Backend circuit-broke on completion proof #12
+    attempting exactly that. The mechanism matters for every future packet:
+    `protected-change` is a MERGE-TIME label the merge robot checks (condition
+    5), but proof #12 fires far earlier, at dispatch-time completion
+    verification, and it does not consult labels. So a `protected-change` label
+    does **not** make a PROTECTED path packetable — putting one in
+    `files_in_scope` is unwinnable for every role except pm's narrow
+    `tasks/packets/*` carve-out. Protected work routes to the orchestrator, not
+    into a packet. This is why the guard is not queued as a stage.
 
 Not packeted, deliberately: shipping the overlay itself to players. The MVP
 zip (`scripts/package_mvp.sh`, `packaging/launch.py`) contains no overlay at
@@ -180,7 +203,20 @@ All three legs of #97 are proven against the real engine (9d63b72, b8620b5,
 1846df2). The mission sentence now holds: a player copies an item in game and
 sees a real verdict card. What the card cannot do is say WHY.
 
-10. **TASK-213-S1** (backend, issue #125 — P0). `GET /breakdown/{diff_id}` is
+**Numbering correction (2026-08-03): these stages are TASK-214-S1/S2, not
+TASK-213-S1/S2.** I authored them as TASK-213-* while item 10 above had already
+assigned TASK-213 to the CI regression on issue #123; both landed on `main` and
+contradicted each other. TASK-213 stays with #123 (the earlier assignment, and
+its fix is already merged under that ID); Tier-2 takes the next free parent,
+**TASK-214**, on issue #125. Packets renamed to `tasks/packets/TASK-214-S1.json`
+and `TASK-214-S2.json`; issue #125 retitled. Nothing was dispatched under the
+old IDs, so no branch or PR needs renaming. The collision is not cosmetic — the
+same mistake on TASK-212-S1 an hour earlier mislabelled two branches and left a
+stale assignment that burned frontend invocations on already-merged work.
+**Standing rule: before numbering a new parent task, grep `tasks/BACKLOG.md` and
+`tasks/packets/` for the ID — a concurrent author may already hold it.**
+
+10. **TASK-214-S1** (backend, issue #125 — P0). `GET /breakdown/{diff_id}` is
     specified at `contracts/openapi.yaml:129` and **has never existed**:
     `grep -n breakdown server/*.py` returns nothing, and `_diff_id()` hashes a
     calculation the server then discards. The whole web client has been wired
@@ -193,7 +229,7 @@ sees a real verdict card. What the card cannot do is say WHY.
     re-run the engine, and the movement in the delta IS that mod's
     contribution. Real measurements or an empty list; never an estimate (I5).
     Contract surface: **none** — implementing a ratified path needs no RFC.
-11. **TASK-213-S2** (frontend, issue #125). `web/test/realServer.e2e.test.tsx`
+11. **TASK-214-S2** (frontend, issue #125). `web/test/realServer.e2e.test.tsx`
     has never opened details, which is precisely why nobody noticed the route
     was missing. The stage drives the affordance against a live
     `python3 -m server` and asserts the panel shows the server's drivers.
