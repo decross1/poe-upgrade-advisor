@@ -1,15 +1,16 @@
 /**
- * Global hotkey registration. One hotkey, fixed in code — there is no hotkey
- * configuration UI and never will be in the overlay (I1, spec §10).
+ * Global hotkey registration. One hotkey with one process-level override
+ * (the OVERLAY_HOTKEY env var, a constant — not a settings surface): there
+ * is no hotkey configuration UI and never will be in the overlay (I1, §10).
  *
  * SCAFFOLD NOTE: registration success and OS-level delivery are
  * native-verification ACs deferred to the provisioned box (issue #34).
  */
 import { globalShortcut } from "electron";
 
-export const DEFAULT_HOTKEY = "CommandOrControl+Shift+D";
+export const DEFAULT_HOTKEY = "CommandOrControl+Alt+D";
 
-/** Returns an unregister function (wired to app will-quit in main.ts). */
+/** Returns an unregister function; main.ts wires unregisterAllHotkeys to will-quit. */
 export function registerHotkey(accelerator: string, onTrigger: () => void): () => void {
   const ok = globalShortcut.register(accelerator, onTrigger);
   if (!ok) {

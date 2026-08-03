@@ -7,6 +7,7 @@ import { app, ipcMain, shell } from "electron";
 import { createClipboardPipeline } from "./clipboardPipeline";
 import { electronClipboardSource } from "./clipboardText";
 import { bindGeneratedDiff } from "./diffRequest";
+import { DEFAULT_HOTKEY, registerHotkey, unregisterAllHotkeys } from "./hotkey";
 import { resolveServerBaseUrl, resolveWebAppUrl } from "./serverEndpoint";
 import type { ShellState } from "./shellState";
 import { createOverlayWindow } from "./window";
@@ -27,6 +28,17 @@ app.whenReady().then(() => {
   // delivered to a subscribed card. Existing clipboard content is ignored.
   win.webContents.once("did-finish-load", pipeline.start);
 
+  // Manual show/hide toggle — the interaction issue #97 names. Showing uses
+  // showInactive() ONLY: the hotkey path must never steal game focus, so
+  // show()/focus() are forbidden here (a stolen focus mid-map is worse than
+  // no overlay). Registration failure is non-fatal (registerHotkey logs and
+  // returns): another app may already own the accelerator, and that must not
+  // take the clipboard path down with it.
+  registerHotkey(process.env.OVERLAY_HOTKEY ?? DEFAULT_HOTKEY, () => {
+    if (win.isVisible()) win.hide();
+    else win.showInactive();
+  });
+
   // Tier-1 → Tier-2 promotion path (I7): the card's single details affordance
   // deep-links the web app in the system browser; the overlay itself never
   // grows a Tier-2 view.
@@ -44,4 +56,5 @@ app.whenReady().then(() => {
   });
 
   app.on("will-quit", pipeline.stop);
+  app.on("will-quit", unregisterAllHotkeys);
 });
