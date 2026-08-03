@@ -560,9 +560,64 @@ re-polled forever — observed every 30s on `c3c49821`. Model cost is **zero**,
 so this is not the 977-fan cascade, but nothing retires it and pm had to ack
 it by hand. Next cycle: a suppression counter with its own retirement path.
 
+### L-4 — proof #12 was role-blind, and it had TWO readers (FIXED live)
+
+pm's mission run completed its work and was then circuit-broken for
+committing `tasks/packets/TASK-999-S2.json`. CC-4 protects that glob so a
+TASK agent cannot rewrite the constraints it is judged against — kept in
+full — but authoring packets IS pm's planning job (SPEC.md: only the PM
+identity applies `protected-change`). The dispatcher was stricter than the
+merge robot in a way that made autonomous planning impossible.
+
+Fixed twice, which is the lesson: `857e585` fixed completion proof #12, and
+pm kept dead-lettering because `agents/anti_loop.py::prohibited_files` is an
+independent second reader of the same list (`e43c799`). *What else reads the
+thing this gate reads?* — paid for again, by the orchestrator this time. Both
+now share `ROLE_AUTHORIZED_PROTECTED` (pm → `tasks/packets/*` only); every
+other protected glob still breaks for pm, packets still break for every other
+role, and a packet's own `files_out_of_scope` still beats role authorization.
+
+### L-7 — a leftover fan worktree re-fanned forever (FIXED live)
+
+**This is the 2026-07-27 cascade's actual mechanism, reproduced.** W1-4
+correctly refuses to delete a worktree holding unpushed commits, but nothing
+renamed it, so every later `worktree add` failed at the same path *before*
+`dispatch.py` ran. No attempt increments on that path, so the message re-fans
+indefinitely — `frontend-78d778da` did it 239 times in July;
+`backend-990417bc` did it again tonight at 30s intervals. Now: pin any
+unpushed HEAD to `refs/recovery/<role>-<id8>-<stamp>`, move the tree to
+`.fan/stale/`, prune, then create fresh (`e9124d8`). Nothing is deleted.
+
+### L-8 — a bad packet made its own task's mailbox undeliverable (FIXED live)
+
+A deadlock. The CC-1 pre-invoke command gate ran for every message carrying a
+task_id with a packet. pm authored TASK-999-S2 with an illegal `-k` check
+(deselecting the test it existed to fix — the policy was RIGHT to reject it,
+forbidden-fix class F1). The orchestrator's ANSWER saying *"this packet is
+superseded, do not dispatch it"* was then **suppressed by that same packet**.
+The correction could not reach the role that needed it through the ledger at
+all; only out-of-band intervention broke it. Now gated on `WORK_INTENTS =
+{TASK_ASSIGN, REVIEW_REQUEST}` only — governance traffic never runs
+`required_checks`, and the execution-time runner is unchanged, so an illegal
+check still cannot RUN (`8359c31`).
+
+### L-9 — preflight preconditions also gate governance traffic (OPEN)
+
+Same class as L-8, found immediately after fixing it: the re-routed ruling
+cleared the packet gate and was then suppressed by `precondition
+issue_labels: missing ['task','test-change-authorized']`. It was **acked with
+a durable blocked record** rather than looping — correct fail-closed
+behaviour — but a ruling about a task still cannot reach a role when that
+task's issue is mislabelled. Worked around by labelling issue #99 and
+re-routing under `ORG`. Next cycle: preconditions that bear on *doing the
+work* should not gate messages that merely *say something about* the work.
+
 Also carried: B4 census/recalibration (caps stay `[E]`), B5 pm-lite, B6
 checkpoint, B7 ceiling + `branch_pattern`, A5, A4 telemetry tail, full
-`.fan` recovery, F6/F9 probes, proof #8 exact-SHA match.
+`.fan` recovery, F6/F9 probes, proof #8 exact-SHA match, and **L-6**:
+packets are keyed by `task_id` alone, so a pm *review* inherits that task's
+*implementation* packet scope and always violates it (ADR-0008 stage
+identity does not cover the review role).
 
 ---
 
