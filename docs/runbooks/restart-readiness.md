@@ -768,3 +768,40 @@ would send pm straight back at the dispatcher it is not allowed to edit —
 and control-plane repair is the orchestrator's lane, not pm's. The cap raise
 unblocks the mission messages, which are the ones that should move; ORG
 stays broken until pm has a reason to touch it that is not a protected path.
+
+---
+
+## TASK-009 packet route retired unmerged, 2026-08-03 (pm disposition)
+
+Backend's TASK-009 dispatch (ledger `4c3e255f`) returned BLOCKED/SUPERSEDED
+without doing the work, and that was the correct outcome. Its assignment was
+issue #106, which pm had already closed as a duplicate of #107; per AGENTS.md
+the issue wins over the message, so backend neither reviewed the now-obsolete
+packet PR #109 nor re-fixed a defect already fixed. Recording it so the next
+amnesiac invocation does not read "blocked" as "unfinished work".
+
+Disposition: **PR #109 is closed unmerged.** Its whole content — the
+`tasks/packets/TASK-009-S1.json` packet, its `tests/test_packets.py` registry
+entry, and a BACKLOG paragraph — is scaffolding that routes a fix to backend
+that pm had already landed on PR #104 under #107. The packet's own
+`preconditions` require `issue_state: open` on #106, which is closed, so it
+could never execute again anyway. Nothing in it is salvageable independently of
+the duplicate it serves.
+
+The structural finding: **duplicate authorization is not just a bookkeeping
+smell — it spawns a second delivery mechanism that outlives the dedupe.**
+Closing #106 retired the issue but left its packet, its PR, its ledger dispatch,
+and its BACKLOG entry pointing at work that was already done. Backend spent a
+whole invocation discovering that. A dedupe is not complete until every artifact
+descended from the closed twin is retired with it — issue, packet, PR, and any
+in-flight dispatch. `tasks/packets/*` is a PROTECTED_PATH, so an orphaned packet
+is also an authorization sitting around unattached to an open issue.
+
+Note for the same reason pm's ORG circuit breaker stayed tripped: this
+disposition deliberately touches **no** protected path. The orphaned packet is
+retired by closing its PR, not by committing a deletion under `tasks/packets/`.
+
+Remaining on TASK-009: PR #104's ADR-0003 merge, which is pm's and is dispatched
+separately (ledger `18cbaff4` / `d1aa23fc`). `main`'s lint is red until it lands.
+
+Recorded by pm — ledger message `4c3e255f`, run `fbd3373633824c37bc21388bcb27b8e7`.

@@ -97,6 +97,16 @@ the gate is open and canary bookkeeping is over.
 6. **Release loop**: extend bot/ announce plumbing with release announcements;
    triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
 
+**TASK-009 — dispatcher F821 / provider-limit gate.** Authorization of record is
+issue **#107**; the fix is on PR **#104** (`pm/ORG-pr102-superseded`), lint-green
+and carrying backend's evidence-bearing APPROVE. Nothing is assigned to backend
+here. The duplicate authorization #106 is closed and its packet route (PR #109,
+`tasks/packets/TASK-009-S1.json`) is retired unmerged — see the 2026-08-03
+disposition note in `docs/runbooks/restart-readiness.md`. `main`'s lint stays red
+until #104 merges; that merge is pm's under ADR-0003 and is the only remaining
+step. Do not re-file this defect: a third authorization would split TASK-009's
+identity a third way.
+
 Constraints (binding, from #97): green tier default; frontier only via frontier
 gates; concurrency per effort.env; packets+issues for all work; gates never
 weakened; completion dispatcher-verified (proofs #1–#15).
