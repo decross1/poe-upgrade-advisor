@@ -33,6 +33,10 @@ Sequence gates are strict: Phase 1 is go/no-go for everything downstream.
 
 ## Phase 3 — Tier 2/3
 - **TASK-301 (frontend, M)** web/: Tier-2 drivers view + Tier-3 raw breakdown.
+  Intake #92 folded in (triaged 2026-08-03): the Tier-2 drivers view renders the
+  two compared items side-by-side (equipped vs candidate, mods visible) so the
+  delta is visually anchored. Overlay card unchanged — I2 caps it; promotion to
+  Tier 1 would need an RFC per I7.
 - **TASK-302 (backend, M)** /scan with ranked results; perf: 500 items < 30 s.
 - **TASK-303 (backend+frontend, M each, sequenced)** Tree planner: engine exposes
   node power ratings; web renders "best next 5 points".
@@ -85,7 +89,11 @@ fans out until TASK-999 completes green (dispatcher-verified).
    frontend on kimi under the $50 org-side cash wall.
 5. **Fan out TASK-901..904** (packets validated, dependency-ready).
 6. **Release loop**: extend bot/ announce plumbing with release announcements;
-   triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
+   triage Discord feedback via INTAKE_TICKET (intake backlog triaged 2026-08-03:
+   #92 DEFERRED to Phase 3 / TASK-301, requirement folded into that task above;
+   #93 REJECTED — project-management dashboard is not product surface; the
+   weekly PM digest (TASK-401) is the visibility channel. Revisit #93 only if
+   the community repeatedly asks for roadmap visibility beyond the digest).
 
 Constraints (binding, from #97): green tier default; frontier only via frontier
 gates; concurrency per effort.env; packets+issues for all work; gates never
