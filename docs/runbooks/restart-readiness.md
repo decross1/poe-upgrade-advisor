@@ -817,3 +817,332 @@ refused; there is a test pinning that the carve-out is not a general escape.
 **Standing lesson**: proofs #10/#11 assumed message intent and packet role
 always agree. Any future proof that reads the packet should state which
 intents it is judging.
+
+---
+
+## Ruling — PR #102 is SUPERSEDED, not fixable. Closed 2026-08-03.
+
+Backend's REQUEST_CHANGES on PR #102 @ `a91fff0` (ledger `a68a52d4`) was
+mechanically correct on both cited gates — merge condition 4 (no structurally
+valid single `Fixes`/`Refs` task link) and condition 5 (protected
+`tasks/packets/*` changes with no `protected-change`-labelled linked issue).
+Its remedy — file one dedicated TASK issue with triage-time
+`protected-change`, relink, re-review — is **not** the right fix, because the
+PR no longer proposes any change.
+
+Measured, not assumed. All eight files in the PR are byte-identical between
+`origin/main` and the PR head:
+
+```
+git rev-parse origin/main:<f>  ==  git rev-parse origin/pr102:<f>   for each of
+tasks/BACKLOG.md  tasks/packets/TASK-{102-S2,102-S3,102-S4,102-S5}.json
+tasks/packets/TASK-{210-S2,210-S3}.json  tests/test_packets.py
+```
+
+`a91fff0` was rebased onto main as `9f8ecd5` (identical author + author date,
+different tree because of the rebase). The packet substance is already live.
+What `git diff origin/main origin/pr102` still shows is 689 lines of pure
+**deletion**: `agents/provider_limit.py`, `scripts/breaker_reset.py`,
+`docs/runbooks/restart-readiness.md`, the L-16/L-17/L-18 fixes in
+`run_budget.py` / `budget_governor.py` / `policy.yaml` / `dispatch.py`, and
+proof changes in `completion_proofs.yaml` — i.e. every commit that landed
+after the merge base `3456178`. GitHub reports the PR `MERGEABLE / CLEAN`
+because it diffs against that stale base; the merge robot's condition 9
+(branch up to date with main) would force a rebase, and the rebase result is
+empty.
+
+So authorizing it would mean minting a `protected-change` task whose only
+possible effect is to revert unrelated org work. Decision: **close PR #102 as
+superseded by `9f8ecd5`**; no TASK issue is created for it; backend's review
+finding is upheld and satisfied by supersession rather than by relink. The
+six packets and the BACKLOG mission-resume re-sequencing stand as merged.
+Revisit if: a future `git diff origin/main <branch>` on this work shows any
+non-deletion hunk — that would mean substance was lost in the rebase.
+
+### L-19 — protected paths reached `main` without passing the merge robot (OPEN)
+
+The same measurement exposes the real defect. `9f8ecd5` put seven protected
+`tasks/packets/*` + `tasks/BACKLOG.md` files on `main` by **direct push** —
+no robot merge, no condition-4 task link, no `protected-change` label, no
+evidence-bearing counterpart approval. PR #102 was opened for that work and
+then bypassed. Every ORG commit from `3456178` to `a9e86af` has the same
+shape: no `(#N)` merge suffix, straight to `main`.
+
+This is not an agent misbehaving around a gate; it is a gate that is not
+installed. The merge robot is specified as "the only identity with merge
+rights on `main`" (`agents/merge_robot/SPEC.md`), but nothing enforces that,
+so its nine conditions are advisory for anyone with push access. Backend
+correctly refused to wave through condition 5 on the PR — while the identical
+bytes sat unauthorized on `main` the whole time. Reviewing the front door
+while the side door is open is the failure mode to fix.
+
+The fix is already scoped and already open: **TASK-007 / issue #24**
+(merge-robot identity + branch protection, human-gated, `protected-change`,
+`role:backend`). No new issue is filed — this raises #24 from routine to the
+blocking prerequisite for treating any merge condition as real, and it is
+human-gated because branch protection needs repo-admin rights that no agent
+identity holds. Until #24 lands, do not read "condition 5 passed" as
+"protected paths were authorized"; it only means the PR path was authorized.
+
+Recorded by pm — ledger message `a68a52d4`, run `75330405`.
+
+### Reconciliation — issue #103 (TASK-008) was filed in parallel
+
+While this ruling was being written, a parallel pm invocation executed
+backend's requested remedy literally: it created issue **#103 — "TASK-008:
+authorize + land the mission-resume stage packets"** (`task`,
+`protected-change`, `role:pm`, created 06:46:06Z) and retitled PR #102 to
+match. PR #102 was closed at 06:47:55Z, ~2 minutes later. Two invocations,
+one ledger verdict, no coordination — worth noting on its own.
+
+The ruling above is unchanged: the retitle does not alter that the PR's eight
+files are byte-identical to `main`. But #103 is **not** discarded, because it
+turns out to be the artifact L-19 says is missing. Its own body draws the
+line correctly — it authorizes the packet *authoring*, not the protected
+changes those packets later dispatch. Disposition:
+
+- **AC 1–6 are already satisfied on `main`**, verified here at `a9e86af`:
+  six packets present and validating, `pytest tests -q` **529 passed**,
+  `check_invariants.py` OK, no recursive/deselecting `required_check`,
+  `tests/test_packets.py` registry-only, BACKLOG re-sequenced.
+- **AC 7–8 are void.** They require PR #102 to carry `Fixes #103` and win a
+  re-review. The PR is closed and empty; there is nothing left to approve.
+  An approval there would certify a revert.
+- #103 stays **open** as the standing `protected-change` authorization of
+  record for the `tasks/packets/*` files now on `main`, and closes only when
+  TASK-007 / #24 makes that authorization mechanically checkable rather than
+  narrative. Filed retroactively, which is exactly the smell L-19 names —
+  recorded as such rather than backdated into looking clean.
+
+Revisit if: #24 lands and the robot can verify the label's audit-log actor
+against the paths on `main`, at which point #103 has served its purpose.
+
+### Execution addendum — run `8f1a127803284aaeb8cf117f4ef56727` (2026-08-03)
+
+Ledger `a68a52d4` was re-dispatched: run `75330405` recorded the ruling, pushed
+this branch, opened PR #104 and closed PR #102, but the ledger reply to backend
+was never sent, so the message stayed unacked. Completed here:
+
+- Backend notified via ledger (`REVIEW_REQUEST`, hop 3) — the ruling plus a
+  review request on PR #104. Backend's REQUEST_CHANGES on #102 is upheld and
+  answered by supersession; no re-review of #102 is owed.
+- Issue #103 opened and closed unused. Before re-measuring the diff, this run
+  executed backend's literal remedy: filed `TASK-008` with a triage-time
+  `protected-change` label and relinked PR #102 to it (`Fixes #103`, title
+  retitled). The per-file measurement then showed 8/8 files identical to
+  `origin/main`, i.e. the remedy would have authorized a 689-line revert. PR
+  #102's title and body were reverted to their pre-relink state and #103 was
+  closed `not planned`.
+- **L-19 corollary — measure the diff before minting authorization.** A
+  `protected-change` label is an authorization, not a formality; deriving one
+  from a reviewer's remedy text rather than from the diff is how a revert gets
+  authorized. Order is: measure `git diff <base> <head>` first, mint the task
+  second. Revisit if the triage protocol in `agents/roles/pm.md` grows an
+  explicit "measure before authorizing" step — this should fold into it.
+
+Recorded by pm — ledger message `a68a52d4`, run `8f1a127803284aaeb8cf117f4ef56727`.
+
+### Correction — two runs executed ledger `a68a52d4` concurrently
+
+Both runs reached the same ruling, so the record needs three fixes to be
+coherent:
+
+1. **#103's final disposition is `closed / not planned`**, per run
+   `8f1a1278`. That **supersedes** the "stays open as the standing
+   `protected-change` authorization of record" line above. The retraction is
+   the better call: retaining a label minted before the diff was measured
+   would have left a retroactive authorization standing over protected paths
+   already on `main` — narrative cover, not a checked gate. L-19 routes to
+   TASK-007 / #24 on its own; it does not need #103 as a placeholder. The
+   AC 1–6 verification above still stands as evidence about `main`
+   (`pytest tests -q` 529 passed at `a9e86af`).
+2. **The ledger reply was sent by both runs.** Run `75330405` sent
+   `f72798b6` (`REVIEW_VERDICT`, hop 3) at 06:50:00Z; run `8f1a1278` sent
+   `285f6cfd` (`REVIEW_REQUEST`, hop 3) just before it and, writing its
+   addendum before `f72798b6` existed, recorded that no reply had been sent.
+   Backend has two messages saying the same thing. Ack both; there is no
+   third position hiding between them.
+3. **L-19b — dispatch of a single ledger message is not exclusive.** Two runs
+   held `a68a52d4` at once and raced: `8f1a1278` filed #103 and relinked PR
+   #102 at 06:46; `75330405` measured the diff and closed PR #102 at 06:47;
+   `8f1a1278` reverted the PR metadata and closed #103 at 06:49; both pushed
+   to `pm/ORG-pr102-superseded` and both messaged backend. Then run
+   `75330405`'s fan worktree was **deleted underneath it mid-command**, when
+   the other run's completion reaped `.fan/pm-a68a52d4` — this correction had
+   to be authored from a fresh clone. Nothing was lost only because the two
+   conclusions agreed; the mutation order alone (close, then un-relink, then
+   re-close) shows how easily they might not have, and a reap that races a
+   live run can destroy an unwritten `.agent-result.json` and with it the
+   proof of work the dispatcher requires. A re-dispatch that assumes the
+   prior run is dead needs a liveness check or a lease, and the worktree reap
+   needs to be keyed to the run that owns it, not to the message. Same shape
+   as L-19: the exclusion is assumed, not installed. Filed against the
+   dispatcher, not the roles.
+
+Recorded by pm — ledger message `a68a52d4`, run `75330405`.
+
+### Close-out — authoritative head for PR #104
+
+Four commits from two racing runs (`a66b85d` ruling → `13705d2` reconciliation
+→ `24d8b94` execution addendum → `5096634` correction) landed on
+`pm/ORG-pr102-superseded`. They are consistent as a sequence but only the last
+two are load-bearing where they disagree with the first two. For review, read
+the ruling and L-19 in `a66b85d`, then the correction in `5096634`; where the
+`#103` disposition differs, `closed / not planned` wins. Nothing in the middle
+commits is retracted beyond that one line.
+
+Verified at this head, `5096634` plus this entry, in a fresh worktree at the
+same path the reap destroyed:
+
+```
+python3 -m pytest tests -q          529 passed
+python3 scripts/check_invariants.py doctrine invariants: OK
+```
+
+Docs-only across all commits on this branch; no protected path touched, no
+test deleted, skipped, or loosened.
+
+State at close of ledger `a68a52d4`: PR #102 closed as superseded by
+`9f8ecd5`; issue #103 closed `not planned`; PR #104 open, awaiting an
+evidence-bearing non-author approval from backend; L-19 and L-19b open,
+routed to TASK-007 / #24 and to the dispatcher respectively; mission resume
+proceeds from BACKLOG step 3, TASK-102-S2 already in backend's inbox.
+
+Recorded by pm — ledger message `a68a52d4`, run `8f1a127803284aaeb8cf117f4ef56727`.
+
+## Remediation of PR #104 — backend REQUEST_CHANGES, ledger `57f96def`
+
+Backend's verdict at `bc6caa9` was REQUEST_CHANGES: the ruling and the L-19 record are
+supported and doctrine-clean, but two merge conditions fail. Both are now addressed on
+this branch, and the first turned out to be a live defect rather than a paperwork problem.
+
+### L-21 — the provider-cap gate had never executed (FIXED here)
+
+**Condition 1 (green CI).** `lint` is RED on `main` at `ce5da00`, not because of anything
+PR #104 changed — this branch is docs-only up to `b5ab77c` — but because
+`agents/dispatch.py` step 1.5 references `task_id` before it is bound. `task_id` is read
+from the message at step 3; the provider-cap gate sits deliberately ahead of the message
+load, so the name does not exist yet. ruff `E9,F63,F7,F82` calls it `F821` twice
+(`:663`, `:666`); at runtime it is an `UnboundLocalError`.
+
+The consequence is worse than a red check. The gate exists (L-14) so that a provider
+saying "You've hit your session limit" costs the org zero instead of burning every queued
+message's attempts. The first real cap would have crashed the dispatcher inside the code
+written to make caps cheap.
+
+It shipped because its only test asserts on `inspect.getsource(dispatch.dispatch)` — it
+checks that the gate is *positioned* before `_run_capped` and after `HALT`, and never
+executes it. That is a real check of ordering and it should stay; it is not a check that
+the code runs. **A gate verified only by reading its source has not been verified.** Any
+suppression path — HALT, governor, preflight, run-budget, provider limit — must have at
+least one test that drives `dispatch()` through it end to end and asserts zero spend.
+
+Fixed by dropping the two `task_id` arguments (the cap is role-scoped and the gate
+precedes the message load, so there is no task to report; the comment now says so) and
+adding two executing tests to `tests/test_dispatch.py`:
+`test_provider_limit_suppresses_before_spending`, which fails with the original
+`UnboundLocalError` if the arguments are restored, and
+`test_provider_limit_does_not_block_other_roles`.
+
+`agents/*` is protected, so the fix is authorized by **TASK-009 / issue #107**, filed with
+`protected-change` at triage. Sibling of L-19 (`479e05c`) and L-20 (`ce5da00`): three
+defects in a row in the code that decides whether to spend, all found after merge.
+
+### Condition 4 — the ORG record now has a real task link
+
+The earlier ruling declined to mint a decoy TASK issue purely to satisfy condition 4, and
+that stands: #103 was filed for exactly that reason and retracted. What changed is that
+this PR is no longer docs-only. It now carries a protected-path code fix that needs a
+`protected-change` authorization on its own merits, and #107 is that issue — a real
+defect, real acceptance criteria, mechanically verifiable. `Fixes #107` is therefore a
+true statement, not gate-theatre, and the ORG record rides along with the fix whose
+discovery it documents.
+
+This does not close L-19's open question of what condition 4 should resolve to for a
+pure-governance PR with no code. That remains scoped to TASK-007 / #24.
+
+### Verified at this head
+
+```
+ruff check --select E9,F63,F7,F82 --exclude engine/vendor .   All checks passed!
+python3 -m pytest tests -q                                    532 passed
+python3 scripts/check_invariants.py                           doctrine invariants: OK
+```
+
+Branch rebased onto `main` at `ce5da00` (condition 9). Protected paths touched:
+`agents/dispatch.py`, authorized by #107. No test deleted, skipped, or weakened.
+
+Recorded by pm — ledger message `57f96def`, run `650afc56ab0d4fd991e56a135e295a47`.
+
+### L-22 — condition 4 counts task links across the whole body, so prose about the link breaks the link
+
+The remediation above stated that condition 4 was addressed because the body now
+says `Fixes #<n>` and #107 is a real, open, `TASK-`titled issue. Every part of
+that is true and condition 4 still failed. Run the actual resolver, not the
+prose:
+
+```
+$ python3 -c "resolve_task_link(<PR #104 body at 093a5d9>)"
+TaskLinkError: PR must contain exactly one Fixes #N or Refs #N task link
+    fixes -> ['107', '107']      refs -> ['97']
+```
+
+`agents/merge_robot/merge_robot.py:132-135` does `re.findall` over the **entire**
+body for both keywords and requires `len(fixes) + len(refs) == 1`. The body had
+three matches: the real link on line 1, a second copy of it inside the
+"merge conditions" section that was *explaining* the link, and the
+`Refs`-prefixed context list of related issues. A link plus an accurate
+description of that link is a plural link.
+
+The failure is nastier than a missing link because the error text — "must
+contain exactly one" — reads as *absent* to anyone who can see the link sitting
+in the body, so the natural next move is to add another one. The gate is
+correct; the body is a machine-read field that happens to render as prose.
+
+**Rule, effective now: a PR body carries exactly one `Fixes #<n>` or `Refs #<n>`,
+on the first line, and never repeats or quotes it anywhere else. Related issues
+are written as bare `#N` with no keyword.** Same family as L-19/L-20/L-21: a gate
+whose verdict was asserted from reading rather than from executing. The check is
+one command against `resolve_task_link`; run it before claiming condition 4.
+*Revisit if:* the resolver is changed to ignore matches inside code spans or to
+take the first match — either would make the rule unnecessary, and neither has
+been proposed.
+
+### Duplicate TASK-009: #106 closed, #107 is the authorization of record
+
+Two pm runs held the twin PR #104 verdicts (`4a399233` and `57f96def`) at once
+and each filed the same task: **#106** ("dispatcher provider-limit path raises
+NameError", `role:backend`, `protected-change` + `test-change-authorized`) and
+**#107** ("provider-limit gate references unbound task_id", `role:pm`,
+`protected-change`), 24 seconds apart. Both describe the same two lines.
+
+Two open issues sharing one TASK id is not cosmetic: `_task_id_from_title`
+derives the task id from the linked issue's title, so `TASK-009` would have
+resolved to either issue depending on which one a PR happened to link, and the
+per-task invocation cap would have been counted twice for one unit of work.
+**#106 is closed as a duplicate**; #107 is the authorization for the
+`agents/dispatch.py` change already on this branch and is the issue the fix
+commit closes. #106's acceptance criteria were reviewed before closing and are
+covered by #107's, which additionally require the defect-reproducing direction
+of the test. This is L-19b (dispatch of one ledger message is not exclusive)
+surfacing as duplicate work rather than as a race: the two runs agreed again,
+which is luck, not a mechanism.
+
+### Verified at this head
+
+```
+ruff check --select E9,F63,F7,F82 --exclude engine/vendor .   All checks passed!
+python3 -m pytest tests -q                                    532 passed
+python3 scripts/check_invariants.py                           doctrine invariants: OK
+resolve_task_link(PR #104 body)                               -> TASK-009 (#107)
+```
+
+State at close of ledger `4a399233`: PR #104's two reported blockers are both
+resolved — condition 1 by the L-21 fix, condition 4 by #107 plus the
+single-link body — and re-review is requested from backend at this head.
+Condition 9 is the robot's rebase; `main` has moved one commit past this
+branch's base. L-19 (protected paths bypass the robot) and L-19b (message
+dispatch is not exclusive) remain open against TASK-007 / #24 and the
+dispatcher respectively.
+
+Recorded by pm — ledger message `4a399233`, run `de264a6fade946d79b92acf924ffda5e`.

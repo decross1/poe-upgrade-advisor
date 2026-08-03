@@ -533,6 +533,50 @@ def test_halt_blocks_before_anything(mailroom, worktree, counter):
     assert lines[0]["suppressed_reason"] == "halt"
 
 
+# --------------------------------------------------------- provider limit
+def test_provider_limit_suppresses_before_spending(mailroom, worktree, counter):
+    """An active provider cap suppresses the role at step 1.5, cost zero.
+
+    tests/test_provider_limit.py only reads the gate's SOURCE for ordering, so
+    the branch itself had never run: it referenced `task_id`, which is not bound
+    until the message load two steps later (F821, ruff E9/F82 on `main`). A gate
+    that has never executed is not a gate.
+    """
+    from agents import provider_limit
+
+    mailroom.mkdir(parents=True, exist_ok=True)
+    provider_limit.mark(mailroom, "backend", matched="session limit reached")
+    msg = write_message(mailroom)
+
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("good_agent.py"))
+
+    assert out.decision == SUPPRESSED_PREFLIGHT
+    assert out.ack == RETAIN
+    assert out.invoked is False
+    assert "session limit reached" in out.reason
+    assert not (mailroom / "governor").exists()  # no budget db, no spend
+    assert counter_lines(counter) == []
+    assert msg["message_id"] not in acked(mailroom, "backend")
+    lines = tele_lines(mailroom)
+    assert len(lines) == 1
+    assert lines[0]["suppressed_reason"] == "provider_limit"
+
+
+def test_provider_limit_does_not_block_other_roles(mailroom, worktree):
+    """The cap is scoped to the role that hit it, not to the whole org."""
+    from agents import provider_limit
+
+    mailroom.mkdir(parents=True, exist_ok=True)
+    provider_limit.mark(mailroom, "frontend", matched="quota exceeded")
+    msg = write_message(mailroom)
+
+    out = dispatch("backend", msg["message_id"], worktree,
+                   fake_agent=fake("good_agent.py"))
+
+    assert out.decision != SUPPRESSED_PREFLIGHT
+
+
 # ------------------------------------------------------------- fail-closed
 def test_budget_ledger_unavailable_fails_closed(
         mailroom, worktree, counter, monkeypatch, capsys):
