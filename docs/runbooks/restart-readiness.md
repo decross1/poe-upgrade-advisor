@@ -992,3 +992,76 @@ Branch rebased onto `main` at `ce5da00` (condition 9). Protected paths touched:
 `agents/dispatch.py`, authorized by #107. No test deleted, skipped, or weakened.
 
 Recorded by pm — ledger message `57f96def`, run `650afc56ab0d4fd991e56a135e295a47`.
+
+### L-22 — condition 4 counts task links across the whole body, so prose about the link breaks the link
+
+The remediation above stated that condition 4 was addressed because the body now
+says `Fixes #<n>` and #107 is a real, open, `TASK-`titled issue. Every part of
+that is true and condition 4 still failed. Run the actual resolver, not the
+prose:
+
+```
+$ python3 -c "resolve_task_link(<PR #104 body at 093a5d9>)"
+TaskLinkError: PR must contain exactly one Fixes #N or Refs #N task link
+    fixes -> ['107', '107']      refs -> ['97']
+```
+
+`agents/merge_robot/merge_robot.py:132-135` does `re.findall` over the **entire**
+body for both keywords and requires `len(fixes) + len(refs) == 1`. The body had
+three matches: the real link on line 1, a second copy of it inside the
+"merge conditions" section that was *explaining* the link, and the
+`Refs`-prefixed context list of related issues. A link plus an accurate
+description of that link is a plural link.
+
+The failure is nastier than a missing link because the error text — "must
+contain exactly one" — reads as *absent* to anyone who can see the link sitting
+in the body, so the natural next move is to add another one. The gate is
+correct; the body is a machine-read field that happens to render as prose.
+
+**Rule, effective now: a PR body carries exactly one `Fixes #<n>` or `Refs #<n>`,
+on the first line, and never repeats or quotes it anywhere else. Related issues
+are written as bare `#N` with no keyword.** Same family as L-19/L-20/L-21: a gate
+whose verdict was asserted from reading rather than from executing. The check is
+one command against `resolve_task_link`; run it before claiming condition 4.
+*Revisit if:* the resolver is changed to ignore matches inside code spans or to
+take the first match — either would make the rule unnecessary, and neither has
+been proposed.
+
+### Duplicate TASK-009: #106 closed, #107 is the authorization of record
+
+Two pm runs held the twin PR #104 verdicts (`4a399233` and `57f96def`) at once
+and each filed the same task: **#106** ("dispatcher provider-limit path raises
+NameError", `role:backend`, `protected-change` + `test-change-authorized`) and
+**#107** ("provider-limit gate references unbound task_id", `role:pm`,
+`protected-change`), 24 seconds apart. Both describe the same two lines.
+
+Two open issues sharing one TASK id is not cosmetic: `_task_id_from_title`
+derives the task id from the linked issue's title, so `TASK-009` would have
+resolved to either issue depending on which one a PR happened to link, and the
+per-task invocation cap would have been counted twice for one unit of work.
+**#106 is closed as a duplicate**; #107 is the authorization for the
+`agents/dispatch.py` change already on this branch and is the issue the fix
+commit closes. #106's acceptance criteria were reviewed before closing and are
+covered by #107's, which additionally require the defect-reproducing direction
+of the test. This is L-19b (dispatch of one ledger message is not exclusive)
+surfacing as duplicate work rather than as a race: the two runs agreed again,
+which is luck, not a mechanism.
+
+### Verified at this head
+
+```
+ruff check --select E9,F63,F7,F82 --exclude engine/vendor .   All checks passed!
+python3 -m pytest tests -q                                    532 passed
+python3 scripts/check_invariants.py                           doctrine invariants: OK
+resolve_task_link(PR #104 body)                               -> TASK-009 (#107)
+```
+
+State at close of ledger `4a399233`: PR #104's two reported blockers are both
+resolved — condition 1 by the L-21 fix, condition 4 by #107 plus the
+single-link body — and re-review is requested from backend at this head.
+Condition 9 is the robot's rebase; `main` has moved one commit past this
+branch's base. L-19 (protected paths bypass the robot) and L-19b (message
+dispatch is not exclusive) remain open against TASK-007 / #24 and the
+dispatcher respectively.
+
+Recorded by pm — ledger message `4a399233`, run `de264a6fade946d79b92acf924ffda5e`.
