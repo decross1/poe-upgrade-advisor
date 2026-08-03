@@ -129,7 +129,10 @@ mis-templated branch `role/org-repacketize-parked-prs` is dead with the PR —
    Revisit: when either S2 stage lands, or immediately if the orchestrator wants
    the four issues created ahead of capacity.
 6. **Release loop**: extend bot/ announce plumbing with release announcements;
-   triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
+   triage Discord feedback via INTAKE_TICKET. The current intake backlog is
+   already triaged: #92 DEFER to TASK-301 (Tier-2 side-by-side, open as the
+   requirement tracker), #93 REJECT and closed. No intake is awaiting a
+   [DECISION].
    Gated on stage landings — there is nothing to announce until a stage merges,
    and the directive is to extend the existing announce plumbing, not rebuild
    it. First trigger: TASK-210-S2 merging (that is the user-visible one).
