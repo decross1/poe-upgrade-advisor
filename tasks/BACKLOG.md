@@ -88,17 +88,20 @@ the gate is open and canary bookkeeping is over.
    escalated to the orchestrator on issue #7. Revisit if budget policy
    gains a generated-artifact lane.
 4. ~~**Repacketize parked PR #91**~~ **DONE** (TASK-210, issue #79) — S2 landed
-   at `473c167`, S3 at `8cd7d0a`, S4 at `78765c1`. Issue #79 is closed and
-   STAYS closed; PRs #110 and #112 close as superseded-by-main (their heads
-   are content-identical to what merged). No S2/S3/S4 review is redispatched.
-   Ruling: ADR-0010 — packet preconditions gate dispatch, not review, and a
-   closed parent is replaced rather than reopened.
-5. **TASK-211 — finish the Windows overlay** (issue #113, successor parent to
-   #79): S1 build-snapshot deep link (once, then zero interaction — I1),
-   S2 `run.bat` packaging into the Windows bundle (#75), S3 capture→card p95
-   measured and recorded against I6's 300 ms. Sequenced S1→S2→S3; frontend on
-   kimi; $25 `cost_ceiling_usd` per stage under the $50 org-side wall.
-   Packets not yet filed. TTL 2026-08-17.
+   at `473c167`, S3 at `8cd7d0a`, S4 at `78765c1`. PRs #110 and #112 close as
+   superseded-by-main (their heads are content-identical to what merged), and
+   no S2/S3/S4 review is redispatched. Ruling: ADR-0010 — packet preconditions
+   gate dispatch, not review; that settlement covers stale preconditions only
+   and never a cancellation, supersession, or scope change.
+5. **Finish the Windows overlay** — remaining TASK-210 scope, parent **issue
+   #79** (human-reopened 2026-08-03T16:04:04Z; the reopen is authoritative, so
+   #79 is the live parent and the TASK-211 successor issue #113 is closed as
+   superseded — ADR-0010 decision 4). Stages: build-snapshot deep link (once,
+   then zero interaction — I1), `run.bat` packaging into the Windows bundle
+   (#75), capture→card p95 against I6's 300 ms — the last is already packeted
+   as TASK-210-S5 (`378db32`, `issue: 79`); the first two still need packets.
+   Frontend on kimi; $25 `cost_ceiling_usd` per stage under the $50 org-side
+   wall. TTL 2026-08-17. Revisit if the #75 bundle changes target platform.
 6. **Fan out TASK-901..904** (packets validated, dependency-ready) — unblocked
    now that the canary gate is open.
 7. **Release loop**: extend bot/ announce plumbing with release announcements;
