@@ -1,0 +1,88 @@
+# Command policy for DISPATCHER-executed packet commands (CC-1/A3).
+#
+# SCOPE: governs packet-declared `required_checks` and `deterministic_prepass`
+# ONLY. It does not constrain the agent's own tools — the agent must be able
+# to push; scope guards, protected paths, budgets and the banned-pattern scan
+# bound the agent instead.
+#
+# RATIFIED 2026-08-02 (pm ANSWER 20:50Z, from the v1.0 reconstruction's
+# "Packet command allowlist (CC-1)" section). ENTRY 12 (argv-exact python3 -c
+# canary probe) is EXCLUDED pending the operator's ruling on the audit's R1
+# finding — whichever way it goes arrives as one entry here, no code change.
+#
+# Matching: shlex-parsed argv; compound/shell forms are structurally rejected
+# at parse (metacharacters never reach matching). Entries pair a `kind`
+# (constraint engine in agents/checks.py) with parameters. `contexts` limits
+# where an entry may appear; prepass-only entries write the tree and are
+# rejected in required_checks.
+schema_version: "2.0"
+
+# Fast-reject bans (v1.1 §CC-1 contract four + ratified corollaries). Checked
+# before allowlist matching; argv-prefix, token-wise.
+banned:
+  - [npm, install]
+  - [npm, ci]
+  - [git, push]
+  - [git, fetch]
+  - [git, pull]
+  - [git, remote]
+  - [gh]
+  - [npx]
+  - [npm, exec]
+  - [node]
+  - [pip]
+  - [pip3]
+  - [curl]
+  - [wget]
+  - [bash]
+  - [sh]
+  - [env]
+  - [xargs]
+  - [timeout]
+  - [nice]
+  - [setsid]
+
+# Ratified positive allowlist. `kind` selects the validator; annex entry
+# numbers preserved for reconciliation.
+allowlist:
+  - entry: 1
+    kind: pytest
+    target_prefixes: [tests, packaging, engine/tests]
+  - entry: 2
+    kind: exact
+    argv: [python3, scripts/check_fixture_coverage.py]
+  - entry: 3
+    kind: exact
+    argv: [python3, scripts/check_invariants.py]
+  - entry: 4
+    kind: exact
+    argv: [python3, scripts/check_coverage_floor.py]
+  - entry: 5
+    kind: packets_validate
+  - entry: 6
+    kind: unittest_engine
+  - entry: 7
+    kind: ruff
+  - entry: 8
+    kind: npm_run
+    prefixes: [web, overlay]
+    scripts: [test, build]
+  - entry: 9
+    kind: npm_run
+    prefixes: [overlay]
+    scripts: [typecheck]
+  - entry: 10
+    kind: npm_run
+    prefixes: [web]
+    scripts: ["gen:types", "generate:client"]
+    contexts: [prepass]
+  - entry: 11
+    kind: git_readonly
+  # Entry 12, as RATIFIED (operator disposition R4, 2026-08-03): the canary
+  # probe CHECKER SCRIPT, an ordinary exact-string entry like 2-4. The
+  # python3 -c exception the audit flagged was never added; that ban is
+  # absolute.
+  - entry: 12
+    kind: exact
+    argv: [python3, scripts/check_canary_probe.py]
+

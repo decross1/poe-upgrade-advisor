@@ -12,7 +12,8 @@
     "task_id": { "type": "string", "pattern": "^TASK-[0-9]+(-S[0-9]+)?$|^ORG$" },
     "parent_task_id": { "type": ["string", "null"], "pattern": "^TASK-[0-9]+$|^ORG$" },
     "status": {
-      "enum": ["completed", "blocked", "needs_retry", "terminated", "dead_lettered"]
+      "enum": ["completed", "blocked", "needs_retry"],
+      "description": "Agent-writable statuses ONLY. `terminated` and `dead_lettered` are dispatcher-authored (states.DispatcherTerminalStatus) and were removed from this enum deliberately (CC-2/A7): a status the agent cannot express cannot regress into acceptance. Do not re-add them here."
     },
     "summary": { "type": "string", "minLength": 1, "maxLength": 4000 },
     "commit_sha": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$" },

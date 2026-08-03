@@ -1,11 +1,13 @@
-"""Tests for the frozen lane boundary (agents/interfaces).
+"""Tests for the lane boundary (agents/interfaces).
 
-Owned by pm. Neither lane edits this file; a lane that needs different
-behaviour here files a REQUEST in temp_channel.
+The blanket freeze is lifted (main 228bea2); ownership is per-file, per the
+pm PLAN of 2026-08-02T18:55Z. This test module is Lane A turf; interface
+files owned by the other lane still change only via REQUEST.
 """
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -27,7 +29,13 @@ from agents.interfaces import (
 )
 from agents.interfaces.packet import out_of_scope, parent_of
 from agents.interfaces.policy import PolicyError
-from agents.interfaces.result import is_ackable
+from agents.interfaces.result import (
+    RESULT_FILENAME,
+    SWEPT_RESULT_FILENAME,
+    is_ackable,
+    runs_dir,
+    sweep_result,
+)
 from agents.interfaces.telemetry import TELEMETRY_DEGRADED
 
 
@@ -102,10 +110,86 @@ def test_load_result_accepts_a_good_file(tmp_path):
 
 
 def test_needs_retry_is_never_ackable_on_its_own():
-    """Only the dispatcher-side attempt cap may retire a needs_retry message."""
+    """Only the dispatcher-side attempt cap may retire a needs_retry message.
+
+    Inverted 2026-08-02 (CC-2/A7): `terminated` and `dead_lettered` were
+    agent-writable AND ackable — an agent could self-authorise its own
+    termination path. They are dispatcher-authored now; if they ever read
+    as ackable agent statuses again, that is the regression this pins.
+    """
     assert not is_ackable({"status": "needs_retry"})
-    for s in ("completed", "blocked", "terminated", "dead_lettered"):
+    for s in ("completed", "blocked"):
         assert is_ackable({"status": s})
+    for s in ("terminated", "dead_lettered"):
+        assert not is_ackable({"status": s})
+
+
+def test_agent_schema_cannot_express_dispatcher_terminal_statuses():
+    """A7's stronger branch: the statuses are gone from the SCHEMA, not
+    merely gated — a status the schema cannot express cannot regress into
+    acceptance. Re-adding either to the agent enum must fail here."""
+    from agents.interfaces.result import RESULT_SCHEMA_PATH
+    from agents.interfaces.states import DispatcherTerminalStatus
+
+    enum = json.loads(RESULT_SCHEMA_PATH.read_text())["properties"]["status"]["enum"]
+    assert enum == ["completed", "blocked", "needs_retry"]
+    for s in ("terminated", "dead_lettered"):
+        with pytest.raises(ResultError):
+            validate_result(_completed(status=s))
+    # The values still exist — as control-plane vocabulary, not agent vocabulary.
+    assert {m.value for m in DispatcherTerminalStatus} == {
+        "terminated", "dead_lettered"}
+
+
+# ------------------------------------------------------- result sweep (CC-3)
+
+def test_sweep_result_moves_artifact_into_run_record(tmp_path):
+    """The artifact leaves the tree and lands, byte-identical, in
+    mailroom/runs/<run_id>/ — moved, never deleted: it is evidence."""
+    wt = tmp_path / "wt"
+    mailroom = tmp_path / "mailroom"
+    wt.mkdir()
+    payload = json.dumps(_completed())
+    (wt / RESULT_FILENAME).write_text(payload)
+
+    dest = sweep_result(wt, mailroom, "run-abcdef12")
+
+    assert dest == runs_dir(mailroom, "run-abcdef12") / SWEPT_RESULT_FILENAME
+    assert dest.read_text() == payload
+    assert not (wt / RESULT_FILENAME).exists()
+    # Nothing left to sweep: a second call is a no-op, not an error.
+    assert sweep_result(wt, mailroom, "run-abcdef12") is None
+
+
+def test_sweep_result_absent_is_noop(tmp_path):
+    """No artifact (no_result_agent path): no run dir is manufactured."""
+    wt = tmp_path / "wt"
+    mailroom = tmp_path / "mailroom"
+    wt.mkdir()
+    assert sweep_result(wt, mailroom, "run-none") is None
+    assert not runs_dir(mailroom, "run-none").exists()
+
+
+def test_sweep_result_preserves_schema_invalid_content(tmp_path):
+    """A malformed result still dirties the tree and is still evidence —
+    the sweep is unconditional on validity."""
+    wt = tmp_path / "wt"
+    mailroom = tmp_path / "mailroom"
+    wt.mkdir()
+    (wt / RESULT_FILENAME).write_text("{not json at all")
+
+    dest = sweep_result(wt, mailroom, "run-badjson1")
+
+    assert dest is not None
+    assert dest.read_text() == "{not json at all"
+    assert not (wt / RESULT_FILENAME).exists()
+
+
+def test_gitignore_pins_result_artifact_second_defence():
+    """CC-3 second defence: if the sweep ever regresses, git must still not
+    count the artifact as unsaved work. Pin the exact .gitignore line."""
+    gitignore = (Path(__file__).resolve().parents[1] / ".gitignore").read_text()
+    assert ".agent-result.json" in gitignore.splitlines()
 
 
 # --------------------------------------------------------------- packet

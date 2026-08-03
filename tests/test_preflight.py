@@ -63,6 +63,17 @@ def always_allow_run_budget(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(autouse=True)
+def completion_proofs_pass(monkeypatch: pytest.MonkeyPatch):
+    """Pin the CC-2 completion proofs to all-pass — this module exercises
+    preflight gating, not completion verification; the fakes'
+    completion claims are fixtures. Real-proof coverage:
+    tests/test_completion.py."""
+    import agents.dispatch as dispatch_mod  # noqa: PLC0415
+    monkeypatch.setattr(dispatch_mod, "verify_completion",
+                        lambda res, **kw: [])
+
+
+@pytest.fixture(autouse=True)
 def mailroom(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Tmp mailroom via POB_LEDGER_DIR before any dispatch or ledger call.
 
