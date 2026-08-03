@@ -92,7 +92,13 @@ the gate is open and canary bookkeeping is over.
    superseded-by-main (their heads are content-identical to what merged), and
    no S2/S3/S4 review is redispatched. Ruling: ADR-0010 — packet preconditions
    gate dispatch, not review; that settlement covers stale preconditions only
-   and never a cancellation, supersession, or scope change.
+   and never a cancellation, supersession, or scope change. Ruling landed:
+   PR #115 merged at `9dcb40d` after backend APPROVE at head `5764e90`
+   (ledger `a5b882b6`, round 2, hop 6/6), merged by pm under ADR-0003 with all
+   nine robot conditions verified by hand. PRs #110/#112 are closed as
+   superseded-by-main and issue #113 is closed as superseded; the loop is
+   shut. Issue #116 (F821 provider-limit `NameError`, `protected-change`) is
+   an unrelated follow-up and is explicitly not waived by this approval.
 5. **Finish the Windows overlay** — remaining TASK-210 scope, parent **issue
    #79** (human-reopened 2026-08-03T16:04:04Z; the reopen is authoritative, so
    #79 is the live parent and the TASK-211 successor issue #113 is closed as
