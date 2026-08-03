@@ -148,3 +148,54 @@ one green stage, and it is worth nothing until the three seams above hold.
 Constraints (binding, from #97): green tier default; frontier only via frontier
 gates; concurrency per effort.env; packets+issues for all work; gates never
 weakened; completion dispatcher-verified (proofs #1–#15).
+
+## Tier-2 is the last honest gap in the mission sentence — 2026-08-03 (issue #125)
+
+All three legs of #97 are proven against the real engine (9d63b72, b8620b5,
+1846df2). The mission sentence now holds: a player copies an item in game and
+sees a real verdict card. What the card cannot do is say WHY.
+
+10. **TASK-213-S1** (backend, issue #125 — P0). `GET /breakdown/{diff_id}` is
+    specified at `contracts/openapi.yaml:129` and **has never existed**:
+    `grep -n breakdown server/*.py` returns nothing, and `_diff_id()` hashes a
+    calculation the server then discards. The whole web client has been wired
+    to it since TASK-301 (`DetailsPanel` → `detailsClient` → generated
+    `getBreakdown`), so on the real server the "open details" tap renders
+    *Breakdown unavailable*; against the mock it renders
+    `web/mock/fixtures/breakdown/*.json` drivers that were never computed from
+    anyone's item. The stage adds a bounded per-diff store and computes
+    drivers by **leave-one-out re-evaluation** — remove one modifier line,
+    re-run the engine, and the movement in the delta IS that mod's
+    contribution. Real measurements or an empty list; never an estimate (I5).
+    Contract surface: **none** — implementing a ratified path needs no RFC.
+11. **TASK-213-S2** (frontend, issue #125). `web/test/realServer.e2e.test.tsx`
+    has never opened details, which is precisely why nobody noticed the route
+    was missing. The stage drives the affordance against a live
+    `python3 -m server` and asserts the panel shows the server's drivers.
+    Test-only; `web/src/**` out of scope.
+
+Dispatch order: **S1 now; S2 the moment S1 merges** — S2 cannot go green
+before the route exists, so frontend is idle by sequencing for exactly one
+stage. Revisit if S1 finds leave-one-out attribution is not tractable against
+the warm worker; the fallback is a stat-level breakdown with no mod
+attribution, which needs a contract conversation and therefore comes back to
+pm.
+
+**Ruling — TASK-102-S3/S4/S5 are DEFERRED, not cancelled.** They replay frozen
+seed builds 16–25 into `engine/corpus/`, a protected path, so they are red tier
+and each one spends a full review round-trip from the counterpart role. The
+corpus gate is green at 15 builds and no parity defect has been traced to a
+build outside it; buying breadth we have no failing evidence for, at review
+prices, while a Tier-2 promise sits unimplemented, is the wrong trade. Revisit
+when either is true: (a) a parity defect appears in a build outside the
+15-build corpus, or (b) backend goes idle with no green product work queued —
+then dispatch S3 first, since inert data is the cheapest red-tier stage the
+org has. Ordering stays binding: S3 → S4 → S5, manifest flips last.
+
+**Still not packeted, deliberately: shipping the overlay itself to players.**
+The Windows bundle (`scripts/package_mvp_windows.ps1`, `packaging/run.bat`)
+carries the web app, the server and the pinned engine runtime — no overlay,
+which needs npm + Electron on the tester's box. The three seams now hold, so
+this is no longer worthless work; it is still Electron bundling, which is
+larger than one green stage and needs decomposition before it is dispatched.
+Revisit at the next routing pass, ahead of TASK-102-S3.

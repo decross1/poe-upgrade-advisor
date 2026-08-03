@@ -184,6 +184,15 @@ def test_every_example_packet_validates():
         "TASK-211-S1.json",
         "TASK-212-S1.json",
         "TASK-210-S6.json",
+        # 2026-08-03: Tier-2 "why" (#125). GET /breakdown/{diff_id} is in the
+        # ratified contract and has never existed in server/ — the shipped
+        # details panel 404s against the real server and every driver a
+        # tester has seen came from web/mock/fixtures/breakdown/*.json.
+        # S1 (backend) implements the route with real leave-one-out mod
+        # attribution; S2 (frontend, after S1 merges) proves the affordance
+        # against a live server the way S6 proved the overlay.
+        "TASK-213-S1.json",
+        "TASK-213-S2.json",
     }
 
 
