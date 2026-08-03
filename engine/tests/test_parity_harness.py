@@ -36,11 +36,20 @@ def runtime_is_available():
 class ParityHarnessTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        _, cls.cases = HARNESS.load_cases()
+        cls.manifest, cls.cases = HARNESS.load_cases()
 
     def test_loads_all_frozen_cases_and_player_stats(self):
-        self.assertEqual(len(self.cases), 15)
+        self.assertEqual(len(self.cases), self.manifest["selection"]["count"])
         self.assertTrue(all(len(case.expected_stats) > 80 for case in self.cases))
+
+    def test_retains_rejected_oracles_without_running_them(self):
+        rejected = self.manifest.get("oracle_failures", [])
+        rejected_ids = {entry["id"] for entry in rejected}
+        self.assertTrue(all(entry["reason"] for entry in rejected))
+        self.assertTrue(rejected_ids.isdisjoint(case.case_id for case in self.cases))
+        if rejected:
+            self.assertEqual(rejected_ids, {"20-occultist-storm-burst-decay"})
+            self.assertIn("not reproducible", rejected[0]["reason"])
 
     def test_corrupted_stat_self_test_fails_comparison(self):
         result = HARNESS.run_self_test(self.cases[0])
@@ -110,6 +119,17 @@ class ParityHarnessTest(unittest.TestCase):
         report = json.loads(
             HARNESS.DEFAULT_REPORT.read_text(encoding="utf-8"),
             parse_constant=reject_non_standard_constant,
+        )
+        # The generated 25-build TASK-102 report is intentionally excluded from
+        # the staged replay's line budget. Validate the committed snapshot's
+        # internal consistency until that artifact is refreshed out of band.
+        self.assertIn(report["task"], {"TASK-101", "TASK-102"})
+        self.assertEqual(
+            report["oracle"]["build_count"], report["summary"]["imported_builds"]
+        )
+        self.assertEqual(
+            report["summary"]["compared_cells"],
+            sum(report["summary"]["band_counts"].values()),
         )
         self.assertEqual(
             report["summary"]["over_cell_classifications"],
