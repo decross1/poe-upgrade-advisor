@@ -87,14 +87,24 @@ the gate is open and canary bookkeeping is over.
    tier's diff budget and is OUT of all stage scopes; its refresh is
    escalated to the orchestrator on issue #7. Revisit if budget policy
    gains a generated-artifact lane.
-4. **Repacketize parked PR #91** (TASK-210, issue #79 stays open; ADR-0008
-   stage semantics) — PACKETS FILED: TASK-210-S2 (core watcher→pipeline→card
-   + watcher tests), TASK-210-S3 (e2e golden snapshots; depends on S2).
-   Frontend on kimi; the $50 org-side cash wall is split as a $25
-   `cost_ceiling_usd` per stage.
-5. **Fan out TASK-901..904** (packets validated, dependency-ready) — unblocked
+4. ~~**Repacketize parked PR #91**~~ **DONE** (TASK-210, issue #79) — S2 landed
+   at `473c167`, S3 at `8cd7d0a`, S4 at `78765c1`. PRs #110 and #112 close as
+   superseded-by-main (their heads are content-identical to what merged), and
+   no S2/S3/S4 review is redispatched. Ruling: ADR-0010 — packet preconditions
+   gate dispatch, not review; that settlement covers stale preconditions only
+   and never a cancellation, supersession, or scope change.
+5. **Finish the Windows overlay** — remaining TASK-210 scope, parent **issue
+   #79** (human-reopened 2026-08-03T16:04:04Z; the reopen is authoritative, so
+   #79 is the live parent and the TASK-211 successor issue #113 is closed as
+   superseded — ADR-0010 decision 4). Stages: build-snapshot deep link (once,
+   then zero interaction — I1), `run.bat` packaging into the Windows bundle
+   (#75), capture→card p95 against I6's 300 ms — the last is already packeted
+   as TASK-210-S5 (`378db32`, `issue: 79`); the first two still need packets.
+   Frontend on kimi; $25 `cost_ceiling_usd` per stage under the $50 org-side
+   wall. TTL 2026-08-17. Revisit if the #75 bundle changes target platform.
+6. **Fan out TASK-901..904** (packets validated, dependency-ready) — unblocked
    now that the canary gate is open.
-6. **Release loop**: extend bot/ announce plumbing with release announcements;
+7. **Release loop**: extend bot/ announce plumbing with release announcements;
    triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
 
 Constraints (binding, from #97): green tier default; frontier only via frontier
