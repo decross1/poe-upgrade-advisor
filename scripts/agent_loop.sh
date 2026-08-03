@@ -77,6 +77,14 @@ fan_worker() { # $1 = full message_id
   fi
   git -C "$DIR" worktree add --detach "$wt" origin/main >/dev/null 2>&1 || {
     echo "[$(date -Is)] [$ROLE:$id8] worktree add failed" >>"$LOG"; return 1; }
+  # L-22: `worktree add` does NOT check out submodules, so every fan worktree
+  # got an empty engine/vendor/PathOfBuilding and any engine-touching check
+  # died with "pobcalc: initialize vendor/PathOfBuilding first". Observed in
+  # both role logs. Objects already live in the shared .git/modules, so this
+  # is a local checkout, not a clone — but it is best-effort: a failure here
+  # must not kill a task whose checks never touch the engine.
+  timeout 300 git -C "$wt" submodule update --init --recursive >/dev/null 2>&1 \
+    || echo "[$(date -Is)] [$ROLE:$id8] submodule init failed (engine checks will fail)" >>"$LOG"
   echo "[$(date -Is)] [$ROLE:$id8] dispatch start" >>"$LOG"
   timeout "$INVOKE_TIMEOUT" python3 "$wt/agents/dispatch.py" \
     --role "$ROLE" --message-id "$id" --worktree "$wt" >>"$LOG" 2>&1 </dev/null
