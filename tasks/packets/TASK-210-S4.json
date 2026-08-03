@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-210-S4",
+  "parent_task_id": "TASK-210",
+  "issue": 79,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Wire the global hotkey to the overlay so a player can show/hide it on demand — overlay/src/hotkey.ts exports registerHotkey and unregisterAll but NOTHING calls them, so the feature is dead code today. In overlay/src/main.ts, register a configurable accelerator (default 'CommandOrControl+Alt+D', overridable via the OVERLAY_HOTKEY env var) that toggles overlay visibility: showInactive() when hidden so game focus is never stolen, hide() when visible. Unregister on will-quit alongside the existing pipeline.stop. Registration failure must be non-fatal — log and continue, since another app may already own the accelerator. Add overlay/test/hotkey.test.ts covering: toggle hidden->shown uses showInactive (never show/focus), shown->hidden calls hide, a failed registration does not throw and leaves the app running, and unregisterAll runs on quit. Mock electron's globalShortcut and BrowserWindow as the existing overlay tests do.",
+  "files_in_scope": [
+    "overlay/src/main.ts",
+    "overlay/src/hotkey.ts",
+    "overlay/test/hotkey.test.ts"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "bot/**", "packaging/**", "scripts/**", "tasks/packets/**",
+    "overlay/src/clipboardPipeline.ts", "overlay/src/clipboardWatcher.ts",
+    "overlay/src/diffFlow.ts",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/runbooks/**", "docs/adr/**", "docs/agent-org/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "required_checks": [
+    "npm --prefix overlay run test"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "A global accelerator (default CommandOrControl+Alt+D, OVERLAY_HOTKEY overrides) toggles the overlay: showInactive() when hidden, hide() when visible."},
+    {"id": "AC-2", "text": "Showing NEVER steals game focus — show()/focus() are not used on the hotkey path; only showInactive()."},
+    {"id": "AC-3", "text": "A failed hotkey registration is logged and non-fatal; the overlay still runs and the clipboard path is unaffected."},
+    {"id": "AC-4", "text": "overlay/test/hotkey.test.ts covers toggle-show, toggle-hide, failed registration and unregister-on-quit; the full overlay suite passes."}
+  ],
+  "budgets": {
+    "max_attempts": 2, "max_files_modified": 3, "max_diff_lines": 220,
+    "max_tool_calls": 40, "max_wall_clock_seconds": 900,
+    "cost_ceiling_usd": null,
+    "value_usd": 8.0
+  },
+  "routing": { "reasoning_effort": "low", "review_only_if": [] }
+}

@@ -153,6 +153,9 @@ def test_every_example_packet_validates():
         # operator-gated follow-up stage. Its check targets a test file the
         # packet itself creates; see _check_targets_unbuilt_scope below.
         "TASK-300-S1.json",
+        # 2026-08-03: overlay show/hide hotkey — hotkey.ts existed but nothing
+        # called it, so the feature was dead code.
+        "TASK-210-S4.json",
         # 2026-08-03: mission-resume repacketization (orchestrator ruling
         # 003c6e0b, issue #97). Parked PR #87 (TASK-102, issue #7) replays as
         # four budget-fit stages — code/CI first, frozen seed builds inert
