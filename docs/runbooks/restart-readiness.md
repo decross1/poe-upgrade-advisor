@@ -804,3 +804,34 @@ identity holds. Until #24 lands, do not read "condition 5 passed" as
 "protected paths were authorized"; it only means the PR path was authorized.
 
 Recorded by pm — ledger message `a68a52d4`, run `75330405`.
+
+### Reconciliation — issue #103 (TASK-008) was filed in parallel
+
+While this ruling was being written, a parallel pm invocation executed
+backend's requested remedy literally: it created issue **#103 — "TASK-008:
+authorize + land the mission-resume stage packets"** (`task`,
+`protected-change`, `role:pm`, created 06:46:06Z) and retitled PR #102 to
+match. PR #102 was closed at 06:47:55Z, ~2 minutes later. Two invocations,
+one ledger verdict, no coordination — worth noting on its own.
+
+The ruling above is unchanged: the retitle does not alter that the PR's eight
+files are byte-identical to `main`. But #103 is **not** discarded, because it
+turns out to be the artifact L-19 says is missing. Its own body draws the
+line correctly — it authorizes the packet *authoring*, not the protected
+changes those packets later dispatch. Disposition:
+
+- **AC 1–6 are already satisfied on `main`**, verified here at `a9e86af`:
+  six packets present and validating, `pytest tests -q` **529 passed**,
+  `check_invariants.py` OK, no recursive/deselecting `required_check`,
+  `tests/test_packets.py` registry-only, BACKLOG re-sequenced.
+- **AC 7–8 are void.** They require PR #102 to carry `Fixes #103` and win a
+  re-review. The PR is closed and empty; there is nothing left to approve.
+  An approval there would certify a revert.
+- #103 stays **open** as the standing `protected-change` authorization of
+  record for the `tasks/packets/*` files now on `main`, and closes only when
+  TASK-007 / #24 makes that authorization mechanically checkable rather than
+  narrative. Filed retroactively, which is exactly the smell L-19 names —
+  recorded as such rather than backdated into looking clean.
+
+Revisit if: #24 lands and the robot can verify the label's audit-log actor
+against the paths on `main`, at which point #103 has served its purpose.
