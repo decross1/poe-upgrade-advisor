@@ -62,7 +62,13 @@ PATTERNS: tuple[re.Pattern, ...] = (
     # instead of a queue of silent dead-letters.
     re.compile(r"is not configured in config\.toml", re.I),
     re.compile(r"\bmodel .{0,60}\bnot (?:found|configured|available)\b", re.I),
-    re.compile(r"\bplease try again (?:later|in \d+)", re.I),
+    # NOT a standalone "please try again later" — that phrase appears in
+    # ordinary prose, docs and error text, and on 2026-08-03 it quieted the
+    # frontend role for 6h on a bare match, moments after that role produced
+    # the mission's first accepted product code. It only means a cap when it
+    # accompanies an explicit limit/quota word.
+    re.compile(r"(?:limit|quota|capacity|too many).{0,80}please try again", re.I),
+    re.compile(r"please try again.{0,40}(?:limit|quota|capacity)", re.I),
 )
 
 

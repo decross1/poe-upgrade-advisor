@@ -28,7 +28,6 @@ from agents import provider_limit as pl
     "429 Too Many Requests",
     "Too Many Requests",
     "rate limit exceeded, try again in 60s",
-    "Please try again in 12 minutes",
 ])
 def test_detects_real_refusals(text):
     assert pl.detect(text) is not None
@@ -123,3 +122,34 @@ def test_dispatch_gate_precedes_invocation():
     invoke = src.index("_run_capped")
     assert gate < invoke, "provider-limit gate must precede the model call"
     assert src.index('mailroom / "HALT"') < gate, "HALT still comes first"
+
+
+@pytest.mark.parametrize("text", [
+    "please try again later",
+    "If the build fails, please try again later.",
+    "see docs; please try again later",
+    "Transient network error — please try again later",
+    # Moved here from the positive list when the pattern narrowed: a bare
+    # "try again in N minutes" carries no limit word, and after a false
+    # positive cost six hours of the only working role, ambiguity resolves
+    # toward NOT quieting a healthy role.
+    "Please try again in 12 minutes",
+])
+def test_bare_try_again_is_not_a_cap(text):
+    """L-23 (2026-08-03). A bare "please try again later" pattern quieted the
+    frontend role for SIX HOURS moments after that role produced the mission's
+    first accepted product code — and it was the only uncapped role, so the
+    org would have sat idle until 13:00Z on a phrase that appears in ordinary
+    prose. Exactly the false positive L-14's own docstring warned about, in
+    L-14's own pattern list. It means a cap only alongside an explicit
+    limit/quota word."""
+    assert pl.detect(text) is None
+
+
+@pytest.mark.parametrize("text", [
+    "rate limit exceeded, please try again later",
+    "You have exceeded your quota. Please try again in 10 minutes",
+    "at capacity — please try again shortly",
+])
+def test_try_again_with_a_limit_word_is_a_cap(text):
+    assert pl.detect(text) is not None
