@@ -88,15 +88,43 @@ def detect(*streams: str | None) -> str | None:
     return None
 
 
+#: A transient overload is not an exhausted quota, and treating them alike is
+#: expensive in exactly the wrong direction. L-25 (2026-08-03): kimi returned
+#: "429 The engine is currently overloaded, please try again" seconds after
+#: completing a task, and the flat 6h cooldown parked the org's ONLY working
+#: role — pm and backend were both quota-capped — for six hours over a
+#: momentary capacity blip. Match the wait to the kind of refusal.
+TRANSIENT_PATTERNS: tuple[re.Pattern, ...] = (
+    re.compile(r"\boverloaded\b", re.I),
+    re.compile(r"\b(?:temporarily|currently) unavailable\b", re.I),
+    re.compile(r"\bserver is busy\b", re.I),
+    re.compile(r"\b(?:503|502|504)\b", re.I),
+)
+
+#: Wait for a transient refusal: long enough to stop hammering a busy
+#: provider, short enough that a blip costs minutes rather than a shift.
+TRANSIENT_COOLDOWN_SECONDS = 300
+
+
+def cooldown_for(matched: str) -> int:
+    """Seconds to quiet a role, chosen by the KIND of refusal it hit."""
+    for pattern in TRANSIENT_PATTERNS:
+        if pattern.search(matched or ""):
+            return TRANSIENT_COOLDOWN_SECONDS
+    return DEFAULT_COOLDOWN_SECONDS
+
+
 def marker_path(mailroom: Path, role: str) -> Path:
     return Path(mailroom) / "blocked" / f"provider-limit-{role}.json"
 
 
 def mark(mailroom: Path, role: str, *, matched: str, run_id: str | None = None,
-         cooldown: int = DEFAULT_COOLDOWN_SECONDS,
+         cooldown: int | None = None,
          now: float | None = None) -> Path:
     """Record the cap durably and start the role's quiet period."""
     ts = time.time() if now is None else now
+    if cooldown is None:
+        cooldown = cooldown_for(matched)
     path = marker_path(mailroom, role)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({

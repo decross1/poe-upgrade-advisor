@@ -153,3 +153,33 @@ def test_bare_try_again_is_not_a_cap(text):
 ])
 def test_try_again_with_a_limit_word_is_a_cap(text):
     assert pl.detect(text) is not None
+
+
+@pytest.mark.parametrize("matched,minutes", [
+    ("429 The engine is currently overloaded, please try again", 5),
+    ("503 Service Unavailable", 5),
+    ("the server is busy", 5),
+    ("temporarily unavailable", 5),
+    ("You've hit your session limit", 360),
+    ("quota exceeded", 360),
+    ("usage limit reached", 360),
+])
+def test_cooldown_matches_the_kind_of_refusal(matched, minutes):
+    """L-25: a transient overload is not an exhausted quota. kimi returned a
+    429 'engine overloaded' seconds after COMPLETING a task, and the flat 6h
+    cooldown parked the org's only working role — pm and backend were both
+    quota-capped — for six hours over a capacity blip. Quota exhaustion still
+    parks for the operator's ruled 6h."""
+    assert pl.cooldown_for(matched) == minutes * 60
+
+
+def test_mark_applies_the_proportional_cooldown(tmp_path):
+    now = 1_000_000.0
+    pl.mark(tmp_path, "frontend", matched="429 engine is overloaded", now=now)
+    live = pl.active(tmp_path, "frontend", now=now + 1)
+    assert live["cooldown_seconds"] == pl.TRANSIENT_COOLDOWN_SECONDS
+    assert pl.active(tmp_path, "frontend", now=now + 301) is None
+
+    pl.mark(tmp_path, "pm", matched="quota exceeded", now=now)
+    assert pl.active(tmp_path, "pm", now=now + 301)["cooldown_seconds"] == \
+        pl.DEFAULT_COOLDOWN_SECONDS
