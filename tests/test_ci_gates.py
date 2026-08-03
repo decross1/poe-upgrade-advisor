@@ -76,6 +76,38 @@ def test_overlay_gate_forbids_timeout_raises_and_focused_or_skipped_tests():
     assert "a re-diff timing out counts as failure (RULING-19/21)" in tests
 
 
+def test_overlay_gate_cannot_be_narrowed():
+    workflow = yaml.load(
+        (ROOT / ".github/workflows/ci.yml").read_text(),
+        Loader=yaml.BaseLoader,
+    )
+    overlay_job = workflow["jobs"]["overlay-test"]
+    assert "continue-on-error" not in overlay_job
+    assert "if" not in overlay_job
+    for step in overlay_job["steps"]:
+        assert "continue-on-error" not in step
+        assert "if" not in step
+
+    config = (ROOT / "overlay/vitest.config.ts").read_text()
+    assert 'include: ["test/**/*.test.{ts,tsx}"]' in config
+
+    package = json.loads((ROOT / "overlay/package.json").read_text())
+    assert package["scripts"]["test"] == "vitest run && tsc --noEmit"
+
+
+def test_rediff_timeout_golden_remains_a_verdict():
+    tests = (ROOT / "overlay/test/diffFlow.test.ts").read_text()
+    marker = (
+        'it("a re-diff timing out counts as failure (RULING-19/21): '
+        'revert + transient message"'
+    )
+    assert marker in tests
+    timeout_case = tests.split(marker, 1)[1].split('\n  it("', 1)[0]
+    assert 'kind: "VERDICT"' in timeout_case
+    assert 'transientMessage: RECOMPUTE_FAILED_MESSAGE' in timeout_case
+    assert 'kind: "ERROR_UNAVAILABLE"' not in timeout_case
+
+
 def test_ci_collects_packaging_tests_and_upstream_sync_is_not_a_noop():
     ci = yaml.load((ROOT / ".github/workflows/ci.yml").read_text(), Loader=yaml.BaseLoader)
     test_steps = ci["jobs"]["test"]["steps"]
