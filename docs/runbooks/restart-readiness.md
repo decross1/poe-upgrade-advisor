@@ -899,3 +899,32 @@ coherent:
    dispatcher, not the roles.
 
 Recorded by pm — ledger message `a68a52d4`, run `75330405`.
+
+### Close-out — authoritative head for PR #104
+
+Four commits from two racing runs (`a66b85d` ruling → `13705d2` reconciliation
+→ `24d8b94` execution addendum → `5096634` correction) landed on
+`pm/ORG-pr102-superseded`. They are consistent as a sequence but only the last
+two are load-bearing where they disagree with the first two. For review, read
+the ruling and L-19 in `a66b85d`, then the correction in `5096634`; where the
+`#103` disposition differs, `closed / not planned` wins. Nothing in the middle
+commits is retracted beyond that one line.
+
+Verified at this head, `5096634` plus this entry, in a fresh worktree at the
+same path the reap destroyed:
+
+```
+python3 -m pytest tests -q          529 passed
+python3 scripts/check_invariants.py doctrine invariants: OK
+```
+
+Docs-only across all commits on this branch; no protected path touched, no
+test deleted, skipped, or loosened.
+
+State at close of ledger `a68a52d4`: PR #102 closed as superseded by
+`9f8ecd5`; issue #103 closed `not planned`; PR #104 open, awaiting an
+evidence-bearing non-author approval from backend; L-19 and L-19b open,
+routed to TASK-007 / #24 and to the dispatcher respectively; mission resume
+proceeds from BACKLOG step 3, TASK-102-S2 already in backend's inbox.
+
+Recorded by pm — ledger message `a68a52d4`, run `8f1a127803284aaeb8cf117f4ef56727`.
