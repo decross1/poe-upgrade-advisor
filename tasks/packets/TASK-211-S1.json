@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-211-S1",
+  "parent_task_id": "TASK-211",
+  "issue": 90,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Give the shipped page an item paste box so a player can evaluate THEIR OWN item. Today web/src/demo/App.tsx offers a two-entry 'Hotkey item' dropdown -- a golden fixture and a deliberate 422 -- and that demo surface is what packaging/launch.py serves as the product (web/src/main.tsx renders this exact App). A tester therefore cannot evaluate a single item they own. (1) Add web/src/components/ItemInput.tsx: a textarea whose value the player pastes in-game Ctrl+C text into, plus one explicit submit control; submitting calls the injected onEvaluate(itemText) exactly once (S2 -- one server action per explicit user action; no evaluate-on-keystroke, no debounce-fired request, no request on an empty or whitespace-only textarea). (2) Wire it into App.tsx as the PRIMARY item path, replacing the picker's role: the page starts with an empty box and NO card and issues NO request until the player submits. Keep the two demo entries only as a clearly-labelled secondary control, or delete them -- your call, but the paste box must be what a first-time player reaches first. (3) A Ctrl+V (paste event) anywhere on the page that is not already inside a text field routes the pasted text into the box and submits it, so the pre-overlay flow is one keypress (issue #90 AC-3). (4) Update the harness note text so it describes pasting your own item, not picking a fixture. Doctrine: I1 -- a paste box is an input surface, not a settings surface; add no options, no preset selector, no advanced panel. I5 -- unreadable text must reach the server and render whatever honest answer it returns; never pre-judge item text in the client.",
+  "preconditions": [
+    { "check": "issue_state", "expect": "open" },
+    { "check": "issue_labels", "require": ["task"] }
+  ],
+  "files_in_scope": [
+    "web/src/components/ItemInput.tsx",
+    "web/src/demo/App.tsx",
+    "web/src/styles.css",
+    "web/test/ItemInput.test.tsx",
+    "web/test/detailsAffordance.test.tsx",
+    "web/test/realServer.e2e.test.tsx"
+  ],
+  "files_out_of_scope": [
+    "web/src/generated/**",
+    "web/src/lib/**",
+    "web/src/session/**",
+    "web/src/components/VerdictCard.tsx",
+    "web/src/components/BuildImport.tsx",
+    "web/mock/**",
+    "overlay/**",
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "bot/**", "packaging/**", "scripts/**", "tasks/**", "tests/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/adr/**", "docs/specs/**", "docs/agent-org/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "constraints": [
+    "The card, session machine, and generated client are untouched: the paste box feeds the SAME useCardSession evaluate() the picker feeds today. Do not fork the session logic.",
+    "Exactly one POST /diff per explicit submit (S2). No keystroke-triggered, no retry, no polling.",
+    "No settings surface (I1): no preset picker, no toggles, no persisted preferences on this page.",
+    "Existing tests may be EXTENDED, never deleted or skipped -- a removed assertion fails completion proof 7 at the merge robot.",
+    "The two existing web/test files in scope change only where the picker they drive was replaced; if a test needs no change, leave it byte-identical.",
+    "Stage PR uses 'Refs #90', never 'Fixes' (ADR-0008): #90's zip/release/announcement criteria are a later stage."
+  ],
+  "required_checks": [
+    "npm --prefix web run test:ui",
+    "npm --prefix web run build"
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-1", "text": "A player can paste arbitrary in-game Ctrl+C item text into a textarea on the shipped page and submit it; the rendered card is the real server's answer for that exact text." },
+    { "id": "AC-2", "text": "web/test/ItemInput.test.tsx proves: submitting calls onEvaluate exactly once with the exact pasted text; an empty or whitespace-only box issues NO call; typing without submitting issues NO call." },
+    { "id": "AC-3", "text": "A paste event outside any text field routes the text into the box and submits it exactly once (tested)." },
+    { "id": "AC-4", "text": "On first render the page shows no verdict card and has issued no /diff request; the card appears only after a submit." },
+    { "id": "AC-5", "text": "The real-server e2e (web/test/realServer.e2e.test.tsx) drives the item through the PASTE BOX rather than the picker, so the proven path is the player's path." },
+    { "id": "AC-6", "text": "npm --prefix web run test:ui and npm --prefix web run build both pass; no test was deleted or skipped." }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 6,
+    "max_diff_lines": 420,
+    "max_tool_calls": 60,
+    "max_wall_clock_seconds": 1800,
+    "cost_ceiling_usd": 30.0,
+    "value_usd": 90.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "git revert the stage commit; the page returns to the two-entry demo picker with no other behavior changed."
+}

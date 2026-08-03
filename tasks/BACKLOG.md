@@ -107,6 +107,44 @@ the gate is open and canary bookkeeping is over.
 7. **Release loop**: extend bot/ announce plumbing with release announcements;
    triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
 
+## Close the end-to-end gap — 2026-08-03 (issue #97, orchestrator directive a4f731f4)
+
+The mission sentence is "a player copies an item in game and sees a real
+verdict card driven by the real engine." Landed so far: the clipboard
+pipeline, e2e snapshots, the hotkey, the latency budget, the parity harness,
+the release-note renderer. Three seams still stand between that inventory and
+a player. Each is a green stage; each is dispatched with a packet.
+
+7. **TASK-211-S1** (frontend, issue #90 — P0). The shipped page IS
+   `web/src/demo/App.tsx`: its "Hotkey item" picker holds two hardcoded
+   entries, so a tester cannot evaluate a single item they own. The stage adds
+   the paste box and makes it the primary path, including the paste-anywhere
+   route. The zip rebuild / release-asset / #poe correction criteria on #90
+   are a LATER stage — this one is code only.
+8. **TASK-212-S1** (backend, issue #119 — new). Every item this repo has ever
+   calculated is in PoB EXPORT format. `grep -rl "Item Class:"` hits only
+   `overlay/`. The overlay forwards game clipboard text unchanged on a stated
+   "the server canonicalizes" contract that does not exist anywhere in
+   `server/`. The stage shows the real engine real in-game text for the first
+   time and either canonicalizes at the server boundary or records the failure
+   in `engine/GAPS.md`. Nothing silently becomes CANT_EVALUATE (I5).
+9. **TASK-210-S6** (frontend, issue #79). Every overlay test runs against a
+   stub `postDiff` or the fixture mock; the web app has a real-server e2e and
+   the overlay has none. The stage drives the production
+   `createClipboardPipeline` composition against a real `python3 -m server`,
+   stubbing only the Electron clipboard seam. Independent of #119 by design —
+   it uses the existing golden item.
+
+Dispatch order: 7 and 8 in parallel (different roles); 9 after 7 clears
+frontend's queue. Revisit if TASK-212-S1 finds the engine rejects real game
+text — that outcome promotes canonicalization to the critical path and
+TASK-210-S6 should then re-run its e2e against a game-format fixture.
+
+Not packeted, deliberately: shipping the overlay itself to players. The MVP
+zip (`scripts/package_mvp.sh`, `packaging/launch.py`) contains no overlay at
+all and running it needs npm + Electron. That is a real gap, it is bigger than
+one green stage, and it is worth nothing until the three seams above hold.
+
 Constraints (binding, from #97): green tier default; frontier only via frontier
 gates; concurrency per effort.env; packets+issues for all work; gates never
 weakened; completion dispatcher-verified (proofs #1–#15).

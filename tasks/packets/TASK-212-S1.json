@@ -2,36 +2,108 @@
   "schema_version": "1.0",
   "task_id": "TASK-212-S1",
   "parent_task_id": "TASK-212",
-  "issue": 97,
-  "owner_role": "frontend",
+  "issue": 119,
+  "owner_role": "backend",
   "tier": "green",
-  "objective": "Prove the OVERLAY works against the REAL server end to end — the one thing the product has never demonstrated. web/test/realServer.e2e.test.tsx already does this for the web app: it boots the real `python3 -m server` on an ephemeral port and drives real /build and /diff calls. The overlay — the actual in-game surface a player uses — has no equivalent, so every overlay test to date mocks the server and nothing proves a copied item produces a real verdict. Add overlay/test/realServer.e2e.test.ts that boots the same real server the same way (copy the spawn/readiness/teardown approach from the web test; do NOT refactor or import it, duplication across package boundaries is correct here) and drives the overlay's OWN path: import the golden PoB code via POST /build, then feed the golden item text through the real createClipboardPipeline composition with bindGeneratedDiff(baseUrl) pointed at that live server, and assert the pipeline emits a schema-valid VerdictCard whose content came from the real engine — not a fixture. Use the same golden inputs the web test pins: engine/corpus/seed/ninja/12-elementalist-ci-cold-snap.json's pathOfBuildingExport and engine/tests/fixtures/item.txt. Follow the web test's availability policy exactly: a missing python3/pyyaml or engine runtime must skip LOUDLY with a clear banner, never silently. If this test finds a real defect in the overlay's live path, STOP and report it in your completion summary rather than changing overlay/src to make the test pass — a red result here is a valuable finding, not a failure to fix.",
+  "objective": "Prove -- or honestly close -- the last unproven seam in the mission loop: real in-game clipboard text reaching the real engine. Every item this repo has ever calculated is in Path of Building EXPORT format (engine/tests/fixtures/item.txt). Real Ctrl+C text is a different shape: an 'Item Class:' header, '--------' separators, 'Rarity: Rare' capitalization, Requirements/Item Level blocks, '(implicit)'/'(crafted)' mod suffixes. grep -rl 'Item Class:' hits only overlay/. The overlay forwards captured text UNCHANGED on the stated contract that 'the server canonicalizes' (overlay/src/diffFlow.ts), yet server/calculator.py writes the bytes straight to a file for new('Item', readAll(path)) in engine/pobcalc.lua -- no canonicalization exists anywhere. (1) Add real game-clipboard fixtures under engine/tests/fixtures/game_clipboard/: at minimum a rare with the full header, an unidentified rare, and an influenced or corrupted item. Hand-write them to the game's exact shape. (2) Drive each through the real worker in engine/tests/test_server_adapter.py against the golden build that file already imports, keeping its loud-skip-when-runtime-absent policy. (3) For every fixture the engine reads: assert a schema-valid verdict card. For any fixture it CANNOT read: either add the minimal canonicalization at the server boundary in server/calculator.py -- a normalizer that converts game-format text to what PoB's parser accepts, unit-tested in tests/test_server.py without the runtime -- or, if the shape is genuinely out of reach inside this stage's budget, record it in engine/GAPS.md under Open with the exact failing line and open a follow-up issue. What you may NOT do is leave the behavior undescribed or let a real item silently become CANT_EVALUATE with no record. (4) tests/test_server.py must cover the boundary behavior with a stub calculator so the seam is checked on every CI run, runtime or not.",
+  "preconditions": [
+    {
+      "check": "issue_state",
+      "expect": "open"
+    },
+    {
+      "check": "issue_labels",
+      "require": [
+        "task"
+      ]
+    }
+  ],
   "files_in_scope": [
-    "overlay/test/realServer.e2e.test.ts"
+    "engine/tests/fixtures/game_clipboard/*",
+    "engine/tests/test_server_adapter.py",
+    "server/calculator.py",
+    "tests/test_server.py",
+    "engine/GAPS.md",
+    "server/README.md"
   ],
   "files_out_of_scope": [
-    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
-    "web/**", "bot/**", "packaging/**", "scripts/**", "tasks/packets/**",
-    "overlay/src/**",
-    "PRODUCT_DOCTRINE.md", "AGENTS.md",
-    "docs/runbooks/**", "docs/adr/**", "docs/agent-org/**",
-    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+    "engine/corpus/**",
+    "engine/pobcalc.lua",
+    "engine/pobcalc",
+    "engine/vendor/**",
+    "engine/parity_harness.py",
+    "engine/runtime/**",
+    "engine/tests/fixtures/item.txt",
+    "server/app.py",
+    "server/assumptions.py",
+    "assumptions/**",
+    "overlay/**",
+    "web/**",
+    "bot/**",
+    "agents/**",
+    ".github/**",
+    "contracts/**",
+    "packaging/**",
+    "scripts/**",
+    "tasks/**",
+    "docs/**",
+    "PRODUCT_DOCTRINE.md",
+    "AGENTS.md",
+    "README.md",
+    "ARCHITECTURE.md",
+    "CLAUDE.md"
+  ],
+  "constraints": [
+    "Canonicalization, if any, is a TEXT normalization at the server boundary only. Do not touch engine/pobcalc.lua, the vendored submodule, or the corpus (protected).",
+    "The normalizer must never invent, drop, or reinterpret a modifier value. If a line cannot be mapped, the item stays unreadable and the honest CANT_EVALUATE/422 path handles it (I5).",
+    "No contract change: /diff still takes raw item_text. If you believe the contract must change, stop and route it to pm; do not edit contracts/.",
+    "Existing tests may be EXTENDED, never deleted or skipped, and engine/tests/fixtures/item.txt stays byte-identical -- the parity and e2e suites pin it.",
+    "engine/tests/test_server_adapter.py keeps its runtime-availability skip: a missing runtime must skip loudly, never silently pass.",
+    "Stage PR uses 'Refs #119', never 'Fixes' (ADR-0008) unless every criterion on #119 is met by this diff."
   ],
   "required_checks": [
-    "npm --prefix overlay run test"
+    "python3 -m pytest tests/test_server.py -q",
+    "python3 -m unittest discover -s engine/tests -q",
+    "python3 scripts/check_invariants.py"
   ],
   "acceptance_criteria": [
-    {"id": "AC-1", "text": "overlay/test/realServer.e2e.test.ts boots the real server via `python3 -m server` on an ephemeral port and tears it down reliably, mirroring web/test/realServer.e2e.test.tsx."},
-    {"id": "AC-2", "text": "The test drives the overlay's real path — createClipboardPipeline composed with bindGeneratedDiff(baseUrl) — against that live server. No stubbed fetch, no fixture verdict, no hand-rolled request body."},
-    {"id": "AC-3", "text": "It asserts a schema-valid VerdictCard produced by the real engine from the golden PoB code + golden item text, and that the same input is deterministic across two calls."},
-    {"id": "AC-4", "text": "A missing python3/pyyaml or engine runtime skips the suite LOUDLY with a clear banner — never a silent skip."},
-    {"id": "AC-5", "text": "Diff touches only overlay/test/realServer.e2e.test.ts; overlay/src is unmodified. The full overlay suite passes (or the new suite skips loudly per AC-4)."}
+    {
+      "id": "AC-1",
+      "text": "engine/tests/fixtures/game_clipboard/ holds at least three real-shape in-game clipboard items (full rare, unidentified, influenced or corrupted), each with the 'Item Class:' header and '--------' separators."
+    },
+    {
+      "id": "AC-2",
+      "text": "engine/tests/test_server_adapter.py drives every one of those fixtures through the real worker against the golden build and asserts, per fixture, a schema-valid verdict payload or an explicitly recorded unreadable outcome."
+    },
+    {
+      "id": "AC-3",
+      "text": "For every fixture the engine cannot read, either server/calculator.py canonicalizes it (with a runtime-free unit test in tests/test_server.py covering that exact text) or engine/GAPS.md records the failure under Open with the failing line and a filed issue number. No fixture is left undescribed."
+    },
+    {
+      "id": "AC-4",
+      "text": "tests/test_server.py passes without the engine runtime and covers the boundary behavior with a stub calculator."
+    },
+    {
+      "id": "AC-5",
+      "text": "engine/tests/fixtures/item.txt is byte-identical to its committed state and no existing test was deleted or skipped."
+    },
+    {
+      "id": "AC-6",
+      "text": "The PR states, in one line per fixture, what the real engine actually did with it -- the evidence the org has never had."
+    }
   ],
   "budgets": {
-    "max_attempts": 2, "max_files_modified": 1, "max_diff_lines": 320,
-    "max_tool_calls": 50, "max_wall_clock_seconds": 1200,
-    "cost_ceiling_usd": null,
-    "value_usd": 14.0
+    "max_attempts": 2,
+    "max_files_modified": 8,
+    "max_diff_lines": 600,
+    "max_tool_calls": 70,
+    "max_wall_clock_seconds": 2400,
+    "cost_ceiling_usd": 40.0,
+    "value_usd": 120.0
   },
-  "routing": { "reasoning_effort": "low", "review_only_if": [] }
+  "routing": {
+    "reasoning_effort": "high",
+    "review_only_if": []
+  },
+  "rollback": "git revert the stage commit; fixtures and their tests disappear and the server boundary returns to passing item text through untouched."
 }

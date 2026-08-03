@@ -173,14 +173,17 @@ def test_every_example_packet_validates():
         "TASK-102-S5.json",
         "TASK-210-S2.json",
         "TASK-210-S3.json",
-        # 2026-08-03: TASK-210-S5 (capture->card latency budget) and
-        # TASK-212-S1 (the overlay's FIRST real-server e2e). web/ has had a
-        # real-server e2e since TASK-208; the overlay — the actual in-game
-        # surface — has never been proven against a live server, so every
-        # overlay test to date mocks it. Its check targets a test file the
-        # packet itself creates; see _check_targets_unbuilt_scope below.
-        "TASK-210-S5.json",
+        # 2026-08-03: the three stages that close the end-to-end mission gap
+        # (#97) — a player copies an item and sees a real engine verdict.
+        # S1 gives the shipped page an item paste box (today's picker has two
+        # hardcoded entries, so no tester can evaluate their own item, #90);
+        # TASK-212-S1 shows the engine real in-game clipboard text for the
+        # first time (#119 — grep for "Item Class:" hits only overlay/);
+        # TASK-210-S6 drives the overlay's production pipeline against the
+        # real server instead of a stub postDiff (#79).
+        "TASK-211-S1.json",
         "TASK-212-S1.json",
+        "TASK-210-S6.json",
     }
 
 
