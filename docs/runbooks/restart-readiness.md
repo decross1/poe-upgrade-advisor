@@ -768,3 +768,52 @@ would send pm straight back at the dispatcher it is not allowed to edit —
 and control-plane repair is the orchestrator's lane, not pm's. The cap raise
 unblocks the mission messages, which are the ones that should move; ORG
 stays broken until pm has a reason to touch it that is not a protected path.
+
+---
+
+## L-26: review work was unpassable by construction, 2026-08-03
+
+Proofs #10 and #11 load the packet named by the MESSAGE's `task_id`. For a
+`TASK_ASSIGN` that is exactly right. For a `REVIEW_REQUEST` it is a category
+error: the reviewer is handed the **builder's** packet and judged against the
+builder's obligations — an `acceptance_criteria` id-set it never agreed to,
+and a `files_in_scope` that no verdict document could ever fall inside.
+
+Measured in a single morning, across all three roles:
+
+| role | task | refusal |
+|---|---|---|
+| pm | TASK-210-S3 | #10 invented `REVIEW-PROCESS`, `REVIEW-PROVENANCE`; #11 out of scope `docs/agent-org/task-210-s3-review-…md` |
+| frontend | TASK-210-S3 | #10 invented `verdict-acknowledged`, `pm-evidence-confirmed`, …; #11 out of scope `docs/agent-org/task-210-s3-verdict-ack-…md` |
+| backend | TASK-210-S2 | #10 invented `AC-REVIEW-EXECUTION`, `AC-BLAST-RADIUS`, `AC-NO-GATE-BYPASS`, … |
+
+Three different models, three different tasks, the same two refusals. Each
+agent independently did the sensible thing — name the criteria a *review* is
+judged on, and write its verdict to `docs/agent-org/` — and each was refused
+for it. **No prompt could have fixed this**: there is no id-set a reviewer can
+emit that equals the builder's, and no path inside a build packet's scope
+where a verdict belongs. Review → merge is the loop the mission runs on, and
+it could not close. This, not provider caps, is why finished work kept piling
+up unmerged.
+
+The correction evaluates the right obligations rather than lowering the bar:
+
+- **#10** is `None` (not evaluable) for a review intent — the same verdict the
+  proof already returns when there is no packet at all.
+- **#11** additionally admits `docs/agent-org/*`, and only that, for a review
+  intent. Build scope for builders is byte-for-byte unchanged.
+
+Everything else still binds on a review: **#9 still re-runs the required
+checks**, **#12 still circuit-breaks on PROTECTED paths** (verified by test —
+a reviewer committing `agents/dispatch.py` still breaks, and the admitted
+evidence dir is not protected in the first place), and the verdict still has
+to reach the ledger. A reviewer touching out-of-scope product code is still
+refused; there is a test pinning that the carve-out is not a general escape.
+
+`REVIEW_INTENTS` covers `REVIEW_REQUEST`, `REVIEW_VERDICT`,
+`ARBITRATION_REQUEST`, `ARBITRATION_RULING`. The fix is inert unless
+`dispatch` threads `intent` into the proofs, so a test pins that too.
+
+**Standing lesson**: proofs #10/#11 assumed message intent and packet role
+always agree. Any future proof that reads the packet should state which
+intents it is judging.

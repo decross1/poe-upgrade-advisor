@@ -13,6 +13,7 @@ nothing touches the real mailroom.
 """
 from __future__ import annotations
 
+import fnmatch
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -505,3 +506,129 @@ def test_p12_pm_carveout_is_packets_only(monkeypatch):
     mixed = C.p12_protected(
         {}, _pm_ctx(["tasks/packets/TASK-1.json", "agents/dispatch.py"], "pm"))
     assert not mixed.passed and mixed.severity == "break"
+
+
+# --- L-26: review intents are judged on the reviewer's obligations --------
+#
+# Proofs #10/#11 read the packet named by the message's task_id. For a
+# TASK_ASSIGN that is correct. For a REVIEW_REQUEST the reviewer is handed the
+# BUILDER's packet — so it is asked for an AC id-set it never agreed to, and
+# told its verdict document is out of a scope no build packet will ever list.
+# Measured 2026-08-03 across all three roles in one morning (pm TASK-210-S3,
+# frontend TASK-210-S3, backend TASK-210-S2): every agent independently named
+# review criteria and wrote to docs/agent-org/, and every one was refused.
+# Review work was unpassable by construction, so review->merge never closed.
+
+
+def test_review_intent_does_not_inherit_the_builders_acs(mailroom, worktree):
+    """A reviewer cannot emit the builder's AC id-set — there is no id-set
+    that satisfies this, which is why no prompt fixed it."""
+    res = _true_completion(worktree)
+    res["acceptance_criteria"] = [
+        {"id": "AC-REVIEW-EXECUTION", "status": "passed", "evidence": "ran"},
+    ]
+    packet = {"acceptance_criteria": [{"id": "AC-1"}, {"id": "AC-2"}]}
+    params = {"proofs": [{"id": "acceptance_criteria"}]}
+
+    # As a build intent this is exactly the observed failure.
+    built = _run(res, worktree, mailroom, params, packet=packet,
+                 intent="TASK_ASSIGN")
+    assert built["acceptance_criteria"].passed is False
+    assert "invented" in built["acceptance_criteria"].detail
+
+    # As a review intent it is not evaluable — the same verdict this proof
+    # already returns when there is no packet at all.
+    for intent in ("REVIEW_REQUEST", "REVIEW_VERDICT",
+                   "ARBITRATION_REQUEST", "ARBITRATION_RULING"):
+        pr = _run(res, worktree, mailroom, params, packet=packet,
+                  intent=intent)
+        assert pr["acceptance_criteria"].passed is None, intent
+        assert "L-26" in pr["acceptance_criteria"].detail
+
+
+def test_review_intent_may_write_its_verdict_but_nothing_else(mailroom,
+                                                              worktree):
+    """#11 admits the review-evidence dir for a review intent — and ONLY it.
+    A reviewer that edits product code is still out of scope."""
+    _git("checkout", "-q", "-b", "role/review-l26", cwd=worktree)
+    verdict = worktree / "docs/agent-org/task-210-s3-review.md"
+    verdict.parent.mkdir(parents=True, exist_ok=True)
+    verdict.write_text("# verdict\n\nlooks right\n")
+    _git("add", "-A", cwd=worktree)
+    _git("commit", "-q", "-m", "review verdict", cwd=worktree)
+    sha = _git("rev-parse", "HEAD", cwd=worktree).strip()
+    base = _git("rev-parse", "origin/main", cwd=worktree).strip()
+
+    res = {"schema_version": "1.0", "run_id": "run-unit0001",
+           "task_id": "TASK-210-S3", "status": "completed", "summary": "r",
+           "commit_sha": sha, "pushed": True, "checks": [],
+           "acceptance_criteria": []}
+    packet = {"files_in_scope": ["overlay/**"],
+              "files_out_of_scope": ["docs/agent-org/**"]}
+    params = {"proofs": [{"id": "scope"}]}
+
+    # The builder's packet denies it; as a build intent that still holds.
+    built = _run(res, worktree, mailroom, params, packet=packet,
+                 base_sha=base, intent="TASK_ASSIGN")
+    assert built["scope"].passed is False
+
+    reviewed = _run(res, worktree, mailroom, params, packet=packet,
+                    base_sha=base, intent="REVIEW_REQUEST")
+    assert reviewed["scope"].passed is True, reviewed["scope"].detail
+
+
+def test_review_intent_is_not_a_general_scope_escape(mailroom, worktree):
+    """The carve-out is the evidence dir, not a blanket pass: a reviewer that
+    touches out-of-scope PRODUCT code is still refused."""
+    _git("checkout", "-q", "-b", "role/review-l26-escape", cwd=worktree)
+    (worktree / "sneaky.py").write_text("x = 1\n")
+    _git("add", "-A", cwd=worktree)
+    _git("commit", "-q", "-m", "not a verdict", cwd=worktree)
+    sha = _git("rev-parse", "HEAD", cwd=worktree).strip()
+    base = _git("rev-parse", "origin/main", cwd=worktree).strip()
+
+    res = {"schema_version": "1.0", "run_id": "run-unit0001",
+           "task_id": "TASK-210-S3", "status": "completed", "summary": "r",
+           "commit_sha": sha, "pushed": True, "checks": [],
+           "acceptance_criteria": []}
+    pr = _run(res, worktree, mailroom, {"proofs": [{"id": "scope"}]},
+              packet={"files_in_scope": ["overlay/**"],
+                      "files_out_of_scope": []},
+              base_sha=base, intent="REVIEW_REQUEST")
+    assert pr["scope"].passed is False
+    assert "sneaky.py" in pr["scope"].detail
+
+
+def test_protected_paths_still_break_on_a_review_intent(mailroom, worktree):
+    """#12 is untouched by L-26: docs/agent-org/* is not protected, and the
+    protected floor still circuit-breaks for a reviewer."""
+    from agents import completion as C
+    from agents.merge_robot.patterns import PROTECTED
+
+    # A reviewer committing to the control plane still circuit-breaks: the
+    # L-26 carve-out lives in #11 and #12 never consults it.
+    broke = C.p12_protected({}, {"res": {}, "intent": "REVIEW_REQUEST",
+                                 "role": "backend", "worktree": worktree,
+                                 "diff_paths": ["agents/dispatch.py"],
+                                 "packet": None, "base_sha": None})
+    assert broke.number == 12
+    assert broke.passed is False
+    assert broke.severity == "break"
+    assert "agents/dispatch.py" in broke.detail
+
+    # And the evidence dir the carve-out admits is not protected in the first
+    # place, so admitting it cannot be smuggling a protected path through.
+    assert not any(g.startswith("docs/agent-org") for g in PROTECTED)
+    for glob in C.REVIEW_EVIDENCE_GLOBS:
+        assert not any(fnmatch.fnmatch(glob.replace("*", "x"), g)
+                       for g in PROTECTED)
+
+
+def test_dispatcher_threads_the_message_intent_into_the_proofs():
+    """The fix is inert unless dispatch passes the intent through."""
+    import inspect
+
+    from agents import dispatch
+
+    src = inspect.getsource(dispatch.dispatch)
+    assert 'intent=msg.get("intent")' in src

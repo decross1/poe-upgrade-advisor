@@ -1157,7 +1157,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                     run_id=run_id, packet=packet, base_sha=base_sha,
                     check_results=check_results if declared else None,
                     attempts=attempts, duration_seconds=duration,
-                    usage=usage, role=role)
+                    usage=usage, role=role, intent=msg.get("intent"))
                 completion_proofs = proofs_telemetry(proofs)
                 proof_refused = refusal(proofs)
 

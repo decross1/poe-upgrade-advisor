@@ -261,11 +261,70 @@ def p9_required_checks(res, ctx):
                  "(agent tests[] array not consulted)")
 
 
+#: Intents where the agent is JUDGING someone else's work rather than doing
+#: the packet's work. The distinction is not cosmetic: a packet's
+#: acceptance_criteria and files_in_scope describe the BUILDER's obligations,
+#: so applying them to a reviewer asks the reviewer to satisfy criteria it was
+#: never given and to produce its verdict inside a scope that no build packet
+#: will ever list. See REVIEW_ROUTING_NOTE below for the measured cost.
+REVIEW_INTENTS = frozenset({
+    "REVIEW_REQUEST", "REVIEW_VERDICT",
+    "ARBITRATION_REQUEST", "ARBITRATION_RULING",
+})
+
+#: Where a reviewer's written verdict may land. A review's deliverable is
+#: evidence, and it needs somewhere to live that is neither the builder's
+#: scope nor the control plane.
+REVIEW_EVIDENCE_GLOBS = ("docs/agent-org/*",)
+
+REVIEW_ROUTING_NOTE = """2026-08-03 orchestrator ruling (L-26).
+
+Proofs #10 and #11 read the packet named by the MESSAGE's task_id. For a
+TASK_ASSIGN that is right — the agent is building the thing the packet
+describes. For a REVIEW_REQUEST it is a category error: the reviewer is
+handed the BUILDER's packet and judged against the builder's obligations.
+
+The failure was structural, not occasional, and it was measured in one
+morning across all three roles:
+
+  pm       TASK-210-S3  #10 invented ['REVIEW-PROCESS','REVIEW-PROVENANCE']
+                        #11 out of scope ['docs/agent-org/task-210-s3-review-...md']
+  frontend TASK-210-S3  #10 invented ['verdict-acknowledged','pm-evidence-confirmed', ...]
+                        #11 out of scope ['docs/agent-org/task-210-s3-verdict-ack-...md']
+  backend  TASK-210-S2  #10 invented ['AC-REVIEW-EXECUTION','AC-BLAST-RADIUS', ...]
+
+Every agent independently did the sensible thing — name the criteria a
+REVIEW is judged on, and write the verdict to docs/agent-org/ — and every
+one was refused for it. No prompt fixes this: there is no id-set a reviewer
+can emit that equals the builder's, and no path inside a build packet's
+scope where a verdict belongs. Review work was unpassable by construction,
+which is why review->merge, the loop the mission runs on, never closed.
+
+The correction is to evaluate the right obligations, NOT to lower the bar:
+  #10 is not evaluable for a review intent (the builder's ACs are not the
+      reviewer's) — the same `None` verdict this proof already returns when
+      there is no packet at all.
+  #11 additionally admits docs/agent-org/* for a review intent. Build
+      scope for builders is untouched.
+
+Everything else still binds on reviews: #9 still re-runs the required
+checks, #12 still circuit-breaks on PROTECTED paths (docs/agent-org/* is
+not protected), and the review verdict itself still has to reach the ledger.
+"""
+
+
 def p10_acceptance_criteria(res, ctx):
     packet = ctx.get("packet")
     if not packet:
         return Proof(10, "acceptance_criteria", None,
                      "no packet — AC set-equality not evaluable")
+    if ctx.get("intent") in REVIEW_INTENTS:
+        # L-26: the packet's ACs are the BUILDER's obligations; a reviewer
+        # never agreed to them and cannot emit their id-set. Not evaluable —
+        # the reviewer's substantive gates are #9 and its ledger verdict.
+        return Proof(10, "acceptance_criteria", None,
+                     f"review intent {ctx['intent']} — the packet's ACs bind "
+                     "the builder, not the reviewer; not evaluable (L-26)")
     want = {c["id"] for c in packet.get("acceptance_criteria") or []}
     got = {c.get("id") for c in res.get("acceptance_criteria") or []}
     if want != got:
@@ -292,6 +351,13 @@ def p11_scope(res, ctx):
                      "base..commit diff unobtainable — scope unprovable")
     from agents.interfaces.packet import out_of_scope  # noqa: PLC0415
     bad = out_of_scope(paths, packet)
+    if bad and ctx.get("intent") in REVIEW_INTENTS:
+        # L-26: a review's deliverable is a written verdict, and no build
+        # packet lists a path for one. Admit the review-evidence dir — and
+        # ONLY it — so the rest of the scope check still bites.
+        bad = [p for p in bad
+               if not any(fnmatch.fnmatch(p, g)
+                          for g in REVIEW_EVIDENCE_GLOBS)]
     if bad:
         return Proof(11, "scope", False,
                      f"paths out of scope (deny wins): {bad[:5]}")
@@ -438,7 +504,8 @@ def verify_completion(res: dict, *, worktree: Path, mailroom: Path,
                       attempts: int | None = None,
                       duration_seconds: float | None = None,
                       usage: dict | None = None,
-                      role: str | None = None) -> list[Proof]:
+                      role: str | None = None,
+                      intent: str | None = None) -> list[Proof]:
     """Run proofs #1–#14 in order (every one runs — the refusal should name
     everything wrong, not the first thing). #15 is appended by the
     dispatcher at ack time; its placeholder is emitted here so the bundle
@@ -451,7 +518,7 @@ def verify_completion(res: dict, *, worktree: Path, mailroom: Path,
                  "res": res, "base_sha": base_sha,
                  "check_results": check_results, "attempts": attempts,
                  "duration_seconds": duration_seconds, "usage": usage,
-                 "role": role}
+                 "role": role, "intent": intent}
     results: list[Proof] = []
     for proof_id in active:
         if proof_id == "accounting_before_ack":
