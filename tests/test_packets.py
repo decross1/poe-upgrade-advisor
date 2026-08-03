@@ -162,6 +162,14 @@ def test_every_example_packet_validates():
         "TASK-102-S5.json",
         "TASK-210-S2.json",
         "TASK-210-S3.json",
+        # 2026-08-03: TASK-009 (issue #106) — the inherited agents/dispatch.py
+        # F821 that keeps required lint red and makes the L-14 provider-limit
+        # suppression raise NameError at runtime. Filed as its own authorized
+        # unit (protected-change + test-change-authorized granted at creation)
+        # because two docs PRs (#104, #105) are blocked on it and neither may
+        # carry a protected dispatcher fix. Registered here by pm; the fix is
+        # backend's.
+        "TASK-009-S1.json",
     }
 
 

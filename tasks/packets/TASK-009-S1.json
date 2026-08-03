@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-009-S1",
+  "parent_task_id": "TASK-009",
+  "issue": 106,
+  "owner_role": "backend",
+  "tier": "red",
+  "objective": "Repair the inherited F821 in agents/dispatch.py: the step-1.5 provider-limit suppression branch references `task_id` at lines 663 and 666, but `task_id` is only bound at line ~698 after the message is loaded at step 3. Required `lint` (ruff --select E9,F63,F7,F82) is red on it, and at runtime any role with an active provider-limit marker raises NameError instead of returning SUPPRESSED_PREFLIGHT \u2014 the exact L-14 condition the cap detection exists to handle. Bind the value the branch needs before the check (or otherwise remove the forward reference) without reordering any other suppression's decision or ack semantics, and pin the behaviour with a regression test that fails before the fix.",
+  "preconditions": [
+    {
+      "check": "issue_state",
+      "expect": "open"
+    },
+    {
+      "check": "issue_labels",
+      "require": [
+        "task",
+        "protected-change",
+        "test-change-authorized"
+      ]
+    }
+  ],
+  "files_in_scope": [
+    "agents/dispatch.py",
+    "tests/test_dispatch_provider_limit.py",
+    "tests/test_dispatch.py"
+  ],
+  "files_out_of_scope": [
+    "agents/postmaster/**",
+    "agents/merge_robot/**",
+    "agents/roles/**",
+    "agents/interfaces/**",
+    "tasks/**",
+    "docs/**",
+    ".github/**",
+    "contracts/**",
+    "engine/**",
+    "server/**",
+    "web/**",
+    "overlay/**",
+    "bot/**",
+    "scripts/check_invariants.py",
+    "PRODUCT_DOCTRINE.md",
+    "AGENTS.md"
+  ],
+  "constraints": [
+    "Fix the binding, not the symptom: do not silence ruff (no noqa, no rule removal, no exclude entry) and do not delete the telemetry/Outcome fields to make the name go away. Gates are never weakened to pass (AGENTS.md \u00a76).",
+    "Suppression semantics are load-bearing: no other DispatchDecision, ack outcome, or ordering may change. The provider-limit check must still run BEFORE any spend.",
+    "If the message cannot be loaded at all, the provider-limit suppression must still return an Outcome rather than raise \u2014 a poison message must not turn a capped role into a traceback.",
+    "This packet's required_checks deliberately exclude the ruff command that is currently red: tests/test_packets.py executes every registered required_check and asserts exit 0 in the CURRENT tree, so registering a known-red command would turn the packet suite red on arrival. The lint gate is unchanged and still enforced as a hosted required check on the PR \u2014 AC-1 is verified there.",
+    "Tier is red because the packet validator requires tier=red + reasoning_effort=high + evidence-bearing non-author approval for any protected-path scope; agents/dispatch.py is protected. This is the frontier-gated route, not an exception to the green-tier default in #97 \u2014 the fix cannot be done in a green-tier scope at all."
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "text": "`ruff check --select E9,F63,F7,F82 --exclude engine/vendor .` exits 0 on the branch head, and the hosted `lint` check is green on the PR."
+    },
+    {
+      "id": "AC-2",
+      "text": "A dispatch attempt against an active mailroom/blocked/provider-limit-<role>.json marker returns decision SUPPRESSED_PREFLIGHT with the message's real task_id and does not raise."
+    },
+    {
+      "id": "AC-3",
+      "text": "A new regression test covers AC-2, fails against the pre-fix agents/dispatch.py, and passes after."
+    },
+    {
+      "id": "AC-4",
+      "text": "`python3 -m pytest -q` and `python3 scripts/check_invariants.py` are green; no other suppression path's decision or ack semantics changed."
+    }
+  ],
+  "required_checks": [
+    "python3 scripts/check_invariants.py",
+    "python3 -m pytest -q tests/test_dispatch.py"
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 3,
+    "max_diff_lines": 120,
+    "max_tool_calls": 30,
+    "max_wall_clock_seconds": 1200,
+    "cost_ceiling_usd": null,
+    "value_usd": 40.0
+  },
+  "routing": {
+    "reasoning_effort": "high",
+    "review_only_if": [
+      "evidence-bearing-non-author-approval"
+    ]
+  },
+  "rollback": "git revert the single fix commit; the tree returns to the current known-red lint baseline with no data or contract dependencies."
+}

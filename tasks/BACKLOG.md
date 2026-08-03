@@ -97,6 +97,14 @@ the gate is open and canary bookkeeping is over.
 6. **Release loop**: extend bot/ announce plumbing with release announcements;
    triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
 
+**Blocking the PR lane — TASK-009 / issue #106 (backend, S).** `agents/dispatch.py`
+references `task_id` in the step-1.5 provider-limit branch before it is bound
+(F821 ×2). Required `lint` is red for every PR in the repo, and at runtime the
+L-14 cap path raises `NameError` instead of suppressing. Filed with
+`protected-change` + `test-change-authorized` granted at creation; packet
+`tasks/packets/TASK-009-S1.json`. Docs PRs #104 and #105 cannot reach a green
+head until it lands, and no gate is weakened to route around it.
+
 Constraints (binding, from #97): green tier default; frontier only via frontier
 gates; concurrency per effort.env; packets+issues for all work; gates never
 weakened; completion dispatcher-verified (proofs #1–#15).
