@@ -191,6 +191,7 @@ def test_ban_matching_is_token_wise(cmd):
     "python3 scripts/check_fixture_coverage.py",
     "python3 scripts/check_coverage_floor.py",
     "python3 agents/packets/validate.py --all",
+    "python3 scripts/check_canary_probe.py",
     "python3 -m agents.packets.validate tasks/packets/TASK-901-S1.json",
     "python3 -m unittest discover -s engine/tests -v",
     "ruff check --select E501 agents",
@@ -259,16 +260,20 @@ def test_ratified_allowlist_mechanism_rejects_unlisted():
             "banned": [["git", "push"]], "allowlist": [["git"]]})
 
 
-def test_committed_policy_is_ratified_without_entry_12():
-    """pm ANSWER 20:50Z: eleven entries; entry 12 (argv-exact python3 -c)
-    EXCLUDED pending the operator's R1 ruling. The four v1.1 contract bans
-    lead the ban list; the ratified corollaries follow."""
+def test_committed_policy_is_ratified_r4():
+    """Operator disposition R4 (2026-08-03): entry 12 is the canary probe
+    CHECKER SCRIPT as an ordinary exact-string entry — the python3 -c
+    exception was never added and that ban is absolute. Twelve entries;
+    contract bans lead, corollaries follow."""
     pol = load_command_policy()
     entries = [e["entry"] for e in pol["allowlist"]]
-    assert entries == list(range(1, 12))          # 1..11, no 12
-    assert pol["banned"][:4] == [
-        ["npm", "install"], ["npm", "ci"], ["git", "push"], ["gh"]] or \
-        [["npm", "install"], ["npm", "ci"]] == pol["banned"][:2]
+    assert entries == list(range(1, 13))          # 1..12
+    e12 = pol["allowlist"][-1]
+    assert e12["kind"] == "exact"
+    assert e12["argv"] == ["python3", "scripts/check_canary_probe.py"]
+    # No python3 -c form anywhere in the allowlist, ever.
+    for e in pol["allowlist"]:
+        assert "-c" not in (e.get("argv") or [])
     flat = [tuple(b) for b in pol["banned"]]
     for corollary in [("git", "fetch"), ("git", "pull"), ("npx",),
                       ("node",), ("bash",), ("curl",)]:

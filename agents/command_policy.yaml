@@ -78,4 +78,11 @@ allowlist:
     contexts: [prepass]
   - entry: 11
     kind: git_readonly
-  # entry 12: EXCLUDED — operator ruling pending (R1). Do not add without it.
+  # Entry 12, as RATIFIED (operator disposition R4, 2026-08-03): the canary
+  # probe CHECKER SCRIPT, an ordinary exact-string entry like 2-4. The
+  # python3 -c exception the audit flagged was never added; that ban is
+  # absolute.
+  - entry: 12
+    kind: exact
+    argv: [python3, scripts/check_canary_probe.py]
+
