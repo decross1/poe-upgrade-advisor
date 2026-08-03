@@ -250,8 +250,12 @@ def role_command(role: str, prompt: str, mailroom: Path,
     read and every invocation ran at the env/default rung.
     """
     if role == "pm":
+        # --verbose is REQUIRED by the claude CLI when combining -p with
+        # --output-format stream-json (verified live 2026-08-03: without it
+        # the CLI exits in ~1s with a usage error — the first real pm
+        # invocation found this; every prior run was a fake).
         return ["env", "-u", "ANTHROPIC_API_KEY", "claude", "-p", prompt,
-                "--output-format", "stream-json",
+                "--output-format", "stream-json", "--verbose",
                 "--dangerously-skip-permissions", "--add-dir", str(mailroom)]
     if role == "frontend":
         # 2026-08-03 operator ruling: frontend is the kimi CLI (metered
