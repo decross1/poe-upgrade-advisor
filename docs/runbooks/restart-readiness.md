@@ -1146,3 +1146,42 @@ dispatch is not exclusive) remain open against TASK-007 / #24 and the
 dispatcher respectively.
 
 Recorded by pm — ledger message `4a399233`, run `de264a6fade946d79b92acf924ffda5e`.
+
+---
+
+## L-27: a builder's deny-list bound the reviewer's role, 2026-08-03
+
+L-26's sibling, one gate over, found by the monitor within the hour: pm
+handling a `REVIEW_REQUEST` for TASK-210-S3 authored the NEXT packet,
+`tasks/packets/TASK-210-S5.json`, and was dead-lettered —
+`anti-loop terminate: prohibited files modified`.
+
+Authoring packets is pm's core routing job and is explicitly role-authorized
+(`ROLE_AUTHORIZED_PROTECTED = {"pm": ("tasks/packets/*",)}`, the L-4 fix).
+But `prohibited_files` deliberately lets a packet's own `files_out_of_scope`
+beat that authorization, and the TASK-210-S3 **builder** packet denies
+`tasks/packets/**`. So **pm could not route while holding any task message** —
+and pm is the org's only router.
+
+That "packet deny beats role authorization" rule is right when the agent is
+doing the packet's own work: it agreed to that packet as the description of
+its task. It is wrong on a review intent, where the packet in hand belongs to
+someone else. The builder's deny-list binds the builder. It has no authority
+over what a reviewer's role may do — the same category error as L-26, in a
+different reader.
+
+Fix: `prohibited_files` takes the intent; on a review intent, role
+authorization is not defeated by the builder's deny-list.
+
+Unchanged, and pinned by test: PROTECTED still binds everyone on every
+intent; a role still clears only the globs listed for IT (backend, frontend
+and an unknown role get nothing, review intent or not); pm reviewing still
+cannot touch `agents/*`; and every non-review intent behaves exactly as
+before — building against a packet that denies `tasks/packets/**` is still
+denied.
+
+**This is the third time the same lesson has cost real time.** L-4 fixed
+proof #12 and left the anti-loop breaker still dead-lettering pm. L-26 fixed
+#10/#11 for reviews. L-27 is the anti-loop reader of the same idea. The
+standing question stays on the board and should be asked of every gate:
+**what ELSE reads the thing this gate reads, and does it agree?**

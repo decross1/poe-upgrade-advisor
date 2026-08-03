@@ -800,3 +800,64 @@ def test_packet_out_of_scope_still_beats_role_authorization():
     packet = {"files_out_of_scope": ["tasks/packets/**"]}
     assert prohibited_files(["tasks/packets/TASK-1.json"], packet,
                             role="pm") == ["tasks/packets/TASK-1.json"]
+
+
+# --- L-27: a builder's deny-list does not bind a reviewer's role ----------
+
+
+def test_pm_may_author_the_next_packet_while_reviewing():
+    """Observed live 2026-08-03: pm handling a REVIEW_REQUEST for TASK-210-S3
+    authored tasks/packets/TASK-210-S5.json — its core routing job, and
+    explicitly role-authorized — and was dead-lettered, because the S3
+    BUILDER's packet denies tasks/packets/**. pm could not route while
+    holding any task message. The builder's deny-list binds the builder; it
+    has no authority over what a reviewer's role may do."""
+    from agents.anti_loop import prohibited_files
+
+    builder_packet = {"files_out_of_scope": ["tasks/packets/**"]}
+    changed = ["tasks/packets/TASK-210-S5.json"]
+
+    # Building against that packet: still denied. pm is doing the packet's
+    # own work, so the packet's deny-list is authoritative.
+    assert prohibited_files(changed, builder_packet, role="pm",
+                            intent="TASK_ASSIGN") == changed
+
+    # Reviewing someone else's work: pm's role authorization stands.
+    for intent in ("REVIEW_REQUEST", "REVIEW_VERDICT",
+                   "ARBITRATION_REQUEST", "ARBITRATION_RULING"):
+        assert prohibited_files(changed, builder_packet, role="pm",
+                                intent=intent) == [], intent
+
+
+def test_l27_does_not_widen_who_may_touch_what():
+    """The carve-out clears only the globs listed for THAT role, and only
+    those — PROTECTED still binds everyone on every intent."""
+    from agents.anti_loop import prohibited_files
+
+    packet = {"files_out_of_scope": ["tasks/packets/**"]}
+
+    # Non-pm roles have no packet authorization, review intent or not.
+    for role in ("backend", "frontend", None):
+        assert prohibited_files(["tasks/packets/TASK-1.json"], packet,
+                                role=role, intent="REVIEW_REQUEST") == \
+            ["tasks/packets/TASK-1.json"], role
+
+    # pm reviewing still cannot touch the control plane: agents/* is
+    # PROTECTED and is not among pm's authorized globs.
+    assert prohibited_files(["agents/dispatch.py"], packet, role="pm",
+                            intent="REVIEW_REQUEST") == ["agents/dispatch.py"]
+    assert prohibited_files(
+        ["tasks/packets/TASK-1.json", "agents/dispatch.py"], packet,
+        role="pm", intent="REVIEW_REQUEST") == ["agents/dispatch.py"]
+
+
+def test_dispatcher_threads_intent_into_the_anti_loop_breaker():
+    """L-26's lesson applied: PROTECTED has two independent readers, and a
+    fix that reaches only one leaves the role still dead-lettering. This
+    pins that the anti-loop path gets the intent too."""
+    import inspect
+
+    from agents import dispatch
+
+    assert 'intent=msg.get("intent")' in inspect.getsource(dispatch.dispatch)
+    assert "intent=intent" in inspect.getsource(dispatch._assess_anti_loop)

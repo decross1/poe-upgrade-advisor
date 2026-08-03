@@ -156,14 +156,32 @@ ROLE_AUTHORIZED_PROTECTED: dict[str, tuple[str, ...]] = {
 
 
 def prohibited_files(changed: list[str], packet: dict | None,
-                     role: str | None = None) -> list[str]:
+                     role: str | None = None,
+                     intent: str | None = None) -> list[str]:
     """Deny wins; PROTECTED is the floor a packet cannot loosen.
 
     `role` may clear ONLY the globs listed for it in
-    ROLE_AUTHORIZED_PROTECTED, and only when the path is not also denied by
-    the packet's own `files_out_of_scope` — a packet can still forbid what a
-    role is otherwise authorized to touch.
+    ROLE_AUTHORIZED_PROTECTED. Normally a packet's own `files_out_of_scope`
+    still beats that authorization — a packet can forbid what a role is
+    otherwise allowed to touch, because the agent AGREED to that packet as
+    the description of its own work.
+
+    L-27 (2026-08-03) is the case where that reasoning does not hold. On a
+    review intent the agent is judging someone ELSE's work, and the packet in
+    hand is the BUILDER's. Its `files_out_of_scope` binds the builder; it has
+    no authority over what the reviewer's own role may do. Observed live: pm
+    handling a REVIEW_REQUEST for TASK-210-S3 authored the NEXT packet,
+    `tasks/packets/TASK-210-S5.json` — pm's core routing job, explicitly
+    role-authorized above — and was dead-lettered, because the S3 builder
+    packet denies `tasks/packets/**`. pm could not route while holding any
+    task message, which is the same category error as L-26 one gate over.
+
+    So for a review intent, role authorization is not defeated by the
+    builder's deny-list. PROTECTED still binds everyone; a role still only
+    clears the globs listed for IT; every non-review intent is unchanged.
     """
+    from agents.completion import REVIEW_INTENTS  # noqa: PLC0415
+
     packet_deny = list((packet or {}).get("files_out_of_scope") or [])
     authorized = ROLE_AUTHORIZED_PROTECTED.get(role or "", ())
     deny = packet_deny + list(PROTECTED)
@@ -171,8 +189,10 @@ def prohibited_files(changed: list[str], packet: dict | None,
                    for g in deny if fnmatch.fnmatch(f, g)})
     if not authorized:
         return hits
+    reviewing = intent in REVIEW_INTENTS
     return [f for f in hits
-            if any(fnmatch.fnmatch(f, g) for g in packet_deny)
+            if (not reviewing
+                and any(fnmatch.fnmatch(f, g) for g in packet_deny))
             or not any(fnmatch.fnmatch(f, g) for g in authorized)]
 
 
@@ -283,10 +303,12 @@ class AntiLoopController:
     def assess(self, cur: AttemptState, packet: dict | None = None,
                diff_text: str = "",
                previously_passing_now_failing: bool = False,
-               role: str | None = None) -> Verdict:
+               role: str | None = None,
+               intent: str | None = None) -> Verdict:
         """Assess one finished attempt. Persists it to the rolling window."""
         # Immediate circuit breakers — no retry, no window arithmetic.
-        bad = prohibited_files(cur.files_changed, packet, role=role)
+        bad = prohibited_files(cur.files_changed, packet, role=role,
+                               intent=intent)
         if bad:
             return self._record_and(cur, Verdict(
                 "terminate", f"prohibited files modified: {bad}"))
