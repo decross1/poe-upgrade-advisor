@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-999-S1",
+  "parent_task_id": "TASK-999",
+  "issue": null,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Create docs/agent-org/canary-probe.md — a single trivial file proving the governed dispatch chain (preflight, dispatcher-run checks, completion proof, push, ack) end to end. The file's first line must be exactly '# Canary probe' and the file must be at most 30 lines.",
+  "files_in_scope": ["docs/agent-org/canary-probe.md"],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "bot/**", "packaging/**", "scripts/**",
+    "tasks/packets/**", "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/runbooks/**", "docs/adr/**", "docs/rfc/**", "docs/specs/**",
+    "docs/retro/**", "docs/agent-org/current-state*",
+    "docs/agent-org/unacked-queue-triage*",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "required_checks": [
+    "python3 scripts/check_canary_probe.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "docs/agent-org/canary-probe.md exists, begins '# Canary probe', and is at most 30 lines."},
+    {"id": "AC-2", "text": "No file other than docs/agent-org/canary-probe.md is created or modified."}
+  ],
+  "budgets": {
+    "max_attempts": 1, "max_files_modified": 1, "max_diff_lines": 30,
+    "max_tool_calls": 12, "max_wall_clock_seconds": 600,
+    "cost_ceiling_usd": null,
+    "value_usd": 5.0
+  },
+  "routing": { "reasoning_effort": "low", "review_only_if": [] }
+}
