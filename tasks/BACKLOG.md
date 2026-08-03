@@ -65,3 +65,28 @@ Sequence gates are strict: Phase 1 is go/no-go for everything downstream.
   "body_markdown": "Org is live. Execute TASK-001 from tasks/BACKLOG.md: file the backlog as issues, then assign Phase 0 tasks via TASK_ASSIGN messages. Doctrine governs; ship the vertical slice."
 }
 ```
+
+## Mission resume — 2026-08-03 (issue #97, operator directive)
+
+Sequenced by pm from ledger message f3239313. Canary gate governs: nothing below
+fans out until TASK-999 completes green (dispatcher-verified).
+
+1. **TASK-999-S2 (backend, S, issue #99, packet filed)** Direction-aware fix for
+   `test_every_unique_example_required_check_exists_and_runs` — unblocks PR #98
+   (`test` + `coverage-floor` red because S1 correctly created the probe the
+   test pins as absent). `test-change-authorized`.
+2. **Merge PR #98** (canary TASK-999-S1) once green; record the canary verdict
+   in `docs/runbooks/restart-readiness.md` per issue #96. Canary gate opens.
+3. **Repacketize parked PR #87** (TASK-102 backend parity corpus, approved+green
+   when parked): new stage packet TASK-102-S2 rebasing/replaying the corpus
+   expansion through the control plane — pm authors packet after canary green.
+4. **Repacketize parked PR #91** (TASK-210-S1 frontend clipboard→verdict card,
+   issue #79 stays open; ADR-0008 stage semantics): stage packet TASK-210-S2,
+   frontend on kimi under the $50 org-side cash wall.
+5. **Fan out TASK-901..904** (packets validated, dependency-ready).
+6. **Release loop**: extend bot/ announce plumbing with release announcements;
+   triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
+
+Constraints (binding, from #97): green tier default; frontier only via frontier
+gates; concurrency per effort.env; packets+issues for all work; gates never
+weakened; completion dispatcher-verified (proofs #1–#15).

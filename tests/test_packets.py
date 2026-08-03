@@ -147,6 +147,10 @@ def test_every_example_packet_validates():
         # Packet B + R4 check). Its check asserts POST-work state — see the
         # canary carve-out in the check-runner test below.
         "TASK-999-S1.json",
+        # 2026-08-03: canary-unblock stage (issue #99, test-change-authorized):
+        # makes the check-runner test below direction-aware so S1's probe can
+        # land. Registered here by pm; the fix itself is backend's S2 work.
+        "TASK-999-S2.json",
     }
 
 
