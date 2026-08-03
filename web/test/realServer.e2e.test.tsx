@@ -5,8 +5,9 @@
  *
  *   1. VIA THE WEB UI: the rendered demo App (no seams stubbed — the real
  *      generated client) imports the golden corpus PoB code through
- *      BuildImport, then a picker "hotkey press" on the golden item renders
- *      the engine's real verdict card with its assumptions chips (I3).
+ *      BuildImport, then the golden item PASTED INTO THE PASTE BOX (the
+ *      player's own path, TASK-211-S1) renders the engine's real verdict
+ *      card with its assumptions chips (I3).
  *   2. Via the generated client directly: schema-valid deterministic verdict
  *      (captured to the run log as evidence), chip-override round-trip (I3),
  *      honest 404/422 failure modes.
@@ -61,9 +62,6 @@ const GOLDEN_POB_CODE = (
     ),
   ) as { pathOfBuildingExport: string }
 ).pathOfBuildingExport;
-
-const GOLDEN_PICKER_LABEL = "golden item: Spike Candidate (Vaal Spirit Shield)";
-const ERROR_PICKER_LABEL = "error: unparseable item (honest 422)";
 
 const strictSchema = JSON.parse(
   readFileSync(join(REPO_ROOT, "contracts", "verdict.schema.json"), "utf8"),
@@ -202,8 +200,8 @@ describe.skipIf(!RUNTIME_OK)(
     it("imports the golden PoB code VIA THE WEB UI (BuildImport → POST /build)", async () => {
       render(<App />);
 
-      // Pre-import the harness's automatic first hotkey press has already
-      // drawn the honest no-build panel — there is no verdict card.
+      // TASK-211-S1: the page starts with an empty paste box and issues NO
+      // request on mount — there is no verdict card before a player submit.
       expect(document.querySelector(".verdict-card")).toBeNull();
 
       const started = performance.now();
@@ -223,14 +221,26 @@ describe.skipIf(!RUNTIME_OK)(
       expect(summary.textContent).toContain("Vaal Cold Snap");
     }, 30_000);
 
-    it("a picker hotkey press renders the real engine verdict in the UI", async () => {
+    it("an item pasted into the paste box renders the real engine verdict in the UI", async () => {
       // Fresh harness against the already-imported server session (the build
-      // imported via the UI above persists server-side): the mount-time press
-      // fires immediately, then two explicit picker presses follow.
+      // imported via the UI above persists server-side). The player's path
+      // (TASK-211-S1): paste item text into the box, one explicit submit.
       render(<App />);
-      const picker = screen.getByLabelText(/Hotkey item/);
-      fireEvent.change(picker, { target: { value: ERROR_PICKER_LABEL } });
-      fireEvent.change(picker, { target: { value: GOLDEN_PICKER_LABEL } });
+      // AC-4: no card and no /diff request until the player submits.
+      expect(document.querySelector(".verdict-card")).toBeNull();
+
+      const box = screen.getByLabelText(/Item text/);
+      const submit = screen.getByRole("button", { name: "Evaluate item" });
+
+      // I5 through the UI: unreadable text is never pre-judged in the client —
+      // it goes to the server, whose honest 422 renders the unparseable panel.
+      fireEvent.change(box, { target: { value: "???" } });
+      fireEvent.click(submit);
+      await screen.findByText(/Couldn't read that item/, {}, { timeout: 15_000 });
+
+      // The golden item through the same paste box renders the real verdict.
+      fireEvent.change(box, { target: { value: GOLDEN_ITEM } });
+      fireEvent.click(submit);
 
       const card = await screen.findByLabelText(
         "Upgrade verdict",
