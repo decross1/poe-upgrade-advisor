@@ -69,8 +69,22 @@ Sequence gates are strict: Phase 1 is go/no-go for everything downstream.
 ## Mission resume — 2026-08-03 (issue #97, operator directive)
 
 Sequenced by pm from ledger message f3239313; re-sequenced by pm from
-orchestrator ruling 003c6e0b. The canary (TASK-999) is GREEN and CLOSED —
-the gate is open and canary bookkeeping is over.
+orchestrator ruling 003c6e0b; dispatch state recorded by pm from orchestrator
+message 3037eb09. The canary (TASK-999) is GREEN and CLOSED — the gate is open
+and canary bookkeeping is over.
+
+**PR #102 is landed and closed.** Its substance is on main at 9f8ecd5 (all six
+packets, the `tests/test_packets.py` registry entries, and this section). The
+orchestrator directed "rebase onto current origin/main, then merge"; performed,
+the rebase is EMPTY — `git diff origin/main..origin/role/org-repacketize-parked-prs`
+shows the branch is strictly BEHIND main by L-14/L-16/L-17/L-18 and contains no
+packet delta. Merging it could only have re-litigated already-merged content, so
+the PR was closed with evidence rather than merged. This also retires backend's
+REQUEST_CHANGES (ledger a68a52d4): its two objections were merge-gate conditions
+(#4 single TASK link, #5 protected-change authorization) on a merge that no
+longer needs to happen; the substance objection was explicitly none. The
+mis-templated branch `role/org-repacketize-parked-prs` is dead with the PR —
+`<role>` is a placeholder (AGENTS.md clarified at afad20f).
 
 1. ~~TASK-999-S2~~ **SUPERSEDED** (ruling 003c6e0b): its substance landed at
    main ee1f030; issue #99 is closed. The packet stays registered as a record;
@@ -87,15 +101,41 @@ the gate is open and canary bookkeeping is over.
    tier's diff budget and is OUT of all stage scopes; its refresh is
    escalated to the orchestrator on issue #7. Revisit if budget policy
    gains a generated-artifact lane.
+   **S2 DISPATCHED** to backend 2026-08-03T06:29Z (ledger 53643012, idempotency
+   `mission-102-s2-20260803`, refs issue #7). S3/S4/S5 stay parked until S2
+   lands — the ordering is the whole reason the stages exist.
 4. **Repacketize parked PR #91** (TASK-210, issue #79 stays open; ADR-0008
    stage semantics) — PACKETS FILED: TASK-210-S2 (core watcher→pipeline→card
    + watcher tests), TASK-210-S3 (e2e golden snapshots; depends on S2).
    Frontend on kimi; the $50 org-side cash wall is split as a $25
    `cost_ceiling_usd` per stage.
-5. **Fan out TASK-901..904** (packets validated, dependency-ready) — unblocked
-   now that the canary gate is open.
+   **S2 DISPATCHED** to frontend 2026-08-03T06:29Z (ledger eb219746, idempotency
+   `mission-210-s2-20260803`, refs issue #79). This is the operator's stated
+   priority — the in-game overlay path — and frontend's kimi lane had not been
+   invoked once this cycle. S3 depends on S2 and stays parked.
+5. **Fan out TASK-901..904** — **HELD, not dispatched.** Two reasons, both
+   mechanical, neither a re-litigation of the fan-out decision:
+   (a) *Capacity.* Both executor lanes are occupied by the stages above, and
+   TASK-901-S1 is frontend-owned — it would contend directly with TASK-210-S2
+   for the single kimi lane and the same $50 org-side cash wall. The
+   orchestrator's own ordering says "then TASK-901..904 **as capacity allows**";
+   capacity is spoken for until the S2 stages return.
+   (b) *Defect, and this one blocks regardless of capacity.* All four packets
+   carry `"issue": null`. The ledger refuses any non-refless intent without
+   `--ref issue=N | pr=N` (`ledger.py:113`), so TASK_ASSIGN for these four
+   cannot be sent at all. Four tracking issues must be created and written into
+   the packets first. `tasks/packets/*` is protected, so that edit needs a
+   triage-time `protected-change` authorization on the new issues (L-4).
+   Revisit: when either S2 stage lands, or immediately if the orchestrator wants
+   the four issues created ahead of capacity.
 6. **Release loop**: extend bot/ announce plumbing with release announcements;
-   triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
+   triage Discord feedback via INTAKE_TICKET. The current intake backlog is
+   already triaged: #92 DEFER to TASK-301 (Tier-2 side-by-side, open as the
+   requirement tracker), #93 REJECT and closed. No intake is awaiting a
+   [DECISION].
+   Gated on stage landings — there is nothing to announce until a stage merges,
+   and the directive is to extend the existing announce plumbing, not rebuild
+   it. First trigger: TASK-210-S2 merging (that is the user-visible one).
 
 Constraints (binding, from #97): green tier default; frontier only via frontier
 gates; concurrency per effort.env; packets+issues for all work; gates never
