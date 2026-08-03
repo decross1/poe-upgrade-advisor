@@ -1,0 +1,24 @@
+Item Class: Shields
+Rarity: Rare
+Havoc Shelter
+Vaal Spirit Shield
+--------
+Chance to Block: 22%
+Energy Shield: 171 (augmented)
+--------
+Requirements:
+Level: 62
+Int: 159
+--------
+Sockets: B-B-B
+--------
+Item Level: 83
+--------
+9% increased Spell Damage (implicit)
+--------
++60 to Intelligence
+30% increased Energy Shield
++100 to maximum Life
++1 to Level of all Cold Spell Skill Gems
++43% to Cold Resistance (crafted)
+
