@@ -6,6 +6,7 @@ import time
 import unittest
 
 import jsonschema
+import yaml
 
 from engine.parity_harness import load_cases
 from server.app import BASE_PATH, ApiApplication
@@ -100,7 +101,9 @@ class RealServerAdapterTest(unittest.TestCase):
 
     def test_game_clipboard_items_reach_real_worker(self):
         status, _ = self.app.dispatch(
-            "POST", f"{BASE_PATH}/build", {"pob_code": self._build_xml().decode()}
+            "POST",
+            f"{BASE_PATH}/build",
+            {"pob_code": self._build_xml().decode()},
         )
         self.assertEqual(status, 200)
         schema = json.loads(
@@ -130,6 +133,55 @@ class RealServerAdapterTest(unittest.TestCase):
                 print(
                     f"GAME_CLIPBOARD_RESULT:{fixture.name}:{card['verdict']}"
                 )
+
+    def test_breakdown_driver_matches_real_leave_one_out_measurement(self):
+        status, _ = self.app.dispatch(
+            "POST", f"{BASE_PATH}/build", {"pob_code": self._build_xml().decode()}
+        )
+        self.assertEqual(status, 200)
+        item_text = (
+            ROOT / "engine" / "tests" / "fixtures" / "item.txt"
+        ).read_text()
+        status, original = self.app.dispatch(
+            "POST", f"{BASE_PATH}/diff", {"item_text": item_text}
+        )
+        self.assertEqual(status, 200)
+        status, breakdown = self.app.dispatch(
+            "GET", f"{BASE_PATH}/breakdown/{original['diff_id']}"
+        )
+        self.assertEqual(status, 200)
+        self.assertNotIn("pob_breakdown", breakdown)
+        self.assertTrue(breakdown["drivers"])
+
+        contract = yaml.safe_load(
+            (ROOT / "contracts" / "openapi.yaml").read_text()
+        )
+        schema = {
+            "$ref": "#/components/schemas/Breakdown",
+            "components": contract["components"],
+        }
+        jsonschema.validate(breakdown, schema)
+
+        top = breakdown["drivers"][0]
+        lines = item_text.splitlines(keepends=True)
+        line_index = next(
+            index
+            for index, line in enumerate(lines)
+            if line.rstrip("\r\n") == top["mod_text"]
+        )
+        omitted_item = "".join(lines[:line_index] + lines[line_index + 1 :])
+        status, omitted = self.app.dispatch(
+            "POST", f"{BASE_PATH}/diff", {"item_text": omitted_item}
+        )
+        self.assertEqual(status, 200)
+        card_field = {
+            "total_dps": "offense_delta_pct",
+            "ehp": "defense_delta_pct",
+        }[top["stat"]]
+        movement = original[card_field] - omitted[card_field]
+        self.assertAlmostEqual(
+            movement, top["contribution_pct"], delta=0.11
+        )
 
     def test_evaluator_config_is_translated_before_worker_call(self):
         config, _ = self.calculator._compile_config(

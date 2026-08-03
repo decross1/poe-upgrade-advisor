@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
+from collections import OrderedDict
 from collections.abc import Mapping
-from dataclasses import dataclass
+from copy import deepcopy
+from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
@@ -28,12 +31,23 @@ VERDICT_RANK = {
     "DOWNGRADE": 1,
     "CANT_EVALUATE": 0,
 }
+MAX_STORED_DIFFS = 64
+
+
+@dataclass(frozen=True)
+class StoredDiff:
+    item_text: str
+    preset: str
+    overrides: tuple[dict[str, Any], ...]
+    calculation: dict[str, Any] | None
 
 
 @dataclass
 class BuildStore:
     active: dict[str, Any] | None = None
     facts: Mapping[str, Any] | None = None
+    diffs: OrderedDict[str, StoredDiff] = field(default_factory=OrderedDict)
+    lock: Any = field(default_factory=threading.RLock, repr=False)
 
 
 class ApiApplication:
@@ -58,6 +72,9 @@ class ApiApplication:
             return self._import_build(body)
         if route == f"{BASE_PATH}/diff" and method == "POST":
             return self._diff(body)
+        breakdown_prefix = f"{BASE_PATH}/breakdown/"
+        if route.startswith(breakdown_prefix) and method == "GET":
+            return self._breakdown(route[len(breakdown_prefix) :])
         if route == f"{BASE_PATH}/scan" and method == "POST":
             return self._scan(body)
         if route == f"{BASE_PATH}/tree/suggestions" and method == "GET":
@@ -94,8 +111,7 @@ class ApiApplication:
         except BuildImportError:
             return 422, None
 
-        self.store.facts = imported.facts
-        self.store.active = {
+        active = {
             "build_id": imported.build_id,
             "character_class": identity["base_class"],
             "level": int(identity["level"]),
@@ -108,8 +124,12 @@ class ApiApplication:
         }
         ascendancy = identity.get("ascendancy")
         if isinstance(ascendancy, str) and ascendancy and ascendancy != "None":
-            self.store.active["ascendancy"] = ascendancy
-        return 200, self.store.active
+            active["ascendancy"] = ascendancy
+        with self.store.lock:
+            self.store.facts = imported.facts
+            self.store.active = active
+            self.store.diffs.clear()
+        return 200, active
 
     def _diff(self, body: Any) -> tuple[int, dict[str, Any] | None]:
         if not isinstance(body, Mapping):
@@ -154,8 +174,51 @@ class ApiApplication:
             self.store.facts, selected_preset, overrides
         )
         return self._evaluate_item(
-            item_text, selected_preset, evaluation, overrides
+            item_text,
+            selected_preset,
+            evaluation,
+            overrides,
+            persist_breakdown=True,
         )
+
+    def _breakdown(self, diff_id: str) -> tuple[int, dict[str, Any] | None]:
+        with self.store.lock:
+            stored = self.store.diffs.get(diff_id)
+            facts = self.store.facts
+        if stored is None or facts is None:
+            return 404, None
+        if stored.calculation is None:
+            return 200, {"diff_id": diff_id, "drivers": []}
+
+        evaluation = self.evaluator.evaluate(
+            facts, stored.preset, list(stored.overrides)
+        )
+        drivers: list[dict[str, Any]] = []
+        lines = stored.item_text.splitlines(keepends=True)
+        for line_index, mod_text in self._explicit_modifiers(stored.item_text):
+            omitted_item = "".join(lines[:line_index] + lines[line_index + 1 :])
+            try:
+                omitted = self.calculator.diff(
+                    omitted_item, evaluation.pob_config
+                ).payload
+            except (ItemParseError, WorkerUnavailable):
+                continue
+            for stat in ("total_dps", "ehp"):
+                base_delta = self._payload_delta(stored.calculation, stat)
+                omitted_delta = self._payload_delta(omitted, stat)
+                if base_delta is None or omitted_delta is None:
+                    continue
+                contribution = round(base_delta - omitted_delta, 1)
+                if contribution:
+                    drivers.append(
+                        {
+                            "mod_text": mod_text,
+                            "contribution_pct": contribution,
+                            "stat": stat,
+                        }
+                    )
+        drivers.sort(key=lambda driver: -abs(driver["contribution_pct"]))
+        return 200, {"diff_id": diff_id, "drivers": drivers}
 
     def _scan(self, body: Any) -> tuple[int, dict[str, Any] | None]:
         if not isinstance(body, Mapping):
@@ -235,15 +298,21 @@ class ApiApplication:
         evaluation: Evaluation,
         overrides: list[Mapping[str, Any]],
         item_parse_is_uncertain: bool = False,
+        persist_breakdown: bool = False,
     ) -> tuple[int, dict[str, Any] | None]:
         if evaluation.cant_evaluate:
-            return 200, self._cant_evaluate_card(
+            card = self._cant_evaluate_card(
                 selected_preset,
                 evaluation.confidence,
                 evaluation.assumptions,
                 evaluation.reasons,
                 overrides,
             )
+            if persist_breakdown:
+                self._store_diff(
+                    card["diff_id"], item_text, selected_preset, overrides, None
+                )
+            return 200, card
         try:
             calculation = self.calculator.diff(item_text, evaluation.pob_config)
         except ItemParseError:
@@ -257,19 +326,131 @@ class ApiApplication:
                 )
             return 422, None
         except WorkerUnavailable:
-            return 200, self._cant_evaluate_card(
+            card = self._cant_evaluate_card(
                 selected_preset,
                 0,
                 evaluation.assumptions,
                 ("engine.worker_unavailable: Path of Building did not respond",),
                 overrides,
             )
-        return 200, self._verdict_card(
+            if persist_breakdown:
+                self._store_diff(
+                    card["diff_id"], item_text, selected_preset, overrides, None
+                )
+            return 200, card
+        card = self._verdict_card(
             calculation.payload,
             selected_preset,
             evaluation.confidence,
             evaluation.assumptions,
             overrides,
+        )
+        if persist_breakdown:
+            self._store_diff(
+                card["diff_id"],
+                item_text,
+                selected_preset,
+                overrides,
+                calculation.payload,
+            )
+        return 200, card
+
+    def _store_diff(
+        self,
+        diff_id: str,
+        item_text: str,
+        preset: str,
+        overrides: list[Mapping[str, Any]],
+        calculation: Mapping[str, Any] | None,
+    ) -> None:
+        stored = StoredDiff(
+            item_text=item_text,
+            preset=preset,
+            overrides=tuple(deepcopy([dict(item) for item in overrides])),
+            calculation=(
+                deepcopy(dict(calculation)) if calculation is not None else None
+            ),
+        )
+        with self.store.lock:
+            self.store.diffs[diff_id] = stored
+            self.store.diffs.move_to_end(diff_id)
+            while len(self.store.diffs) > MAX_STORED_DIFFS:
+                self.store.diffs.popitem(last=False)
+
+    @staticmethod
+    def _payload_delta(
+        payload: Mapping[str, Any], stat: str
+    ) -> float | None:
+        baseline = payload["baseline"][stat]
+        candidate = payload["candidate"][stat]
+        return ApiApplication._percent_delta(baseline, candidate)
+
+    @staticmethod
+    def _explicit_modifiers(item_text: str) -> list[tuple[int, str]]:
+        lines = item_text.splitlines(keepends=True)
+        bare = [line.rstrip("\r\n") for line in lines]
+
+        for marker_index, line in enumerate(bare):
+            if not line.startswith("Implicits: "):
+                continue
+            try:
+                implicit_count = int(line.removeprefix("Implicits: "))
+            except ValueError:
+                return []
+            return [
+                (index, bare[index])
+                for index in range(marker_index + 1 + implicit_count, len(lines))
+                if ApiApplication._is_explicit_mod_line(bare[index])
+            ]
+
+        sections: list[list[int]] = [[]]
+        for index, line in enumerate(bare):
+            if line == "--------":
+                sections.append([])
+            else:
+                sections[-1].append(index)
+        item_level_section = next(
+            (
+                index
+                for index, section in enumerate(sections)
+                if any(bare[line].startswith("Item Level:") for line in section)
+            ),
+            None,
+        )
+        if item_level_section is None:
+            return []
+        for section in sections[item_level_section + 1 :]:
+            candidates = [
+                (index, bare[index])
+                for index in section
+                if ApiApplication._is_explicit_mod_line(bare[index])
+            ]
+            if candidates:
+                return candidates
+        return []
+
+    @staticmethod
+    def _is_explicit_mod_line(line: str) -> bool:
+        item_flags = {
+            "Corrupted",
+            "Elder Item",
+            "Eater of Worlds Item",
+            "Fractured Item",
+            "Hunter Item",
+            "Mirrored",
+            "Redeemer Item",
+            "Searing Exarch Item",
+            "Shaper Item",
+            "Split",
+            "Synthesised Item",
+            "Unidentified",
+            "Warlord Item",
+        }
+        stripped = line.strip()
+        return bool(stripped) and not (
+            stripped in item_flags
+            or stripped.startswith("Note:")
+            or stripped.endswith(("(implicit)", "(enchant)"))
         )
 
     @staticmethod
