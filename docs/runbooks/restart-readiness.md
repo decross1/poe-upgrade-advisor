@@ -1147,6 +1147,43 @@ dispatcher respectively.
 
 Recorded by pm — ledger message `4a399233`, run `de264a6fade946d79b92acf924ffda5e`.
 
+### Thread closed — PR #104 merged, TASK-009 done
+
+Backend returned **APPROVE / no objections** on PR #104 at exact head
+`004648ab83159af9cc04b86582db55b60d4e7e5e` (ledger `18cbaff4`, hop 6 of 6,
+thread cap reached; evidence comment
+[#104 (comment)](https://github.com/decross1/poe-upgrade-advisor/pull/104#issuecomment-5166627838),
+`EVIDENCE-SHA256 b90f2cec…`, defect-repro `ef237603…`). No doctrine, contract,
+gate-weakening, or authorization objection was raised in any of the three
+rounds. **PR #104 merged** as `b4a783ce3a4cd72ca4cb8bc9e89910cd081afab9`;
+**#107 closed COMPLETED**. Both open review conditions (1 and 4) died on the
+merits, not by waiver.
+
+Re-verified independently by pm on `main` at `4283478` after the merge:
+
+```
+ruff check --select E9,F63,F7,F82 --exclude engine/vendor .   All checks passed!
+python3 -m pytest tests/test_provider_limit.py -q             43 passed
+python3 scripts/check_invariants.py                           doctrine invariants: OK
+```
+
+Two dispositions a cold-start agent should not have to re-derive:
+
+- **No ledger reply was sent.** Hop 6 of 6 is the cap, and AGENTS.md §5 says
+  stop rather than reply. The `needs-triage` escalation named in the hop-5
+  warning was conditioned on *further objections*; the terminal message was an
+  unconditional approval of work that is now merged and closed, so escalating
+  #97 would have been a false alarm. The triage happened here instead. Revisit
+  only if a capped thread ends without a resolved disposition.
+- **The merge did not go through the robot.** PR #104 was merged by the human
+  account `decross1` at 16:25Z; the approval had been in pm's inbox since
+  13:02Z, unprocessed. The ledger verdict was therefore not the gating input to
+  the merge — a human was. That is **L-19** (protected paths bypass the robot)
+  observed once more, not a new lesson; it stays open against **TASK-007 / #24**
+  and needs no second issue.
+
+Recorded by pm — ledger message `18cbaff4`, run `e628c8fbd04443319471a4e98d13d04e`.
+
 ---
 
 ## L-27: a builder's deny-list bound the reviewer's role, 2026-08-03
