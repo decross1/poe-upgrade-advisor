@@ -272,10 +272,31 @@ REVIEW_INTENTS = frozenset({
     "ARBITRATION_REQUEST", "ARBITRATION_RULING",
 })
 
-#: Where a reviewer's written verdict may land. A review's deliverable is
-#: evidence, and it needs somewhere to live that is neither the builder's
-#: scope nor the control plane.
-REVIEW_EVIDENCE_GLOBS = ("docs/agent-org/*",)
+#: L-32 (2026-08-03): L-26 fixed reviews and stopped one intent short. The
+#: packet describes work the agent AGREED to do, and only `TASK_ASSIGN`
+#: carries that agreement. Every other intent is coordination — reporting on,
+#: asking about, or ruling on work — and its handler never signed up for the
+#: builder's acceptance criteria or file scope.
+#:
+#: The scale of the miss, counted from the ledger: `STATUS` is the org's most
+#: common message at 112, against 51 `TASK_ASSIGN`. Every one of those 112 was
+#: judged against a builder's packet it had nothing to do with. Observed on
+#: the P0 path: pm triaging backend's TASK-212-S1 STATUS was refused for
+#: "missing ['AC-1'...'AC-6'], invented [...]" while filing the very task that
+#: unblocks red main — and each refusal retains the message, so it retries and
+#: forks another near-duplicate branch.
+#:
+#: Enumerated rather than inverted (`intent != TASK_ASSIGN`) so an intent
+#: nobody anticipated keeps today's behaviour instead of silently skipping a
+#: proof. Every intent below is one the ledger actually carries.
+NON_BUILD_INTENTS = REVIEW_INTENTS | frozenset({
+    "STATUS", "SYNC", "ANSWER", "QUESTION", "INTAKE_TICKET", "BOOTSTRAP",
+})
+
+#: Where a coordinator's written output may land. A review's deliverable is a
+#: verdict; a triage's is a backlog entry. Neither belongs in the builder's
+#: scope, and no build packet will ever list them.
+REVIEW_EVIDENCE_GLOBS = ("docs/agent-org/*", "tasks/BACKLOG.md")
 
 REVIEW_ROUTING_NOTE = """2026-08-03 orchestrator ruling (L-26).
 
@@ -318,13 +339,15 @@ def p10_acceptance_criteria(res, ctx):
     if not packet:
         return Proof(10, "acceptance_criteria", None,
                      "no packet — AC set-equality not evaluable")
-    if ctx.get("intent") in REVIEW_INTENTS:
-        # L-26: the packet's ACs are the BUILDER's obligations; a reviewer
-        # never agreed to them and cannot emit their id-set. Not evaluable —
-        # the reviewer's substantive gates are #9 and its ledger verdict.
+    if ctx.get("intent") in NON_BUILD_INTENTS:
+        # L-26/L-32: the packet's ACs are the BUILDER's obligations. Only
+        # TASK_ASSIGN carries that agreement; a reviewer, reporter or triager
+        # never signed up for them and cannot emit their id-set. Not
+        # evaluable — the same None this proof returns with no packet at all.
         return Proof(10, "acceptance_criteria", None,
-                     f"review intent {ctx['intent']} — the packet's ACs bind "
-                     "the builder, not the reviewer; not evaluable (L-26)")
+                     f"coordination intent {ctx['intent']} — the packet's ACs "
+                     "bind the builder, not this handler; not evaluable "
+                     "(L-26/L-32)")
     want = {c["id"] for c in packet.get("acceptance_criteria") or []}
     got = {c.get("id") for c in res.get("acceptance_criteria") or []}
     if want != got:
@@ -351,10 +374,11 @@ def p11_scope(res, ctx):
                      "base..commit diff unobtainable — scope unprovable")
     from agents.interfaces.packet import out_of_scope  # noqa: PLC0415
     bad = out_of_scope(paths, packet)
-    if bad and ctx.get("intent") in REVIEW_INTENTS:
-        # L-26: a review's deliverable is a written verdict, and no build
-        # packet lists a path for one. Admit the review-evidence dir — and
-        # ONLY it — so the rest of the scope check still bites.
+    if bad and ctx.get("intent") in NON_BUILD_INTENTS:
+        # L-26/L-32: a coordinator's deliverable is a verdict or a backlog
+        # entry, and no build packet lists a path for one. Admit the
+        # coordination-evidence paths — and ONLY those — so the rest of the
+        # scope check still bites.
         bad = [p for p in bad
                if not any(fnmatch.fnmatch(p, g)
                           for g in REVIEW_EVIDENCE_GLOBS)]

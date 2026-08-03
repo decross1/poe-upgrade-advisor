@@ -180,7 +180,7 @@ def prohibited_files(changed: list[str], packet: dict | None,
     builder's deny-list. PROTECTED still binds everyone; a role still only
     clears the globs listed for IT; every non-review intent is unchanged.
     """
-    from agents.completion import REVIEW_INTENTS  # noqa: PLC0415
+    from agents.completion import NON_BUILD_INTENTS  # noqa: PLC0415
 
     packet_deny = list((packet or {}).get("files_out_of_scope") or [])
     authorized = ROLE_AUTHORIZED_PROTECTED.get(role or "", ())
@@ -189,7 +189,7 @@ def prohibited_files(changed: list[str], packet: dict | None,
                    for g in deny if fnmatch.fnmatch(f, g)})
     if not authorized:
         return hits
-    reviewing = intent in REVIEW_INTENTS
+    reviewing = intent in NON_BUILD_INTENTS
     return [f for f in hits
             if (not reviewing
                 and any(fnmatch.fnmatch(f, g) for g in packet_deny))

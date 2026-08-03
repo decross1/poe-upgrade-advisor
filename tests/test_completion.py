@@ -632,3 +632,96 @@ def test_dispatcher_threads_the_message_intent_into_the_proofs():
 
     src = inspect.getsource(dispatch.dispatch)
     assert 'intent=msg.get("intent")' in src
+
+
+# --- L-32: coordination intents are not judged as builds -------------------
+#
+# L-26 fixed reviews and stopped one intent short. Counted from the ledger,
+# STATUS is the org's MOST COMMON message (112) against 51 TASK_ASSIGN — so
+# the majority of the org's traffic was being judged against a builder's
+# packet it never agreed to. Observed on the P0 path: pm triaging backend's
+# TASK-212-S1 STATUS was refused for "missing ['AC-1'..'AC-6'], invented
+# [...]" while filing the very task that unblocks red main.
+
+
+def test_only_task_assign_carries_the_packets_acceptance_criteria(mailroom,
+                                                                  worktree):
+    res = _true_completion(worktree)
+    res["acceptance_criteria"] = [
+        {"id": "triage-outcome", "status": "passed", "evidence": "filed"},
+    ]
+    packet = {"acceptance_criteria": [{"id": "AC-1"}, {"id": "AC-2"}]}
+    params = {"proofs": [{"id": "acceptance_criteria"}]}
+
+    # The build intent still binds — this is the whole point of the proof.
+    built = _run(res, worktree, mailroom, params, packet=packet,
+                 intent="TASK_ASSIGN")
+    assert built["acceptance_criteria"].passed is False
+
+    # Every coordination intent the ledger actually carries does not.
+    for intent in ("STATUS", "SYNC", "ANSWER", "QUESTION", "INTAKE_TICKET",
+                   "BOOTSTRAP", "REVIEW_REQUEST", "REVIEW_VERDICT",
+                   "ARBITRATION_REQUEST", "ARBITRATION_RULING"):
+        pr = _run(res, worktree, mailroom, params, packet=packet,
+                  intent=intent)
+        assert pr["acceptance_criteria"].passed is None, intent
+
+
+def test_an_unknown_intent_keeps_todays_behaviour(mailroom, worktree):
+    """Enumerated, not inverted (`!= TASK_ASSIGN`), so an intent nobody
+    anticipated cannot silently skip a proof."""
+    res = _true_completion(worktree)
+    res["acceptance_criteria"] = [
+        {"id": "invented", "status": "passed", "evidence": "x"}]
+    pr = _run(res, worktree, mailroom,
+              {"proofs": [{"id": "acceptance_criteria"}]},
+              packet={"acceptance_criteria": [{"id": "AC-1"}]},
+              intent="SOME_FUTURE_INTENT")
+    assert pr["acceptance_criteria"].passed is False
+
+
+def test_a_triage_may_write_the_backlog_but_not_product_code(mailroom,
+                                                             worktree):
+    """pm's triage deliverable is a backlog entry; no build packet lists one.
+    The carve-out is those paths only — product code stays out of scope."""
+    from agents import completion as C
+    assert "tasks/BACKLOG.md" in C.REVIEW_EVIDENCE_GLOBS
+
+    _git("checkout", "-q", "-b", "role/triage-l32", cwd=worktree)
+    backlog = worktree / "tasks/BACKLOG.md"
+    backlog.parent.mkdir(parents=True, exist_ok=True)
+    backlog.write_text("# backlog\n\n- filed TASK-213\n")
+    _git("add", "-A", cwd=worktree)
+    _git("commit", "-q", "-m", "triage", cwd=worktree)
+    sha = _git("rev-parse", "HEAD", cwd=worktree).strip()
+    base = _git("rev-parse", "origin/main", cwd=worktree).strip()
+
+    res = {"schema_version": "1.0", "run_id": "run-unit0001",
+           "task_id": "TASK-212-S1", "status": "completed", "summary": "t",
+           "commit_sha": sha, "pushed": True, "checks": [],
+           "acceptance_criteria": []}
+    packet = {"files_in_scope": ["engine/**"],
+              "files_out_of_scope": ["tasks/**"]}
+    params = {"proofs": [{"id": "scope"}]}
+
+    assert _run(res, worktree, mailroom, params, packet=packet,
+                base_sha=base, intent="TASK_ASSIGN")["scope"].passed is False
+    assert _run(res, worktree, mailroom, params, packet=packet,
+                base_sha=base, intent="STATUS")["scope"].passed is True
+
+
+def test_l32_still_breaks_a_coordinator_on_protected_paths(mailroom, worktree):
+    """#12 is untouched: neither admitted path is PROTECTED, and a
+    coordinator committing to the control plane still circuit-breaks."""
+    from agents import completion as C
+    from agents.merge_robot.patterns import PROTECTED
+
+    for glob in C.REVIEW_EVIDENCE_GLOBS:
+        probe = glob.replace("*", "x")
+        assert not any(fnmatch.fnmatch(probe, g) for g in PROTECTED), glob
+
+    broke = C.p12_protected({}, {"res": {}, "intent": "STATUS",
+                                 "role": "backend", "worktree": worktree,
+                                 "diff_paths": ["agents/dispatch.py"],
+                                 "packet": None, "base_sha": None})
+    assert broke.passed is False and broke.severity == "break"
