@@ -62,7 +62,12 @@ jobs:
         with: { submodules: true }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install pyyaml
+      # jsonschema is needed by engine/tests/test_server_adapter.py, which
+      # validates verdict payloads against contracts/verdict.schema.json.
+      # `unittest discover` imports every test module before running any, so a
+      # missing dep here is a COLLECTION error that fails the whole job, not
+      # one test. Landed red in 69a1f6a; see TASK-213 / issue #123.
+      - run: pip install pyyaml jsonschema
       - name: build pinned Lua runtime
         run: engine/runtime/build.sh
       - name: run engine integration tests
