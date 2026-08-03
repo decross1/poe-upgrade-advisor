@@ -52,6 +52,16 @@ PATTERNS: tuple[re.Pattern, ...] = (
     re.compile(r"\b429\b.{0,30}too many requests", re.I),
     re.compile(r"\btoo many requests\b", re.I),
     re.compile(r"\binsufficient[_ ]quota\b", re.I),
+    # Not a cap, but the same failure SHAPE and worth the same treatment:
+    # a misconfigured model id makes every invocation for the role fail in
+    # ~3s, burning one attempt per message until each dead-letters. Observed
+    # live 2026-08-03: KIMI_MODEL was set to the bare alias "kimi-k3" from an
+    # operator setup note, but the CLI requires the configured id
+    # "moonshot-ai/kimi-k3", and the org's FIRST kimi invocation — the
+    # overlay task — died on it. Quieting the role surfaces one clear reason
+    # instead of a queue of silent dead-letters.
+    re.compile(r"is not configured in config\.toml", re.I),
+    re.compile(r"\bmodel .{0,60}\bnot (?:found|configured|available)\b", re.I),
     re.compile(r"\bplease try again (?:later|in \d+)", re.I),
 )
 
