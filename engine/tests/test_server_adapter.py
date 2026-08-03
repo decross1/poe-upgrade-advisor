@@ -5,6 +5,8 @@ import pathlib
 import time
 import unittest
 
+import jsonschema
+
 from engine.parity_harness import load_cases
 from server.app import BASE_PATH, ApiApplication
 from server.assumptions import AssumptionsEvaluator
@@ -95,6 +97,39 @@ class RealServerAdapterTest(unittest.TestCase):
         )
         self.assertLessEqual(len(cards[0]["sentence"]), 140)
         self.assertLessEqual(len(cards[0]["assumptions"]), 6)
+
+    def test_game_clipboard_items_reach_real_worker(self):
+        status, _ = self.app.dispatch(
+            "POST", f"{BASE_PATH}/build", {"pob_code": self._build_xml().decode()}
+        )
+        self.assertEqual(status, 200)
+        schema = json.loads(
+            (ROOT / "contracts" / "verdict.schema.json").read_text()
+        )
+        fixtures = sorted(
+            (
+                ROOT
+                / "engine"
+                / "tests"
+                / "fixtures"
+                / "game_clipboard"
+            ).glob("*.txt")
+        )
+        self.assertGreaterEqual(len(fixtures), 3)
+
+        for fixture in fixtures:
+            with self.subTest(fixture=fixture.name):
+                item_text = fixture.read_text()
+                self.assertTrue(item_text.startswith("Item Class:"))
+                self.assertIn("--------", item_text)
+                status, card = self.app.dispatch(
+                    "POST", f"{BASE_PATH}/diff", {"item_text": item_text}
+                )
+                self.assertEqual(status, 200, fixture.name)
+                jsonschema.validate(card, schema)
+                print(
+                    f"GAME_CLIPBOARD_RESULT:{fixture.name}:{card['verdict']}"
+                )
 
     def test_evaluator_config_is_translated_before_worker_call(self):
         config, _ = self.calculator._compile_config(

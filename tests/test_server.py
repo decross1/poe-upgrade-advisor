@@ -91,6 +91,7 @@ class StubCalculator:
             "has_trigger_setup": False,
         }
         self.configurations: list[dict[str, Any]] = []
+        self.item_texts: list[str] = []
 
     def import_build(self, pob_code: str) -> ImportedBuild:
         return ImportedBuild("b-stub", self.facts)
@@ -105,6 +106,7 @@ class StubCalculator:
         self, item_text: str, canonical_config: Mapping[str, Any]
     ) -> EngineDiff:
         self.configurations.append(dict(canonical_config))
+        self.item_texts.append(item_text)
         if item_text in {"", "unparseable"}:
             raise ItemParseError("test item is unparseable")
         candidates = {
@@ -114,10 +116,13 @@ class StubCalculator:
             "downgrade": (90, 90),
             "zero-baseline": (1, 100),
         }
-        try:
-            candidate_dps, candidate_ehp = candidates[item_text]
-        except KeyError as error:
-            raise ItemParseError("test item is unparseable") from error
+        if item_text.startswith("Item Class:"):
+            candidate_dps, candidate_ehp = candidates["upgrade"]
+        else:
+            try:
+                candidate_dps, candidate_ehp = candidates[item_text]
+            except KeyError as error:
+                raise ItemParseError("test item is unparseable") from error
         baseline_dps = 0 if item_text == "zero-baseline" else 100
         return EngineDiff(
             {
@@ -334,6 +339,26 @@ def test_diff_validation_determinism_and_evaluator_config(
         item for item in first["assumptions"] if item["id"] == "config.flasks_up"
     )["value"] is False
     assert calculator.configurations[-1]["flasks_active"] is False
+
+
+def test_game_clipboard_text_crosses_server_boundary_unchanged(
+    app: ApiApplication, calculator: StubCalculator
+) -> None:
+    import_stub_build(app)
+    fixtures = sorted(
+        (ROOT / "engine/tests/fixtures/game_clipboard").glob("*.txt")
+    )
+    assert len(fixtures) >= 3
+
+    for fixture in fixtures:
+        item_text = fixture.read_text()
+        status, card = app.dispatch(
+            "POST", f"{BASE_PATH}/diff", {"item_text": item_text}
+        )
+        assert status == 200
+        assert card is not None
+        assert card["verdict"] == "UPGRADE"
+        assert calculator.item_texts[-1] == item_text
 
 
 def test_scan_ranks_verdicts_by_combined_delta_and_keeps_ties_stable(

@@ -1,0 +1,27 @@
+Item Class: Helmets
+Rarity: Rare
+Doom Crown
+Hubris Circlet
+--------
+Quality: +20% (augmented)
+Energy Shield: 312 (augmented)
+--------
+Requirements:
+Level: 69
+Int: 154
+--------
+Sockets: B-B-B
+--------
+Item Level: 86
+--------
++2 to Level of Socketed Aura Gems (implicit)
+--------
++38% to Fire Resistance
++52% to Cold Resistance
++31% to Lightning Resistance
+12% increased Cast Speed
++98 to maximum Energy Shield (crafted)
+--------
+Shaper Item
+Corrupted
+

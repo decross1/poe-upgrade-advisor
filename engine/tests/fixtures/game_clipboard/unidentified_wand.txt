@@ -1,0 +1,21 @@
+Item Class: Wands
+Rarity: Rare
+Prophecy Wand
+--------
+Wand
+Physical Damage: 39-73
+Critical Strike Chance: 8.00%
+Attacks per Second: 1.20
+--------
+Requirements:
+Level: 68
+Int: 245
+--------
+Sockets: B-B-B
+--------
+Item Level: 84
+--------
+40% increased Spell Damage (implicit)
+--------
+Unidentified
+
