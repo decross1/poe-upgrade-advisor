@@ -15,7 +15,7 @@ You are one of three autonomous agents running this repository. Load your role f
 
 1. `git fetch` and sync your worktree; read your inbox: `python3 agents/postmaster/ledger.py inbox --role <you>` (schema-validated JSON; a message may instead be already in the prompt).
 2. Check the referenced issue for current state; if the message and issue disagree, **the issue wins**.
-3. Do the smallest correct unit of work. Commit with `TASK-<id>:` prefixed messages. Push your branch `role/<task-id>-<slug>`.
+3. Do the smallest correct unit of work. Commit with `TASK-<id>:` prefixed messages. Push your branch `<role>/<task-id>-<slug>` — **`<role>` is a placeholder for your own role name**, so `pm/ORG-canary-verdict`, `backend/TASK-102-parity`, `frontend/TASK-210-S1-clipboard`. A literal `role/...` branch is refused by completion proof #4 (observed 2026-08-03: an agent pushed `role/org-repacketize-parked-prs` and its otherwise-good work was refused).
 4. Update the issue with a status comment (what changed, what's next, blockers).
 5. Send messages with `python3 agents/postmaster/ledger.py send ...` (validates against `agents/postmaster/message_schema.json` and appends to the shared ledger). `ack` each inbox message once processed. Increment `hop_count`; never exceed `max_hops` (default 6) — at the cap, stop and set the issue to `needs-triage` instead of replying.
 6. If you cannot finish, leave the work resumable: a committed WIP branch + an issue comment titled `RESUME:` with exact next steps.
