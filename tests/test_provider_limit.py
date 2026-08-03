@@ -123,3 +123,23 @@ def test_dispatch_gate_precedes_invocation():
     invoke = src.index("_run_capped")
     assert gate < invoke, "provider-limit gate must precede the model call"
     assert src.index('mailroom / "HALT"') < gate, "HALT still comes first"
+
+
+def test_dispatch_active_limit_suppresses_before_message_load(
+        tmp_path, monkeypatch):
+    """An active role cap is actionable before the message is loaded.
+
+    The provider-limit gate deliberately precedes message parsing, so it cannot
+    use a task ID that is only assigned after ``find_message`` succeeds.
+    """
+    mailroom = tmp_path / "mailroom"
+    monkeypatch.setenv("POB_LEDGER_DIR", str(mailroom))
+    pl.mark(mailroom, "backend", matched="session limit reached", cooldown=600)
+
+    from agents.dispatch import dispatch
+
+    outcome = dispatch("backend", "not-loaded", tmp_path, dry_run=True)
+
+    assert outcome.decision == "suppressed_preflight"
+    assert outcome.message_id == "not-loaded"
+    assert outcome.task_id is None
