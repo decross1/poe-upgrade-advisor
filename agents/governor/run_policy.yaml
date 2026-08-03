@@ -19,7 +19,16 @@
 # numbers from measured shakedown telemetry before unattended operation.
 
 per_day_max:
-  pm: 24
+  # 2026-08-03 [O]perator ruling: double pm's daily cap for this session.
+  # Measured basis, not a guess: pm reached 27 invocations by 07:07Z with only
+  # 7 successes, and the overrun mattered far more than pm's own throughput —
+  # pm is the org's ROUTER, so its cap is the binding constraint on the WHOLE
+  # org. When it hit, four mission messages (TASK-210-S2/S3/S4, TASK-009) sat
+  # retained on "daily cap" for eight hours while a healthy, funded frontend
+  # role idled with an empty queue. 24 was always [E] — a placeholder from a
+  # three-day run under different roles. 48 is [O]perator-set for today and
+  # still bounded; revisit from shakedown telemetry rather than keeping it.
+  pm: 48
   backend: 36
   frontend: 36
 daily_reset_hour_utc: 4

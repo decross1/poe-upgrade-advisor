@@ -736,3 +736,35 @@ mission fan-out is open; BACKLOG §Mission resume proceeds from step 3
 loop), green tier default, kimi under the $50 wall, gates unweakened.
 
 Recorded by pm — ledger message `39ad7763`, run `95e04737`.
+
+---
+
+## pm daily cap doubled 24 -> 48, 2026-08-03 (operator ruling)
+
+The overnight stall was starvation, not a crash: all three loops stayed up
+for eight hours while nothing moved. pm reached 27 invocations against
+`per_day_max: 24` by 07:07Z — 7 of them successful — and every later poll
+retained its queue on `"reason": "daily cap"`. Four of those retained
+messages were mission traffic (TASK-210-S2/S3/S4, TASK-009), and frontend
+sat healthy, funded and idle behind them with an empty inbox.
+
+The finding worth keeping is structural, not numeric: **pm's cap is the
+binding constraint on the whole org's throughput, because pm is the sole
+router.** A per-role cap on a role that nothing else can substitute for is a
+per-ORG cap wearing a per-role label. Nothing in the control plane detects
+"router capped, workers idle" — it looks identical to "no work to do".
+
+24 was always marked `[E]` (a placeholder from a three-day run under
+different roles, before these controls existed). 48 is `[O]`perator-set for
+this session and still bounded. Replace it from shakedown telemetry rather
+than leaving it as the new placeholder.
+
+**pm's ORG circuit breaker was deliberately NOT reset.** It tripped on four
+real refusals, not on since-fixed defects: pm committed edits to PROTECTED
+control-plane paths (`agents/dispatch.py` twice, `agents/checks.py` +
+`tasks/packets/TASK-009-S1.json`), caught by anti-loop once and by
+completion proof #12 three times. The gate did exactly its job. Resetting it
+would send pm straight back at the dispatcher it is not allowed to edit —
+and control-plane repair is the orchestrator's lane, not pm's. The cap raise
+unblocks the mission messages, which are the ones that should move; ORG
+stays broken until pm has a reason to touch it that is not a protected path.
