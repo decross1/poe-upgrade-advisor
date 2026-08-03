@@ -259,7 +259,10 @@ def role_command(role: str, prompt: str, mailroom: Path,
         # run_budget.check's kimi branch — with the Kimi-console limit as
         # the provider-side backstop. kimi has no reasoning-effort flag;
         # KIMI_MODEL overrides config.toml's default_model when set.
-        cmd = ["kimi", "--auto", "--output-format", "stream-json"]
+        # NOTE: prompt mode is autonomous by itself — this CLI REJECTS
+        # --auto/--yolo combined with --prompt (verified live 2026-08-03:
+        # headless tool execution worked with neither flag).
+        cmd = ["kimi", "--output-format", "stream-json"]
         kimi_model = os.environ.get("KIMI_MODEL")
         if kimi_model:
             cmd += ["-m", kimi_model]

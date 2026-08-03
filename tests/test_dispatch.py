@@ -1128,17 +1128,19 @@ def test_effort_precedence_ladder(monkeypatch):
 def test_role_command_frontend_is_kimi(monkeypatch):
     """2026-08-03 operator ruling: frontend is the kimi CLI (metered).
 
-    Headless flags pinned: --auto (fully autonomous, never asks),
-    stream-json (usage recovery seam), prompt LAST via --prompt. KIMI_MODEL
-    env overrides config.toml's default only when set. No codex tokens —
-    the spend-attribution seam (kimi cash wall vs codex allowance) depends
-    on the roles never sharing a CLI.
+    Headless flags pinned: stream-json (usage recovery seam), prompt LAST
+    via --prompt, and NO permission flag — this CLI's prompt mode is
+    autonomous by itself and REJECTS --auto/--yolo alongside --prompt
+    (verified live: headless tool execution with neither). KIMI_MODEL env
+    overrides config.toml's default only when set. No codex tokens — the
+    spend-attribution seam (kimi cash wall vs codex allowance) depends on
+    the roles never sharing a CLI.
     """
     mr = Path("/mailroom-unused")
     monkeypatch.delenv("KIMI_MODEL", raising=False)
     cmd = dispatch_mod.role_command("frontend", "p", mr)
     assert cmd[0] == "kimi"
-    assert "--auto" in cmd
+    assert "--auto" not in cmd and "--yolo" not in cmd  # rejected with --prompt
     assert "--output-format" in cmd and "stream-json" in cmd
     assert cmd[-2:] == ["--prompt", "p"]
     assert "-m" not in cmd
