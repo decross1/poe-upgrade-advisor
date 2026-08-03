@@ -39,3 +39,12 @@ requested point budget against the active build. Each returned step includes
 its connected-first allocation path, marginal `/diff`-style deltas, and the
 versioned engine ranking score. The planner is Tier 2+ and does not add fields
 to the verdict card.
+
+`GET /api/v0/breakdown/{diff_id}` explains a recent diff using leave-one-out
+attribution. For each explicit modifier line, the warm engine evaluates the
+same item with that line removed; the resulting movement in the offense or
+defense percentage delta is that modifier's `contribution_pct` for
+`total_dps` or `ehp`. These contributions are measurements, not normalized
+shares: drivers do not sum to 100 because modifiers interact. The 64 most
+recent diffs are retained in memory, and rejected leave-one-out evaluations
+produce no estimated driver.
