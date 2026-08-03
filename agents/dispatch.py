@@ -92,6 +92,7 @@ from agents.interfaces.states import (  # noqa: E402
 from agents.interfaces.telemetry import JsonlTelemetry  # noqa: E402
 from agents.postmaster import ledger as ledger_mod  # noqa: E402
 from agents import preflight as preflight_mod  # noqa: E402
+from agents import provider_limit as provider_limit_mod  # noqa: E402
 from jsonschema import ValidationError  # noqa: E402
 
 RESULT_SCHEMA_REL = "agents/interfaces/schemas/result.schema.json"
@@ -636,6 +637,27 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                             suppressed_reason="halt")
         return out
 
+    # 1.5 — provider session/rate cap for this ROLE. A cap belongs to the
+    # provider, not the message: once detected (below, post-invoke), every
+    # dispatch for the role is suppressed here, BEFORE spending, until the
+    # marker expires. Without this the 2026-07-27 shape recurs — the CLI
+    # says "You've hit your session limit", exits rc=0, and each queued
+    # message burns its attempts against a provider that is refusing.
+    limit = provider_limit_mod.active(mailroom, role)
+    if limit is not None:
+        out = Outcome(
+            decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
+            reason=(f"provider limit for {role}: {limit.get('matched')!r} "
+                    f"({limit['seconds_remaining']}s remaining; "
+                    f"rm mailroom/blocked/provider-limit-{role}.json to retry)"),
+            message_id=message_id, task_id=task_id, role=role,
+            extra={"provider_limit": limit})
+        if not dry_run:
+            tele.suppressed(role=role, task_id=task_id,
+                            message_id=message_id,
+                            suppressed_reason="provider_limit")
+        return out
+
     # 2 — budget ledger, fail-closed. Cannot record spend => do not spend.
     try:
         bl = SqliteBudgetLedger(
@@ -1045,6 +1067,15 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     # usage_parse_error rides the telemetry finish event so "usage never
     # parsed" is queryable in invocations.jsonl, not buried in stderr.
     usage, usage_parse_error = _provider_usage(role, stdout_tail)
+    # Provider refusal detection. The CLI exits rc=0 on a session cap, so
+    # this reads its OUTPUT, not its status — the org's founding lesson
+    # applied to the provider itself. One detection quiets the whole role.
+    provider_refusal = provider_limit_mod.detect(stdout_tail, stderr_tail)
+    if provider_refusal and not dry_run:
+        marker = provider_limit_mod.mark(
+            mailroom, role, matched=provider_refusal, run_id=run_id)
+        print(f"PROVIDER LIMIT [{role}]: {provider_refusal!r} — role quiet "
+              f"until the marker expires ({marker})", file=sys.stderr)
     # Degraded-budget accounting: this invocation happened; whether it ran
     # on degraded checks decides the streak.
     _set_degraded_streak(mailroom,
