@@ -612,6 +612,48 @@ task's issue is mislabelled. Worked around by labelling issue #99 and
 re-routing under `ORG`. Next cycle: preconditions that bear on *doing the
 work* should not gate messages that merely *say something about* the work.
 
+### L-10 — the ratified branch pattern made ORG work unprovable (FIXED live)
+
+pm's mission run completed and was refused by proof #4 for branch
+`pm/ORG-canary-verdict`. `AGENTS.md:18` — doctrine, and itself PROTECTED —
+mandates `<role>/<task-id>-<slug>`; the A5 reconstruction regex demanded
+`(task|canary|repair)/TASK-<digits>`. So no role branch could pass, and **ORG
+work could never pass at all** (task_id `ORG` is not `TASK-<digits>`): every
+governance task was unprovable by construction. The reconstruction audit
+flagged this contradiction in writing and it was ratified around anyway; it
+then cost three pm attempts and tripped the breaker. Doctrine outranks a
+reconstructed regex — both forms now pass, case-insensitive on the task token
+only, `main`/empty/arbitrary still refused, 13 cases verified (`32975c9`).
+
+### L-11 — the circuit breaker is a latch with no reset (FIXED live)
+
+`Governor.allow` trips at 3 consecutive failures and denies from then on: the
+streak only breaks on a `success` row, and a task that cannot invoke can
+never produce one. The latch is deliberate — a tripped breaker means redesign,
+not retry — but nothing recorded that the redesign HAPPENED, so a task killed
+by a defect in the GATE stayed dead after the gate was fixed. Both pm/ORG and
+pm/TASK-999-S1 died that way on L-10. `scripts/breaker_reset.py` is the
+redesign-complete signal and is deliberately not silent: `--reason` required,
+cause appended to `mailroom/governor/admin_actions.jsonl`, and that record
+states the ledger row is an ADMIN RESET rather than a task success so
+success-rate audits can subtract it (`afad20f`).
+
+### L-12 — `AGENTS.md`'s branch template read as a literal (FIXED live)
+
+An agent pushed `role/org-repacketize-parked-prs`, taking `role` literally,
+and had otherwise-good mission work refused. The proof was right; the doc was
+ambiguous. Now `<role>` with worked examples (`afad20f`).
+
+### L-13 — stale fan worktrees accumulate unboundedly (OPEN)
+
+L-7's fix moves a colliding worktree to `.fan/stale/<role>-<id8>-<stamp>`
+instead of failing forever — correct, and nothing is lost (commits are pinned
+to `refs/recovery/*` in the ROLE CLONE, not the main clone: look in
+`worktrees/<role>`). But one directory accumulates per failed attempt: 10
+directories / 71 MB within the first hour of live operation. Next cycle: prune
+`.fan/stale/` entries older than N days whose HEAD is already pinned to a
+recovery ref, and surface the count in the readiness gate.
+
 Also carried: B4 census/recalibration (caps stay `[E]`), B5 pm-lite, B6
 checkpoint, B7 ceiling + `branch_pattern`, A5, A4 telemetry tail, full
 `.fan` recovery, F6/F9 probes, proof #8 exact-SHA match, and **L-6**:
