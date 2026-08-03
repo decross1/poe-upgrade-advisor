@@ -31,7 +31,18 @@ function immediateDiff(card: VerdictCardData): DiffFn {
 describe("I7: the card's own details affordance opens Tier 2/3", () => {
   it("clicking it requests the breakdown and shows the panel; exactly one details control exists", async () => {
     const load = vi.fn<(id: string) => Promise<Breakdown>>().mockResolvedValue(upgradeBreakdown);
-    render(<App diffFn={immediateDiff(upgradeCard)} loadBreakdown={load} />);
+    const diff = vi.fn(immediateDiff(upgradeCard));
+    render(<App diffFn={diff} loadBreakdown={load} />);
+
+    // TASK-211-S1: no mount-time request anymore — the page starts with an
+    // empty paste box and NO card; one explicit submit starts the session.
+    expect(diff).not.toHaveBeenCalled();
+    expect(screen.queryByRole("link", { name: /details/i })).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Item text/), {
+      target: { value: "Rarity: RARE\nFate Ribbon\n" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate item" }));
+    expect(diff).toHaveBeenCalledTimes(1); // one explicit submit = one /diff (S2)
 
     // Exactly ONE details affordance on the page, and it is the card's — the
     // demo's duplicate "Open details (Tier 2/3)" link is gone.

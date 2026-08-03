@@ -358,6 +358,67 @@ button.chip.chip--overridden:disabled:hover {
   color: var(--red);
 }
 
+/* ---- TASK-211-S1: item paste box — the primary item path (issue #90) ---- */
+
+.item-input {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-input h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.item-input form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-input-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.item-input-box {
+  background: #10131a;
+  color: var(--text);
+  border: 1px solid var(--track);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  resize: vertical;
+}
+
+.item-input-box:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.item-input-submit {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.item-input-submit:disabled {
+  border-color: var(--track);
+  color: var(--muted);
+  cursor: default;
+}
+
 .build-import-success-word {
   margin: 0 0 8px;
   font-weight: 700;
