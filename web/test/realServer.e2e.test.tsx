@@ -12,6 +12,12 @@
  *      (captured to the run log as evidence), chip-override round-trip (I3),
  *      honest 404/422 failure modes.
  *
+ * TASK-214-S2 (issue #125) adds the Tier-2 proof: the card's one details
+ * affordance is clicked against the REAL server and the panel must render the
+ * live GET /breakdown/{diff_id} drivers measured from the pasted item — never
+ * a web/mock fixture — schema-validated against the contract's Breakdown
+ * schema, with the unknown-diff_id 404 rendering the panel's honest copy (I5).
+ *
  * Supersedes the TASK-202 serverSkeleton smoke test: that tripwire targeted
  * the fixture-backed skeleton (FixtureCalculator), which TASK-202b (PR #63)
  * removed — the swap it guarded has landed, and this is the same boundary
@@ -30,16 +36,20 @@
  * policy as engine/tests/test_server_adapter.py.
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
 import type { ValidateFunction } from "ajv";
+import { parse as parseYaml } from "yaml";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ApiError } from "../src/generated/core/ApiError";
+import { CancelablePromise } from "../src/generated/core/CancelablePromise";
 import { OpenAPI } from "../src/generated/core/OpenAPI";
 import { DefaultService } from "../src/generated/services/DefaultService";
 import { CONTRACT_API_BASE, configureApiClient } from "../src/lib/apiBase";
+import type { VerdictCard as VerdictCardData } from "../src/lib/verdictFormat";
+import type { DiffFn } from "../src/session/useCardSession";
 import { App } from "../src/demo/App";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..");
@@ -68,6 +78,49 @@ const strictSchema = JSON.parse(
 );
 const ajvStrict = new Ajv2020({ strict: true, allErrors: true });
 const validateCard: ValidateFunction = ajvStrict.compile(strictSchema);
+
+// TASK-214-S2: the contract's Breakdown schema (components.schemas.Breakdown
+// in contracts/openapi.yaml), compiled with the same Ajv setup as VerdictCard
+// — the boundary assertion for the live GET /breakdown/{diff_id} response.
+// The YAML flow-mapping `description: e.g. total_dps, ehp` parses a spurious
+// null-valued `ehp` key (the comma splits the scalar); JSON Schema has no
+// null-valued keywords (`type: null` is the STRING "null"), so stripping
+// nulls is a safe de-quirk and keeps Ajv strict mode meaningful.
+const openapiDoc = parseYaml(
+  readFileSync(join(REPO_ROOT, "contracts", "openapi.yaml"), "utf8"),
+) as { components: { schemas: { Breakdown: unknown } } };
+const breakdownSchema = JSON.parse(
+  JSON.stringify(openapiDoc.components.schemas.Breakdown, (_key, value: unknown) =>
+    value === null ? undefined : value,
+  ),
+) as Record<string, unknown>;
+const validateBreakdown: ValidateFunction =
+  ajvStrict.compile(breakdownSchema);
+
+// Every driver in every web/mock breakdown fixture, for the NEGATIVE
+// provenance check: no driver the live server returns may equal one of these
+// {mod_text, contribution_pct, stat} triples. (Read-only; a fixture may never
+// SATISFY an assertion here — it can only falsify one.)
+const MOCK_FIXTURE_DRIVERS: readonly unknown[] = readdirSync(
+  join(REPO_ROOT, "web", "mock", "fixtures", "breakdown"),
+)
+  .filter((name) => name.endsWith(".json"))
+  .flatMap(
+    (name) =>
+      (
+        JSON.parse(
+          readFileSync(
+            join(REPO_ROOT, "web", "mock", "fixtures", "breakdown", name),
+            "utf8",
+          ),
+        ) as { drivers?: unknown[] }
+      ).drivers ?? [],
+  );
+
+// The card's two bars are computed from exactly these stats
+// (server/app.py: offense = total_dps delta, defense = ehp delta), so a
+// driver stat the card reported is one of these two.
+const CARD_REPORTED_STATS: readonly string[] = ["total_dps", "ehp"];
 
 /** Mirror of server/__main__.py construction, on an ephemeral port. */
 const BOOT = String.raw`
@@ -261,6 +314,126 @@ describe.skipIf(!RUNTIME_OK)(
         within(card).getByRole("link", { name: /details/i }),
       ).toBeTruthy();
     }, 20_000);
+
+    it("the details affordance renders the LIVE server's drivers for the pasted item (Tier-2, TASK-214-S2)", async () => {
+      render(<App />);
+      fireEvent.change(screen.getByLabelText(/Item text/), {
+        target: { value: GOLDEN_ITEM },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Evaluate item" }));
+      const card = await screen.findByLabelText(
+        "Upgrade verdict",
+        {},
+        { timeout: 15_000 },
+      );
+
+      // The same tap a player makes (I7): one tap = one GET
+      // /breakdown/{diff_id} against the live server.
+      fireEvent.click(within(card).getByRole("link", { name: /details/i }));
+
+      const driversSection = await screen.findByLabelText(
+        "Top stat drivers",
+        {},
+        { timeout: 15_000 },
+      );
+      const rows = within(driversSection).getAllByRole("row").slice(1); // header row
+      expect(rows.length).toBeGreaterThan(0);
+      const rendered = rows.map((row) => {
+        const cells = within(row).getAllByRole("cell");
+        return {
+          modText: cells[0].textContent ?? "",
+          stat: cells[1].textContent ?? "",
+        };
+      });
+      console.warn(`[E2E] live Tier-2 drivers: ${JSON.stringify(rendered)}`);
+
+      // AC-1: at least one rendered driver is the SERVER's — its mod_text is a
+      // line of the item the player pasted and its stat is one the card's two
+      // bars reported. No mock fixture mod_text appears in this item, so this
+      // cannot be satisfied by fixture data.
+      const proven = rendered.filter(
+        (d) =>
+          d.modText.length > 0 &&
+          GOLDEN_ITEM.includes(d.modText) &&
+          CARD_REPORTED_STATS.includes(d.stat),
+      );
+      expect(
+        proven.length,
+        `no rendered driver traced to the pasted item + card stats; rows: ${JSON.stringify(rendered)}`,
+      ).toBeGreaterThan(0);
+    }, 20_000);
+
+    it("GET /breakdown/{diff_id} is schema-valid and measured from this item (TASK-214-S2)", async () => {
+      const card = await DefaultService.diffItem({ item_text: GOLDEN_ITEM });
+      const breakdown = await DefaultService.getBreakdown(card.diff_id);
+      console.warn(`[E2E] REAL-BREAKDOWN-JSON:${JSON.stringify(breakdown)}`);
+
+      // AC-2: contract shape at the boundary, validated with the same Ajv
+      // setup this suite uses for VerdictCard.
+      expect(
+        validateBreakdown(breakdown),
+        `real breakdown failed the contract Breakdown schema: ${ajvStrict.errorsText(validateBreakdown.errors)}`,
+      ).toBe(true);
+      expect(breakdown.diff_id).toBe(card.diff_id);
+      expect(breakdown.drivers.length).toBeGreaterThan(0);
+
+      // Provenance: drivers are measured from THIS item (leave-one-out,
+      // TASK-214-S1) — at least one mod_text is a pasted item line, and no
+      // driver equals a mock fixture's {mod_text, contribution_pct, stat}.
+      const fromItem = breakdown.drivers.filter((d) =>
+        GOLDEN_ITEM.includes(d.mod_text),
+      );
+      expect(
+        fromItem.length,
+        `no live driver mod_text appears in the pasted item: ${JSON.stringify(breakdown.drivers)}`,
+      ).toBeGreaterThan(0);
+      for (const fixtureDriver of MOCK_FIXTURE_DRIVERS) {
+        expect(breakdown.drivers).not.toContainEqual(fixtureDriver);
+      }
+    }, 15_000);
+
+    it("an unknown diff_id renders the panel's honest 404 copy against the real server (I5, TASK-214-S2)", async () => {
+      // Client level: the live server answers a bare 404 for a diff_id it
+      // never issued.
+      const err = await DefaultService.getBreakdown("d-no-such-diff").catch(
+        (e: unknown) => e,
+      );
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(404);
+
+      // UI level: a card carrying that unknown diff_id via App's documented
+      // diffFn test seam — the CARD is only the vehicle for the id; the
+      // breakdown fetch is the default loadBreakdown, i.e. the real generated
+      // client against the real server. Nothing on that path is stubbed.
+      const unknownCard: VerdictCardData = {
+        diff_id: "d-no-such-diff",
+        verdict: "SIDEGRADE",
+        offense_delta_pct: 1.2,
+        defense_delta_pct: -0.8,
+        sentence: "Carrier card for the unknown-diff 404 proof.",
+        assumptions: [],
+        confidence: 0.9,
+        preset: "mapping",
+      };
+      const diff: DiffFn = () =>
+        new CancelablePromise<VerdictCardData>((resolve) =>
+          resolve(unknownCard),
+        );
+      render(<App diffFn={diff} />);
+      fireEvent.change(screen.getByLabelText(/Item text/), {
+        target: { value: "Rarity: RARE\nSpike Candidate\n" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Evaluate item" }));
+      const card = await screen.findByLabelText("Upgrade verdict");
+      fireEvent.click(within(card).getByRole("link", { name: /details/i }));
+
+      // AC-3: the real 404 renders the panel's exact 404 copy — not a blank
+      // or stale panel.
+      const alert = await screen.findByRole("alert", {}, { timeout: 15_000 });
+      expect(alert.textContent).toBe(
+        "Breakdown expired or unknown for this diff.",
+      );
+    }, 15_000);
 
     it("POST /diff returns the deterministic, schema-valid real verdict (captured)", async () => {
       // Session continuity: the build the UI leg imported is the active one.
