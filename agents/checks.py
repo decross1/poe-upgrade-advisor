@@ -151,7 +151,13 @@ def _v_unittest_engine(argv, entry, context):
     if argv[: len(head)] != head:
         return "no-match"
     rest = argv[len(head):]
-    if rest in ([], ["-v"]):
+    # Verbosity only. `-v` was allowed and `-q` was not, which is an arbitrary
+    # gap rather than a control: neither changes WHICH tests run or whether a
+    # failure is reported — unittest exits non-zero either way, and the
+    # dispatcher reads the exit code. Observed live 2026-08-03: TASK-102-S2
+    # (the parity-corpus mission task) declared `-q` and was refused 87 times
+    # at the pre-invoke gate.
+    if rest in ([], ["-v"], ["-q"]):
         return "accept"
     raise CommandPolicyError(f"unittest args not allowed: {rest!r}")
 

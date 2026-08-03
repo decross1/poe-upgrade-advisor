@@ -493,3 +493,21 @@ def test_work_intents_is_the_gate_boundary():
             f"{intent} is governance traffic; gating it on packet command "
             f"policy makes a broken packet uncorrectable"
         )
+
+
+def test_unittest_verbosity_flags_both_allowed():
+    """L-21: `-v` was allowlisted and `-q` was not. Neither changes which
+    tests run or whether failure is reported, so the asymmetry was a gap, not
+    a gate — it refused the parity-corpus mission task 87 times. Anything
+    that could change WHAT is tested still rejects."""
+    from agents.checks import validate_packet_commands
+
+    for flag in ([], ["-v"], ["-q"]):
+        cmd = " ".join(["python3", "-m", "unittest", "discover", "-s",
+                        "engine/tests", *flag])
+        assert validate_packet_commands({"required_checks": [cmd]}) == []
+
+    # Selection/behaviour-changing args still refused.
+    for bad in ("-k pattern", "-f", "--failfast", "-s other/tests"):
+        cmd = f"python3 -m unittest discover -s engine/tests {bad}"
+        assert validate_packet_commands({"required_checks": [cmd]}) != []
