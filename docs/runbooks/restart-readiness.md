@@ -860,3 +860,42 @@ was never sent, so the message stayed unacked. Completed here:
   explicit "measure before authorizing" step — this should fold into it.
 
 Recorded by pm — ledger message `a68a52d4`, run `8f1a127803284aaeb8cf117f4ef56727`.
+
+### Correction — two runs executed ledger `a68a52d4` concurrently
+
+Both runs reached the same ruling, so the record needs three fixes to be
+coherent:
+
+1. **#103's final disposition is `closed / not planned`**, per run
+   `8f1a1278`. That **supersedes** the "stays open as the standing
+   `protected-change` authorization of record" line above. The retraction is
+   the better call: retaining a label minted before the diff was measured
+   would have left a retroactive authorization standing over protected paths
+   already on `main` — narrative cover, not a checked gate. L-19 routes to
+   TASK-007 / #24 on its own; it does not need #103 as a placeholder. The
+   AC 1–6 verification above still stands as evidence about `main`
+   (`pytest tests -q` 529 passed at `a9e86af`).
+2. **The ledger reply was sent by both runs.** Run `75330405` sent
+   `f72798b6` (`REVIEW_VERDICT`, hop 3) at 06:50:00Z; run `8f1a1278` sent
+   `285f6cfd` (`REVIEW_REQUEST`, hop 3) just before it and, writing its
+   addendum before `f72798b6` existed, recorded that no reply had been sent.
+   Backend has two messages saying the same thing. Ack both; there is no
+   third position hiding between them.
+3. **L-19b — dispatch of a single ledger message is not exclusive.** Two runs
+   held `a68a52d4` at once and raced: `8f1a1278` filed #103 and relinked PR
+   #102 at 06:46; `75330405` measured the diff and closed PR #102 at 06:47;
+   `8f1a1278` reverted the PR metadata and closed #103 at 06:49; both pushed
+   to `pm/ORG-pr102-superseded` and both messaged backend. Then run
+   `75330405`'s fan worktree was **deleted underneath it mid-command**, when
+   the other run's completion reaped `.fan/pm-a68a52d4` — this correction had
+   to be authored from a fresh clone. Nothing was lost only because the two
+   conclusions agreed; the mutation order alone (close, then un-relink, then
+   re-close) shows how easily they might not have, and a reap that races a
+   live run can destroy an unwritten `.agent-result.json` and with it the
+   proof of work the dispatcher requires. A re-dispatch that assumes the
+   prior run is dead needs a liveness check or a lease, and the worktree reap
+   needs to be keyed to the run that owns it, not to the message. Same shape
+   as L-19: the exclusion is assumed, not installed. Filed against the
+   dispatcher, not the roles.
+
+Recorded by pm — ledger message `a68a52d4`, run `75330405`.
