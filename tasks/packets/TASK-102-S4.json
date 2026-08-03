@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-102-S4",
+  "parent_task_id": "TASK-102",
+  "issue": 7,
+  "owner_role": "backend",
+  "tier": "red",
+  "objective": "Replay stage 3 of parked PR #87 (commit dde7e04): frozen poe.ninja seed builds 20b-24 ONLY — 20-occultist-storm-burst-decay, 21-elementalist-vaal-reap, 22-hierophant-shockwave-totem, 23-inquisitor-spark, 24-hierophant-storm-burst-totem (each a one-line frozen .json plus its .meta.json). Inert until TASK-102-S5 flips the manifest; files must be byte-identical to the parked commit.",
+  "preconditions": [
+    {
+      "check": "issue_state",
+      "expect": "open"
+    },
+    {
+      "check": "issue_labels",
+      "require": [
+        "task",
+        "protected-change"
+      ]
+    }
+  ],
+  "files_in_scope": [
+    "engine/corpus/seed/ninja/20-occultist-storm-burst-decay*",
+    "engine/corpus/seed/ninja/21-elementalist-vaal-reap*",
+    "engine/corpus/seed/ninja/22-hierophant-shockwave-totem*",
+    "engine/corpus/seed/ninja/23-inquisitor-spark*",
+    "engine/corpus/seed/ninja/24-hierophant-storm-burst-totem*"
+  ],
+  "files_out_of_scope": [
+    "engine/corpus/seed/ninja/manifest.json",
+    "engine/reports/**",
+    "engine/*.py",
+    "engine/tests/**",
+    "scripts/**",
+    ".github/**",
+    "contracts/**",
+    "tasks/**",
+    "agents/**",
+    "assumptions/**",
+    "PRODUCT_DOCTRINE.md",
+    "AGENTS.md"
+  ],
+  "constraints": [
+    "Data files must be byte-identical to parked commit dde7e04 (compare with git diff against that commit's paths).",
+    "Do not touch the manifest; activation happens in TASK-102-S5."
+  ],
+  "required_checks": [
+    "python3 -m unittest discover -s engine/tests -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "text": "Exactly the ten listed seed files are added, byte-identical to dde7e04."
+    },
+    {
+      "id": "AC-2",
+      "text": "Manifest and all code are untouched; required checks pass."
+    }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 10,
+    "max_diff_lines": 260,
+    "max_tool_calls": 25,
+    "max_wall_clock_seconds": 1200,
+    "cost_ceiling_usd": null,
+    "value_usd": 40.0
+  },
+  "routing": {
+    "reasoning_effort": "high",
+    "review_only_if": [
+      "evidence-bearing-non-author-approval"
+    ]
+  },
+  "rollback": "git revert the stage commit; the files were unreferenced, so no gate changes."
+}

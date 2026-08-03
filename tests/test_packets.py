@@ -151,6 +151,17 @@ def test_every_example_packet_validates():
         # makes the check-runner test below direction-aware so S1's probe can
         # land. Registered here by pm; the fix itself is backend's S2 work.
         "TASK-999-S2.json",
+        # 2026-08-03: mission-resume repacketization (orchestrator ruling
+        # 003c6e0b, issue #97). Parked PR #87 (TASK-102, issue #7) replays as
+        # four budget-fit stages — code/CI first, frozen seed builds inert
+        # until S5 flips the manifest. Parked PR #91 (TASK-210, issue #79)
+        # replays as core pipeline + e2e snapshot suite. Registered by pm.
+        "TASK-102-S2.json",
+        "TASK-102-S3.json",
+        "TASK-102-S4.json",
+        "TASK-102-S5.json",
+        "TASK-210-S2.json",
+        "TASK-210-S3.json",
     }
 
 

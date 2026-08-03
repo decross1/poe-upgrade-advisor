@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-102-S2",
+  "parent_task_id": "TASK-102",
+  "issue": 7,
+  "owner_role": "backend",
+  "tier": "red",
+  "objective": "Replay stage 1 of parked PR #87 (approved+green commit dde7e04 on origin/role/task-102-corpus-parity-0195e7e2): code and CI wiring ONLY — the parity-harness update, its tests, the strengthened scripts/check_fixture_coverage.py, the three real assumption fixtures (replacing the two placeholders), engine/corpus/run_corpus.sh, and the ci.yml lines invoking it. Rebase those hunks onto current main. The seed manifest stays at 15 builds so the corpus gate is green at this merge; frozen build data lands in TASK-102-S3..S5. Do not invent new code: reproduce the parked commit's content, deviating only where rebase conflicts force it.",
+  "preconditions": [
+    {
+      "check": "issue_state",
+      "expect": "open"
+    },
+    {
+      "check": "issue_labels",
+      "require": [
+        "task",
+        "protected-change"
+      ]
+    }
+  ],
+  "files_in_scope": [
+    "engine/parity_harness.py",
+    "engine/tests/test_parity_harness.py",
+    "scripts/check_fixture_coverage.py",
+    "assumptions/fixtures/**",
+    "engine/corpus/run_corpus.sh",
+    ".github/workflows/ci.yml"
+  ],
+  "files_out_of_scope": [
+    "engine/corpus/seed/**",
+    "engine/reports/**",
+    "engine/README.md",
+    "contracts/**",
+    "tasks/**",
+    "agents/**",
+    "server/**",
+    "web/**",
+    "overlay/**",
+    "bot/**",
+    "PRODUCT_DOCTRINE.md",
+    "AGENTS.md"
+  ],
+  "constraints": [
+    "Replay parked commit dde7e04; deviations only where the rebase forces them.",
+    "Never commit engine/reports/ninja-parity.json — the generated report is out of scope for every TASK-102 stage (see issue #7).",
+    "Do not touch engine/corpus/seed/**: the manifest must remain at 15 builds until TASK-102-S5 activates the expanded corpus."
+  ],
+  "required_checks": [
+    "python3 scripts/check_fixture_coverage.py",
+    "python3 -m unittest discover -s engine/tests -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "text": "In-scope files match parked commit dde7e04's content for those paths, modulo rebase-forced adaptation."
+    },
+    {
+      "id": "AC-2",
+      "text": "All required checks pass with the manifest still listing 15 builds."
+    },
+    {
+      "id": "AC-3",
+      "text": "Diff touches no seed data, no reports, and no paths outside files_in_scope."
+    }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 10,
+    "max_diff_lines": 320,
+    "max_tool_calls": 40,
+    "max_wall_clock_seconds": 1800,
+    "cost_ceiling_usd": null,
+    "value_usd": 60.0
+  },
+  "routing": {
+    "reasoning_effort": "high",
+    "review_only_if": [
+      "evidence-bearing-non-author-approval"
+    ]
+  },
+  "rollback": "git revert the single stage commit; main returns to the pre-replay corpus gate with no data dependencies."
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-210-S2",
+  "parent_task_id": "TASK-210",
+  "issue": 79,
+  "owner_role": "frontend",
+  "tier": "red",
+  "objective": "Replay the core of parked PR #91 (approved-stage commit 95b67cb on origin/frontend/task-210-clipwatch): clipboard detection to verdict card, EXCLUDING the end-to-end pipeline snapshot suite (that is TASK-210-S3). Rebase onto current main: clipboardWatcher.ts (100 ms read-only sampler, startup baseline, change dedup, Item Class/Rarity recognition), clipboardPipeline.ts, clipboardText.ts, diffFlow.ts exact-text handoff, main.ts renderer-ready start/quit stop wiring, window.ts, overlay/README.md, and overlay/test/clipboardWatcher.test.ts. Doctrine S2 boundary semantics (one request per detected explicit copy; startup clipboard contents never trigger a request) must be preserved exactly.",
+  "preconditions": [
+    { "check": "issue_state", "expect": "open" },
+    { "check": "issue_labels", "require": ["task"] }
+  ],
+  "files_in_scope": [
+    "overlay/src/clipboardWatcher.ts",
+    "overlay/src/clipboardPipeline.ts",
+    "overlay/src/clipboardText.ts",
+    "overlay/src/diffFlow.ts",
+    "overlay/src/main.ts",
+    "overlay/src/window.ts",
+    "overlay/README.md",
+    "overlay/test/clipboardWatcher.test.ts"
+  ],
+  "files_out_of_scope": [
+    "overlay/test/clipboardPipeline.test.tsx", "overlay/test/__snapshots__/**",
+    "contracts/**", "server/**", "web/**", "engine/**", "tasks/**",
+    "agents/**", ".github/**", "PRODUCT_DOCTRINE.md", "AGENTS.md"
+  ],
+  "constraints": [
+    "Replay parked commit 95b67cb; deviations only where the rebase forces them.",
+    "No new capabilities in the renderer: it keeps zero clipboard/network access.",
+    "Green-lane execution (kimi) under the org-side cash wall; this packet's ceiling is its share of the $50 wall from issue #97."
+  ],
+  "required_checks": [
+    "npm --prefix overlay run test",
+    "npm --prefix overlay run build"
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-1", "text": "In-scope files match parked commit 95b67cb's content for those paths, modulo rebase-forced adaptation." },
+    { "id": "AC-2", "text": "Watcher tests cover recognition, dedup, transient clipboard failure, and non-item no-request; suite and build green." },
+    { "id": "AC-3", "text": "S2 semantics preserved: startup baseline never triggers a request; identical content dedups until the clipboard changes away." }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 8,
+    "max_diff_lines": 480,
+    "max_tool_calls": 40,
+    "max_wall_clock_seconds": 1800,
+    "cost_ceiling_usd": 25.0,
+    "value_usd": 80.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "git revert the stage commit; the overlay returns to hotkey-only flow with no contract impact."
+}
