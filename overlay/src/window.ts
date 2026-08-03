@@ -27,7 +27,7 @@ export function createOverlayWindow(): BrowserWindow {
     fullscreenable: false, // the overlay itself never takes focus from the game
     alwaysOnTop: true, // verified on the provisioned box (issue #34)
     skipTaskbar: true,
-    show: false, // shown on first hotkey press, hidden otherwise (§8.4 HIDDEN)
+    show: false, // shown on first detected item capture, hidden otherwise
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
