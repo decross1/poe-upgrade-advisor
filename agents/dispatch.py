@@ -98,6 +98,14 @@ RESULT_SCHEMA_REL = "agents/interfaces/schemas/result.schema.json"
 STDERR_TAIL_LINES = 200
 PREPASS_TIMEOUT = 300
 
+#: Intents whose handling actually EXECUTES the task packet — the only ones
+#: the CC-1 pre-invoke command gate should block on (L-8). Everything else
+#: (ANSWER, SYNC, STATUS, REVIEW_VERDICT, ARBITRATION_RULING, QUESTION,
+#: INTAKE_TICKET, BOOTSTRAP) is governance traffic that never runs
+#: required_checks; blocking it on a bad packet makes the packet's own
+#: correction undeliverable.
+WORK_INTENTS = frozenset({"TASK_ASSIGN", "REVIEW_REQUEST"})
+
 #: Where dispatcher state lives, all under the mailroom (shared across the
 #: throwaway fan worktrees — repo-relative state would vanish with them):
 #:   <mailroom>/governor/budget_ledger.sqlite3    fail-closed attempts + spend
@@ -250,8 +258,12 @@ def role_command(role: str, prompt: str, mailroom: Path,
     read and every invocation ran at the env/default rung.
     """
     if role == "pm":
+        # --verbose is REQUIRED by the claude CLI when combining -p with
+        # --output-format stream-json (verified live 2026-08-03: without it
+        # the CLI exits in ~1s with a usage error — the first real pm
+        # invocation found this; every prior run was a fake).
         return ["env", "-u", "ANTHROPIC_API_KEY", "claude", "-p", prompt,
-                "--output-format", "stream-json",
+                "--output-format", "stream-json", "--verbose",
                 "--dangerously-skip-permissions", "--add-dir", str(mailroom)]
     if role == "frontend":
         # 2026-08-03 operator ruling: frontend is the kimi CLI (metered
@@ -468,7 +480,8 @@ def _run_capped(cmd: list[str], worktree: Path, mailroom: Path, *,
 
 def _assess_anti_loop(mailroom: Path, worktree: Path, *, task_id: str,
                       tier: str, packet: dict | None, res: dict | None,
-                      result_error: str | None, stderr_tail: str):
+                      result_error: str | None, stderr_tail: str,
+                      role: str | None = None):
     """Build an AttemptState from what this invocation left behind and let
     the controller judge it. Result fields win where a valid result exists;
     git supplies the diff either way (the breakers must see what actually
@@ -538,7 +551,8 @@ def _assess_anti_loop(mailroom: Path, worktree: Path, *, task_id: str,
     ctrl = al.AntiLoopController(mailroom, task_id)
     return ctrl.assess(state, packet=packet, diff_text=diff_text,
                        previously_passing_now_failing=_regression_check(
-                           mailroom, task_id, res))
+                           mailroom, task_id, res),
+                       role=role)
 
 
 def _regression_check(mailroom: Path, task_id: str,
@@ -711,7 +725,19 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         # policy rejects fails HERE, before any model spend — same standing
         # as a schema-invalid packet. The runner enforces again at
         # execution (defense in depth).
-        cmd_violations = validate_packet_commands(packet)
+        #
+        # L-8 (2026-08-03, observed live): gate WORK-BEARING messages only.
+        # This gate is about not spending an invocation on a packet whose
+        # checks cannot legally run. A governance message — the ANSWER that
+        # says "this packet is superseded", a SYNC, a STATUS — never executes
+        # required_checks, so blocking it buys nothing and costs everything:
+        # an invalid packet made its own task's mailbox UNDELIVERABLE,
+        # including the very ruling that would retire the packet. That is a
+        # deadlock only out-of-band intervention can break. The orchestrator's
+        # superseded-ruling for TASK-999-S2 was suppressed by the exact packet
+        # it was superseding.
+        cmd_violations = (validate_packet_commands(packet)
+                          if msg.get("intent") in WORK_INTENTS else [])
         if cmd_violations:
             out = Outcome(decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
                           reason="packet command policy: "
@@ -1090,7 +1116,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
                     run_id=run_id, packet=packet, base_sha=base_sha,
                     check_results=check_results if declared else None,
                     attempts=attempts, duration_seconds=duration,
-                    usage=usage)
+                    usage=usage, role=role)
                 completion_proofs = proofs_telemetry(proofs)
                 proof_refused = refusal(proofs)
 
@@ -1164,7 +1190,7 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         anti = _assess_anti_loop(mailroom, worktree, task_id=task_id,
                                  tier=tier, packet=packet, res=res,
                                  result_error=result_error,
-                                 stderr_tail=stderr_tail)
+                                 stderr_tail=stderr_tail, role=role)
         if anti.action in ("terminate", "dead_letter"):
             dl = write_dead_letter(
                 mailroom, task_id=task_id, role=role, message_id=message_id,

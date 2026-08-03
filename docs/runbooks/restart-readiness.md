@@ -474,6 +474,153 @@ every run (observed 12:59, 14:28, 15:36, 16:42, 17:48Z today) — 401 by design
 while `MERGE_ROBOT_TOKEN` is unset. Disposition is the operator's; recorded so
 the failure stream is not mistaken for new breakage.
 
+## GO-LIVE — the org is online. Canary GREEN, 2026-08-03T04:04Z
+
+`HALT` lifted 04:03:27Z after the readiness gate exited **0** for the first
+time in its existence (20 checks PASS, `merge_automation` WARN only). The
+canary dispatched one second later and completed in **81 seconds**.
+
+```
+approved_mode:        GO-SUPERVISED — concurrency per effort.env, human observed
+temporary_exception:  none; no gate waived
+risk:                 low-moderate — controls proven live; three live defects
+                      found and fixed in-session; recalibration deferred
+mitigation:           per-message attempt cap, anti-loop, preflight, dispatcher-run
+                      checks, 15 completion proofs, per-day caps, $50 kimi wall
+owner:                human operator (Derrick)
+expiration_date:      2026-08-17 — re-verify if idle by then
+shutdown_condition:   touch mailroom/HALT
+work_required_for_full_go: the carry-list below; GO-UNATTENDED remains NO-GO
+```
+
+### Canary evidence — TASK-999-S1, run `a6228fff`, all fifteen proofs PASS
+
+Real `codex` invocation, real branch, real push. Verified by pm from the
+artifacts, not from the exit code:
+
+| Proof | Result |
+|---|---|
+| #1–#2 result valid, completed fields | PASS |
+| #3 pushed · #4 branch `canary/TASK-999-S1` conforms | PASS |
+| #5 commit `c877430` exists · #6 descends from `e346c4c` | PASS |
+| #7 tree clean after CC-3 sweep | PASS |
+| #8 remote agreement — `ls-remote` raw output persisted | PASS |
+| #9 **1 dispatcher-run check rc=0; the agent's `tests[]` was not consulted** | PASS |
+| #10 2 ACs, exact id-set, evidence present | PASS |
+| #11 scope · #12 protected paths · #13 banned patterns | PASS |
+| #14 budgets · #15 accounting before ack, bundle persisted | PASS |
+
+Spend recorded: 249,826 in / 3,085 out tokens. Message acked. **v1.1's
+central finding is closed in production: the system no longer asks the agent
+whether the agent succeeded.**
+
+### What the first live run found that no fake could
+
+1. **The pm `claude` spawn was broken.** The first real pm invocation
+   (mission SYNC) died in 1.2s: `--output-format stream-json` with `-p`
+   *requires* `--verbose`. Every prior exercise of that branch used a fake —
+   §7's "no model was invoked" limit was hiding exactly this. Fixed and
+   verified live at `314cd8d`. The message was **retained, not lost**
+   (attempt 1 of 2) — the control plane behaving correctly.
+2. **`kimi` prompt mode rejects `--auto`/`--yolo`.** Found by live probe
+   before it could burn an attempt; fixed at `e346c4c`.
+3. **Degradation ladder fired for real.** pm hit level 1 (allowance
+   unknown) and *reassigned* the canary's review to backend — unprompted,
+   exactly as designed.
+4. **Zero-cost empty polls confirmed** (`suppressed_preflight/empty_inbox`,
+   `invoked: false`) and `at cap (1/1)` held concurrency.
+
+### L-1 — per-task allowance-unknown was fail-closed while the aggregate was mode-aware (FIXED live)
+
+Symptom: the *second* invocation on any task was denied
+`task allowance usage unknown` — one invocation per task, then a stall. Root
+cause: a spend row whose `allowance_pct` is NULL (no baseline reading has
+ever been recorded, so the estimator emits NULL) makes
+`_spend(field="allowance_pct")` report unknown, and the per-task and daily
+branches denied unconditionally — while the *missing-reading* branch
+immediately above them had been ruled mode-aware by W2-3 (canary/supervised
+warn and allow bounded invocation; unattended deny). Two policies for the
+same class of ignorance, in one function.
+
+Ruled by the orchestrator and fixed: the per-task and daily unknown checks
+now use the same mode-aware path. Unattended still denies. **Known** spend
+over any cap still denies in every mode — no cap was weakened. Recording a
+baseline reading remains the real fix and is the operator's cheapest lever:
+
+```
+python3 scripts/agent_metrics.py record-allowance --role backend --pct <0-100>
+python3 scripts/agent_metrics.py record-allowance --role pm      --pct <0-100>
+```
+
+### L-2 — governor-suppressed messages retry unboundedly (carried)
+
+When the governor suppresses *before* invoke, the attempt ledger does not
+increment (`invoked: false`, `attempts: 0`), so the message is retained and
+re-polled forever — observed every 30s on `c3c49821`. Model cost is **zero**,
+so this is not the 977-fan cascade, but nothing retires it and pm had to ack
+it by hand. Next cycle: a suppression counter with its own retirement path.
+
+### L-4 — proof #12 was role-blind, and it had TWO readers (FIXED live)
+
+pm's mission run completed its work and was then circuit-broken for
+committing `tasks/packets/TASK-999-S2.json`. CC-4 protects that glob so a
+TASK agent cannot rewrite the constraints it is judged against — kept in
+full — but authoring packets IS pm's planning job (SPEC.md: only the PM
+identity applies `protected-change`). The dispatcher was stricter than the
+merge robot in a way that made autonomous planning impossible.
+
+Fixed twice, which is the lesson: `857e585` fixed completion proof #12, and
+pm kept dead-lettering because `agents/anti_loop.py::prohibited_files` is an
+independent second reader of the same list (`e43c799`). *What else reads the
+thing this gate reads?* — paid for again, by the orchestrator this time. Both
+now share `ROLE_AUTHORIZED_PROTECTED` (pm → `tasks/packets/*` only); every
+other protected glob still breaks for pm, packets still break for every other
+role, and a packet's own `files_out_of_scope` still beats role authorization.
+
+### L-7 — a leftover fan worktree re-fanned forever (FIXED live)
+
+**This is the 2026-07-27 cascade's actual mechanism, reproduced.** W1-4
+correctly refuses to delete a worktree holding unpushed commits, but nothing
+renamed it, so every later `worktree add` failed at the same path *before*
+`dispatch.py` ran. No attempt increments on that path, so the message re-fans
+indefinitely — `frontend-78d778da` did it 239 times in July;
+`backend-990417bc` did it again tonight at 30s intervals. Now: pin any
+unpushed HEAD to `refs/recovery/<role>-<id8>-<stamp>`, move the tree to
+`.fan/stale/`, prune, then create fresh (`e9124d8`). Nothing is deleted.
+
+### L-8 — a bad packet made its own task's mailbox undeliverable (FIXED live)
+
+A deadlock. The CC-1 pre-invoke command gate ran for every message carrying a
+task_id with a packet. pm authored TASK-999-S2 with an illegal `-k` check
+(deselecting the test it existed to fix — the policy was RIGHT to reject it,
+forbidden-fix class F1). The orchestrator's ANSWER saying *"this packet is
+superseded, do not dispatch it"* was then **suppressed by that same packet**.
+The correction could not reach the role that needed it through the ledger at
+all; only out-of-band intervention broke it. Now gated on `WORK_INTENTS =
+{TASK_ASSIGN, REVIEW_REQUEST}` only — governance traffic never runs
+`required_checks`, and the execution-time runner is unchanged, so an illegal
+check still cannot RUN (`8359c31`).
+
+### L-9 — preflight preconditions also gate governance traffic (OPEN)
+
+Same class as L-8, found immediately after fixing it: the re-routed ruling
+cleared the packet gate and was then suppressed by `precondition
+issue_labels: missing ['task','test-change-authorized']`. It was **acked with
+a durable blocked record** rather than looping — correct fail-closed
+behaviour — but a ruling about a task still cannot reach a role when that
+task's issue is mislabelled. Worked around by labelling issue #99 and
+re-routing under `ORG`. Next cycle: preconditions that bear on *doing the
+work* should not gate messages that merely *say something about* the work.
+
+Also carried: B4 census/recalibration (caps stay `[E]`), B5 pm-lite, B6
+checkpoint, B7 ceiling + `branch_pattern`, A5, A4 telemetry tail, full
+`.fan` recovery, F6/F9 probes, proof #8 exact-SHA match, and **L-6**:
+packets are keyed by `task_id` alone, so a pm *review* inherits that task's
+*implementation* packet scope and always violates it (ADR-0008 stage
+identity does not cover the review role).
+
+---
+
 ### Marker disposition — executed 2026-08-02T19:20Z (operator-directed)
 
 §7 condition 2 is DONE, by move not deletion. All nine

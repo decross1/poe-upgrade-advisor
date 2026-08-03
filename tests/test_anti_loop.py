@@ -759,3 +759,44 @@ def test_fingerprint_distinct_when_only_strategy_changes():
     # And each component-equal pair still collides (stability half).
     assert fingerprint(retry) == fingerprint(AttemptState(
         **base, proposed_next_action="retry the same edit again"))
+
+
+# --- L-4b: the breaker is the SECOND reader of PROTECTED (2026-08-03) -----
+
+
+def test_prohibited_files_lets_pm_author_packets():
+    """Orchestrator ruling L-4, second site. Proof #12 in completion.py and
+    this breaker both read merge_robot's PROTECTED. Fixing only #12 left pm
+    still dead-lettering here — observed live on message d09a9fd8. The two
+    readers must stay in step."""
+    from agents.anti_loop import prohibited_files
+
+    assert prohibited_files(["tasks/packets/TASK-999-S2.json"], None,
+                            role="pm") == []
+
+
+def test_prohibited_files_packet_authorship_is_pm_only():
+    from agents.anti_loop import prohibited_files
+
+    for role in ("backend", "frontend", None):
+        assert prohibited_files(["tasks/packets/TASK-1.json"], None,
+                                role=role) == ["tasks/packets/TASK-1.json"]
+
+
+def test_pm_authorization_does_not_extend_past_packets():
+    """Every other protected glob still terminates for pm."""
+    from agents.anti_loop import prohibited_files
+
+    for path in ("agents/dispatch.py", "AGENTS.md", ".github/workflows/ci.yml",
+                 "PRODUCT_DOCTRINE.md", "scripts/check_invariants.py"):
+        assert prohibited_files([path], None, role="pm") == [path]
+
+
+def test_packet_out_of_scope_still_beats_role_authorization():
+    """A packet may forbid what a role is otherwise authorized to touch —
+    deny still wins."""
+    from agents.anti_loop import prohibited_files
+
+    packet = {"files_out_of_scope": ["tasks/packets/**"]}
+    assert prohibited_files(["tasks/packets/TASK-1.json"], packet,
+                            role="pm") == ["tasks/packets/TASK-1.json"]

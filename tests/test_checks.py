@@ -465,3 +465,31 @@ def test_validate_packet_commands_units():
         "deterministic_prepass": ["ruff check --fix agents"],
     }) == []
     assert validate_packet_commands(None) == []
+
+
+# --- L-8: a bad packet must not brick its own task's mailbox -------------
+
+
+def test_work_intents_is_the_gate_boundary():
+    """L-8 (2026-08-03, observed live). The CC-1 pre-invoke command gate
+    exists so an invocation is not spent on a packet whose checks cannot
+    legally run. Governance traffic never runs required_checks, so gating it
+    bought nothing and cost everything: the orchestrator's ANSWER saying
+    'TASK-999-S2 is superseded, its -k check is illegal' was itself
+    suppressed by that packet — the correction could not reach the role that
+    needed it. Only out-of-band intervention broke the deadlock."""
+    from agents.dispatch import WORK_INTENTS
+
+    # Executes the packet -> must still be gated.
+    assert "TASK_ASSIGN" in WORK_INTENTS
+    assert "REVIEW_REQUEST" in WORK_INTENTS
+
+    # Governance traffic -> must NOT be gated, or a bad packet is unfixable
+    # through the ledger.
+    for intent in ("ANSWER", "SYNC", "STATUS", "REVIEW_VERDICT",
+                   "ARBITRATION_RULING", "ARBITRATION_REQUEST", "QUESTION",
+                   "INTAKE_TICKET", "BOOTSTRAP"):
+        assert intent not in WORK_INTENTS, (
+            f"{intent} is governance traffic; gating it on packet command "
+            f"policy makes a broken packet uncorrectable"
+        )

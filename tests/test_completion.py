@@ -451,3 +451,57 @@ def test_spend_write_failure_refuses_ack_p15(mailroom, worktree,
     assert msg["message_id"] not in acked(mailroom, "backend")
     ev = finish_event(mailroom)
     assert proofs_by_id(ev)["accounting_before_ack"]["passed"] is False
+
+
+# --- L-4: pm may author packets; nothing else moves (2026-08-03) ----------
+
+
+def _pm_ctx(paths, role):
+    """Minimal ctx for p12: a stubbed diff and a role."""
+    return {"role": role, "_paths_override": list(paths)}
+
+
+def test_p12_pm_may_author_packets(monkeypatch):
+    """Orchestrator ruling L-4. CC-4 protects tasks/packets/* so a TASK agent
+    cannot rewrite the constraints it is judged against — kept. But authoring
+    packets IS pm's planning job (SPEC.md: only pm applies `protected-change`),
+    and the unqualified break dead-lettered the mission message live."""
+    from agents import completion as C
+
+    monkeypatch.setattr(C, "_diff_paths",
+                        lambda ctx: ctx.get("_paths_override"))
+    ok = C.p12_protected({}, _pm_ctx(["tasks/packets/TASK-999-S2.json"], "pm"))
+    assert ok.passed and "role-authorized" in ok.detail
+
+
+def test_p12_packet_authorship_is_pm_only(monkeypatch):
+    """The carve-out is role-scoped: a task agent authoring a packet is the
+    exact attack CC-4 exists to stop, and still circuit-breaks."""
+    from agents import completion as C
+
+    monkeypatch.setattr(C, "_diff_paths",
+                        lambda ctx: ctx.get("_paths_override"))
+    for role in ("backend", "frontend", None):
+        broke = C.p12_protected(
+            {}, _pm_ctx(["tasks/packets/TASK-999-S2.json"], role))
+        assert not broke.passed, f"{role} must not author packets"
+        assert broke.severity == "break"
+
+
+def test_p12_pm_carveout_is_packets_only(monkeypatch):
+    """Every other protected glob still breaks FOR PM — the carve-out must not
+    become a general pm exemption."""
+    from agents import completion as C
+
+    monkeypatch.setattr(C, "_diff_paths",
+                        lambda ctx: ctx.get("_paths_override"))
+    for path in ("agents/dispatch.py", "AGENTS.md", "PRODUCT_DOCTRINE.md",
+                 ".github/workflows/ci.yml", "contracts/x.yaml",
+                 "scripts/check_invariants.py"):
+        broke = C.p12_protected({}, _pm_ctx([path], "pm"))
+        assert not broke.passed and broke.severity == "break", path
+
+    # mixed: a packet PLUS a protected file is not laundered by the carve-out
+    mixed = C.p12_protected(
+        {}, _pm_ctx(["tasks/packets/TASK-1.json", "agents/dispatch.py"], "pm"))
+    assert not mixed.passed and mixed.severity == "break"

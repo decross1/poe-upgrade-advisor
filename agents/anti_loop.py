@@ -142,11 +142,38 @@ class Verdict:
 
 
 # ------------------------------------------------------------ breakers
-def prohibited_files(changed: list[str], packet: dict | None) -> list[str]:
-    """Deny wins; PROTECTED is the floor a packet cannot loosen."""
-    deny = list((packet or {}).get("files_out_of_scope") or []) + list(PROTECTED)
-    return sorted({f for f in changed
+#: Protected globs a specific role is authorized to write through the
+#: governed path. L-4 (2026-08-03): CC-4 protected `tasks/packets/*` so a TASK
+#: agent cannot rewrite the constraints it is judged against — kept in full —
+#: but authoring packets IS pm's planning job (SPEC.md: only the PM identity
+#: applies `protected-change`). This breaker and completion proof #12 are two
+#: independent readers of the same list; fixing only #12 left pm still
+#: dead-lettering here, which is this org's standing question in miniature —
+#: what ELSE reads the thing this gate reads? Keep the two in step.
+ROLE_AUTHORIZED_PROTECTED: dict[str, tuple[str, ...]] = {
+    "pm": ("tasks/packets/*",),
+}
+
+
+def prohibited_files(changed: list[str], packet: dict | None,
+                     role: str | None = None) -> list[str]:
+    """Deny wins; PROTECTED is the floor a packet cannot loosen.
+
+    `role` may clear ONLY the globs listed for it in
+    ROLE_AUTHORIZED_PROTECTED, and only when the path is not also denied by
+    the packet's own `files_out_of_scope` — a packet can still forbid what a
+    role is otherwise authorized to touch.
+    """
+    packet_deny = list((packet or {}).get("files_out_of_scope") or [])
+    authorized = ROLE_AUTHORIZED_PROTECTED.get(role or "", ())
+    deny = packet_deny + list(PROTECTED)
+    hits = sorted({f for f in changed
                    for g in deny if fnmatch.fnmatch(f, g)})
+    if not authorized:
+        return hits
+    return [f for f in hits
+            if any(fnmatch.fnmatch(f, g) for g in packet_deny)
+            or not any(fnmatch.fnmatch(f, g) for g in authorized)]
 
 
 def test_weakening(diff_text: str) -> list[str]:
@@ -255,10 +282,11 @@ class AntiLoopController:
     # -------------------------------------------------- assessment
     def assess(self, cur: AttemptState, packet: dict | None = None,
                diff_text: str = "",
-               previously_passing_now_failing: bool = False) -> Verdict:
+               previously_passing_now_failing: bool = False,
+               role: str | None = None) -> Verdict:
         """Assess one finished attempt. Persists it to the rolling window."""
         # Immediate circuit breakers — no retry, no window arithmetic.
-        bad = prohibited_files(cur.files_changed, packet)
+        bad = prohibited_files(cur.files_changed, packet, role=role)
         if bad:
             return self._record_and(cur, Verdict(
                 "terminate", f"prohibited files modified: {bad}"))

@@ -284,9 +284,26 @@ class RunBudget:
                 roles=roles, task_id=task_id, field="allowance_pct"
             )
             if task_unknown:
-                return self._verdict(
-                    allowed=False, reason="task allowance usage unknown", level=1,
-                    role=role, task_id=task_id,
+                # 2026-08-03 orchestrator ruling (L-1): this is the SAME class
+                # of ignorance the missing-reading branch above already treats
+                # mode-aware per W2-3 — a NULL allowance_pct on a prior spend
+                # row, which is what the estimator emits when no baseline
+                # reading exists. Denying unconditionally here gave every task
+                # exactly ONE invocation and then a permanent stall. Unattended
+                # still denies; KNOWN spend over the cap still denies below in
+                # every mode, so no cap is weakened.
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason="unattended mode denies invocation: task allowance usage unknown",
+                        level=1, role=role, task_id=task_id,
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"task allowance usage unknown (a prior spend row has no "
+                    f"allowance_pct; record a baseline with: python3 "
+                    f"scripts/agent_metrics.py record-allowance --role {owner} "
+                    f"--pct <0-100>)"
                 )
             if float(task_used or 0.0) >= task_cap:
                 return self._verdict(
@@ -302,10 +319,18 @@ class RunBudget:
                 roles=roles, since=day_start, field="allowance_pct"
             )
             if daily_unknown:
-                return self._verdict(
-                    allowed=False, reason="daily allowance usage unknown", level=1,
-                    role=role, task_id=task_id,
-                    reassign_to=self._reassignment(role, now),
+                # Same L-1 ruling as the per-task branch above.
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason="unattended mode denies invocation: daily allowance usage unknown",
+                        level=1, role=role, task_id=task_id,
+                        reassign_to=self._reassignment(role, now),
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"daily allowance usage unknown (a spend row today has no "
+                    f"allowance_pct; record a baseline for {owner})"
                 )
             if float(daily_used or 0.0) >= daily_limit:
                 return self._verdict(

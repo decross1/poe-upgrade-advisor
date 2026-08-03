@@ -147,6 +147,10 @@ def test_every_example_packet_validates():
         # Packet B + R4 check). Its check asserts POST-work state — see the
         # canary carve-out in the check-runner test below.
         "TASK-999-S1.json",
+        # 2026-08-03: canary-unblock stage (issue #99, test-change-authorized):
+        # makes the check-runner test below direction-aware so S1's probe can
+        # land. Registered here by pm; the fix itself is backend's S2 work.
+        "TASK-999-S2.json",
     }
 
 
@@ -175,30 +179,52 @@ def test_every_unique_example_required_check_exists_and_runs():
         )
         if argv[-1] == "scripts/check_canary_probe.py":
             # The canary's check asserts the canary TASK's outcome
-            # (docs/agent-org/canary-probe.md), which by design does not
-            # exist until the canary agent creates it. Before the work, the
-            # correct verdict is a clean FAIL — asserting rc==0 here would
-            # force someone to pre-create the probe file and hollow out the
-            # canary. Pin BOTH directions instead: a deterministic FAIL in
-            # the repo, and a PASS against a valid probe in a scratch tree
-            # (checker copied, since it resolves paths relative to cwd).
-            assert result.returncode == 1 and "missing" in result.stdout, (
-                f"{command}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+            # (docs/agent-org/canary-probe.md), so its correct verdict in the
+            # repo DEPENDS ON LIFECYCLE STAGE: FAIL before the canary runs,
+            # PASS once the canary's file lands. An earlier revision of this
+            # test pinned only the pre-canary FAIL and turned CI red the
+            # moment the canary succeeded — backend caught it on PR #98 and
+            # correctly refused to weaken it. Assert the checker is RIGHT for
+            # whichever state the repo is in, and pin both directions
+            # unconditionally in scratch trees (the checker resolves paths
+            # relative to cwd, so it is copied in).
+            probe_in_repo = (ROOT / "docs/agent-org/canary-probe.md").is_file()
+            if probe_in_repo:
+                assert result.returncode == 0, (
+                    f"probe exists but checker rejects it:\n{command}\n"
+                    f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+                )
+            else:
+                assert result.returncode == 1 and "missing" in result.stdout, (
+                    f"probe absent but checker did not report it missing:\n"
+                    f"{command}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+                )
+
+            def _run_in_scratch(probe_text: str | None):
+                with tempfile.TemporaryDirectory() as scratch:
+                    root = Path(scratch)
+                    (root / "scripts").mkdir()
+                    shutil.copy(ROOT / "scripts/check_canary_probe.py", root / "scripts")
+                    if probe_text is not None:
+                        probe = root / "docs/agent-org/canary-probe.md"
+                        probe.parent.mkdir(parents=True)
+                        probe.write_text(probe_text)
+                    return subprocess.run(
+                        argv, cwd=root, capture_output=True, text=True,
+                        timeout=120, check=False,
+                    )
+
+            good = _run_in_scratch("# Canary probe\n\nvalid scratch probe\n")
+            assert good.returncode == 0, (
+                f"checker cannot pass a valid probe:\nSTDOUT:\n{good.stdout}"
             )
-            with tempfile.TemporaryDirectory() as scratch:
-                root = Path(scratch)
-                (root / "scripts").mkdir()
-                shutil.copy(ROOT / "scripts/check_canary_probe.py", root / "scripts")
-                probe = root / "docs/agent-org/canary-probe.md"
-                probe.parent.mkdir(parents=True)
-                probe.write_text("# Canary probe\n\nvalid scratch probe\n")
-                good = subprocess.run(
-                    argv, cwd=root, capture_output=True, text=True,
-                    timeout=120, check=False,
-                )
-                assert good.returncode == 0, (
-                    f"checker cannot pass even against a valid probe:\n"
-                    f"STDOUT:\n{good.stdout}\nSTDERR:\n{good.stderr}"
-                )
+            missing = _run_in_scratch(None)
+            assert missing.returncode == 1 and "missing" in missing.stdout, (
+                f"checker does not fail on an absent probe:\nSTDOUT:\n{missing.stdout}"
+            )
+            bad = _run_in_scratch("# Wrong heading\n")
+            assert bad.returncode == 1, (
+                f"checker accepts a malformed probe:\nSTDOUT:\n{bad.stdout}"
+            )
             continue
         assert result.returncode == 0, f"{command}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"

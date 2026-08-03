@@ -54,6 +54,27 @@ fan_worker() { # $1 = full message_id
   echo $$ >"$marker"
   local wt=$FANROOT/$ROLE-$id8
   git -C "$DIR" fetch -q origin
+  # A worktree left behind by a previous attempt (RECOVERY_REQUIRED below)
+  # makes every later `worktree add` fail at the SAME path, before
+  # dispatch.py runs — so no attempt increments and the message re-fans
+  # forever. That is the mechanism behind the 2026-07-27 cascade
+  # (frontend-78d778da: 239 consecutive failures, one leftover directory).
+  # Move it aside instead, and pin any unpushed commits to a durable ref
+  # first so the shared object store cannot gc work we preserved.
+  if [ -e "$wt" ]; then
+    local stamp head_sha
+    stamp=$(date -u +%Y%m%dT%H%M%SZ)
+    head_sha=$(git -C "$wt" rev-parse HEAD 2>/dev/null)
+    if [ -n "$head_sha" ] && \
+       [ -n "$(git -C "$wt" log --oneline origin/main..HEAD 2>/dev/null)" ]; then
+      git -C "$DIR" update-ref "refs/recovery/$ROLE-$id8-$stamp" "$head_sha" 2>/dev/null \
+        && echo "[$(date -Is)] [$ROLE:$id8] pinned unpushed work to refs/recovery/$ROLE-$id8-$stamp ($head_sha)" >>"$LOG"
+    fi
+    mkdir -p "$FANROOT/stale"
+    mv "$wt" "$FANROOT/stale/$ROLE-$id8-$stamp" 2>/dev/null \
+      && echo "[$(date -Is)] [$ROLE:$id8] stale worktree moved to .fan/stale/$ROLE-$id8-$stamp" >>"$LOG"
+    git -C "$DIR" worktree prune >/dev/null 2>&1
+  fi
   git -C "$DIR" worktree add --detach "$wt" origin/main >/dev/null 2>&1 || {
     echo "[$(date -Is)] [$ROLE:$id8] worktree add failed" >>"$LOG"; return 1; }
   echo "[$(date -Is)] [$ROLE:$id8] dispatch start" >>"$LOG"
