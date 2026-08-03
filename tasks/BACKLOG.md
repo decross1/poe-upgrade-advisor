@@ -153,7 +153,14 @@ fire. Canonicalization stays off the critical path and TASK-210-S6 keeps its
 golden-item e2e. Revisit only if a player report shows a real clipboard shape
 the engine rejects — that becomes a fixture first (I8), then a fix.
 
-10. **TASK-213** (backend, issue #123 — P0, blocks everything). `main` is red
+10. ~~**TASK-213**~~ **DONE 2026-08-03 at `ead5b5a`** (backend, issue #123).
+    Do not dispatch it. The one-line dep fix (`pip install pyyaml jsonschema`)
+    is merged to `main`; the rest of the workflow was checked and only
+    `engine-integration` was affected — `assumptions-fixtures` runs a
+    stdlib-only script and `windows-runtime-build` runs PowerShell. The
+    recurrence guard the task also asked for is filed as issue #126 and is
+    **not packetable** (see the routing rule below): it edits `.github/`.
+    Original statement follows. `main` was red
     on the required `engine-integration` check and has been since `69a1f6a`.
     TASK-212-S1 correctly added a contract-schema assertion importing
     `jsonschema`, but that job's `pip install` lists only `pyyaml`, so
@@ -180,7 +187,17 @@ All three legs of #97 are proven against the real engine (9d63b72, b8620b5,
 1846df2). The mission sentence now holds: a player copies an item in game and
 sees a real verdict card. What the card cannot do is say WHY.
 
-10. **TASK-213-S1** (backend, issue #125 — P0). `GET /breakdown/{diff_id}` is
+**Renumbered 2026-08-03: the Tier-2 stages are TASK-214-S1/S2, not TASK-213.**
+`TASK-213` was already spent on the CI regression (issue #123, merged at
+`ead5b5a`), so two live task ids collided on `main`. The id of record for
+Tier-2 is now **TASK-214** (issue #125); packets are
+`tasks/packets/TASK-214-S1.json` and `TASK-214-S2.json`. S1 was already
+executed under the old id before the collision was caught — its work is on
+`backend/TASK-213-S1-tier2-breakdown` at `c05ae0e`, PR #128, and that branch
+name stays as-is. Do not re-dispatch S1; land or verify that branch. S2 has
+not been dispatched and goes out as **TASK-214-S2** the moment S1 is on main.
+
+10. **TASK-214-S1** (backend, issue #125 — P0). `GET /breakdown/{diff_id}` is
     specified at `contracts/openapi.yaml:129` and **has never existed**:
     `grep -n breakdown server/*.py` returns nothing, and `_diff_id()` hashes a
     calculation the server then discards. The whole web client has been wired
@@ -193,11 +210,27 @@ sees a real verdict card. What the card cannot do is say WHY.
     re-run the engine, and the movement in the delta IS that mod's
     contribution. Real measurements or an empty list; never an estimate (I5).
     Contract surface: **none** — implementing a ratified path needs no RFC.
-11. **TASK-213-S2** (frontend, issue #125). `web/test/realServer.e2e.test.tsx`
+11. **TASK-214-S2** (frontend, issue #125). `web/test/realServer.e2e.test.tsx`
     has never opened details, which is precisely why nobody noticed the route
     was missing. The stage drives the affordance against a live
     `python3 -m server` and asserts the panel shows the server's drivers.
     Test-only; `web/src/**` out of scope.
+
+**Standing routing rule — PROTECTED paths are unpacketable, not label-gated.**
+The `protected-change` label is a MERGE-TIME gate (merge robot condition 5).
+Completion proof #12 fires much earlier, at dispatch-time completion
+verification, and it does not consult labels at all. So any packet whose
+`files_in_scope` contains a PROTECTED path is impossible for the assigned role
+to complete: the agent does the work, commits it, and #12 circuit-breaks the
+result into a dead letter. Backend just did exactly this on
+`.github/workflows/ci.yml`. PROTECTED is `agents/*`, `.github/*`,
+`contracts/*`, `PRODUCT_DOCTRINE.md`, `AGENTS.md`, `engine/corpus/*`,
+`scripts/check_invariants.py`, `tasks/packets/*` — the only carve-out is pm
+writing `tasks/packets/*` (L-4), because authoring packets is pm's job.
+Therefore: **route protected-path work to the orchestrator; never packet it.**
+That covers anything touching CI, the contracts, the corpus, or the
+dispatcher — including issue #126 and the deferred `engine/corpus/` work
+below. Revisit only if proof #12 is taught to read the issue's labels.
 
 Dispatch order: **S1 now; S2 the moment S1 merges** — S2 cannot go green
 before the route exists, so frontend is idle by sequencing for exactly one
