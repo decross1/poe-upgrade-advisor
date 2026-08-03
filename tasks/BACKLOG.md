@@ -153,7 +153,7 @@ fire. Canonicalization stays off the critical path and TASK-210-S6 keeps its
 golden-item e2e. Revisit only if a player report shows a real clipboard shape
 the engine rejects — that becomes a fixture first (I8), then a fix.
 
-10. **TASK-213** (backend, issue #123 — P0, blocks everything). `main` is red
+10. **TASK-213-CI** (backend, issue #123 — P0, blocks everything). `main` is red
     on the required `engine-integration` check and has been since `69a1f6a`.
     TASK-212-S1 correctly added a contract-schema assertion importing
     `jsonschema`, but that job's `pip install` lists only `pyyaml`, so
@@ -164,6 +164,22 @@ the engine rejects — that becomes a fixture first (I8), then a fix.
     restart-readiness.md` records the `packet-validation` mirror image), so
     the task also asks for a recurrence guard or a filed issue saying why not.
     Nothing else should dispatch while a required check is red on main.
+    **LANDED `ead5b5a`** (one-line `jsonschema` dep in the `engine-integration`
+    job); `main` is green again and PR #128 proved it on a stage branch.
+
+**Naming ruling (2026-08-03) — the TASK-213 collision is resolved by renaming
+this entry, not the stages.** The ID `TASK-213` was used twice: for this CI
+regression (#123) and for the Tier-2 packets (#125). The orchestrator asked
+that the Tier-2 stages be renumbered before dispatch; by the time that
+instruction was read, `TASK-213-S1` had already been dispatched, built,
+branched (`backend/TASK-213-S1-tier2-breakdown`), and PR'd (#128), and the
+packets `tasks/packets/TASK-213-S1.json` / `-S2.json` were merged at `6290a20`.
+Renumbering the stages would invalidate a merged packet, an open PR, and a
+pushed branch to fix a label; renaming the finished CI task costs one line.
+So: **`TASK-213-CI` = the CI regression (#123, done at `ead5b5a`);
+`TASK-213-S1/S2` = the Tier-2 stages (#125).** No bare `TASK-213` is live.
+Revisit if a third TASK-213 appears — at that point the next free integer
+(TASK-214) is cheaper than any further disambiguation.
 
 Not packeted, deliberately: shipping the overlay itself to players. The MVP
 zip (`scripts/package_mvp.sh`, `packaging/launch.py`) contains no overlay at
@@ -193,6 +209,18 @@ sees a real verdict card. What the card cannot do is say WHY.
     re-run the engine, and the movement in the delta IS that mod's
     contribution. Real measurements or an empty list; never an estimate (I5).
     Contract surface: **none** — implementing a ratified path needs no RFC.
+    **ACCEPTED `c05ae0e` / PR #128 (green tier, no review round — L-31).** The
+    route exists: a 64-entry FIFO in-memory diff store written at `/diff` time,
+    leave-one-out attribution per explicit modifier line, bare 404 on unknown
+    or evicted IDs, and the store cleared when the active build changes. Both
+    rulings baked into the packet held: no contract change (the ratified
+    `Breakdown` schema is implemented as written) and rejected leave-one-out
+    runs produce **no driver** rather than an estimate (I5). `pob_breakdown`
+    is absent, and `engine/GAPS.md` now records the remaining gap as Tier-3
+    trees only. `contribution_pct` is percentage-delta points, not a
+    normalized share — drivers do not sum to 100 because modifiers interact,
+    and `server/README.md` says so at the boundary. Thirteen required checks
+    green including `engine-integration`; no protected path touched.
 11. **TASK-213-S2** (frontend, issue #125). `web/test/realServer.e2e.test.tsx`
     has never opened details, which is precisely why nobody noticed the route
     was missing. The stage drives the affordance against a live
@@ -205,6 +233,12 @@ stage. Revisit if S1 finds leave-one-out attribution is not tractable against
 the warm worker; the fallback is a stat-level breakdown with no mod
 attribution, which needs a contract conversation and therefore comes back to
 pm.
+**RESOLVED (2026-08-03): the reversal condition did not fire.** Leave-one-out
+attribution was tractable against the warm worker, so `drivers` keeps its
+ratified meaning (per-mod contribution) and no contract conversation is owed.
+S2 is dispatched on the S1 merge with its merge precondition stated as the
+stage's first check: if `GET /breakdown/{diff_id}` is not on `main` when
+frontend picks it up, it reports blocked rather than stubbing the route.
 
 **Ruling — TASK-102-S3/S4/S5 are DEFERRED, not cancelled.** They replay frozen
 seed builds 16–25 into `engine/corpus/`, a protected path, so they are red tier
