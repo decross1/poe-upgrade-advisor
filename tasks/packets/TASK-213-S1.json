@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-213-S1",
+  "parent_task_id": "TASK-213",
+  "issue": 125,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Make Tier-2 real: implement GET /breakdown/{diff_id} in server/app.py so the card's 'open details' tap answers WHY, not 'Breakdown unavailable'. Today grep -n breakdown server/*.py returns nothing -- the route specified at contracts/openapi.yaml:129 has never existed, _diff_id() hashes a calculation that is then discarded, and every driver a tester has seen came from web/mock/fixtures/breakdown/*.json. The contract is already ratified, so this is an implementation, not a contract change. (1) At /diff time, store the diff under the diff_id you already return: item_text, selected preset, applied overrides, and the engine calculation payload. In-memory, bounded at 64 entries, oldest evicted first; unknown or evicted id => 404 exactly as the contract says. (2) Compute drivers by LEAVE-ONE-OUT attribution against the real engine: for each explicit modifier line on the candidate item, re-run calculator.diff() on the item with that one line removed; the movement in the card's offense delta (stat total_dps) and defense delta (stat ehp) IS that mod's contribution_pct. One driver per (mod, stat) with a non-zero contribution, sorted by descending |contribution_pct|. These are real measurements of this player's item against this player's build. (3) They do NOT sum to 100 -- mods interact -- so document the definition in server/README.md and emit nothing that implies a normalized share. (4) I5 governs every uncertain case: a mod whose leave-one-out run the engine rejects is simply absent from drivers, never estimated; if nothing is attributable, drivers is []; the server never reads a mock fixture. (5) Tier-3 stays honest too: do NOT emit pob_breakdown -- engine/pobcalc.lua's \"pob://calcs/<slot>\" is a calculation slot id, not a breakdown tree. Narrow the engine/GAPS.md open bullet to the Tier-3 raw tree and record Tier-2 as landed.",
+  "preconditions": [
+    { "check": "issue_state", "expect": "open" },
+    { "check": "issue_labels", "require": ["task"] }
+  ],
+  "files_in_scope": [
+    "server/app.py",
+    "server/calculator.py",
+    "server/README.md",
+    "tests/test_server.py",
+    "engine/tests/test_server_adapter.py",
+    "engine/GAPS.md"
+  ],
+  "files_out_of_scope": [
+    "engine/pobcalc.lua",
+    "engine/vendor/**",
+    "engine/corpus/**",
+    "engine/reports/**",
+    "web/**",
+    "overlay/**",
+    "bot/**",
+    "packaging/**",
+    "assumptions/**",
+    "agents/**", ".github/**", "contracts/**", "scripts/**", "tasks/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/adr/**", "docs/specs/**", "docs/agent-org/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "constraints": [
+    "No contract change. GET /breakdown/{diff_id} is implemented exactly as contracts/openapi.yaml already specifies it; if you believe the Breakdown schema is wrong, stop and route it to pm -- do not edit contracts/.",
+    "The diff store is in-memory, bounded (64 entries, oldest evicted first), and holds nothing a diff response did not already contain. No disk, no database, no background expiry thread.",
+    "Every number in drivers comes from an engine run made for THIS diff. No heuristic weighting, no mod-text pattern table, no reading web/mock/** -- a fabricated contribution is a confidently wrong answer and worse than an empty list (I5).",
+    "Attribution is a Tier-2 tap, not the clipboard->verdict path, so I6's 300 ms budget does not bind it; it must still reuse the warm worker and issue at most one engine diff per attributable mod line (the base numbers come from the stored calculation, not a re-run).",
+    "Do not emit pob_breakdown. Shipping the breakdown_ref placeholder as a Tier-3 tree would be the exact dishonesty engine/GAPS.md exists to prevent.",
+    "Existing tests may be EXTENDED, never deleted or skipped; engine/tests/fixtures/item.txt stays byte-identical, and the runtime-availability skips must keep skipping LOUDLY -- a missing runtime never silently passes.",
+    "Stage PR uses 'Refs #125', never 'Fixes' (ADR-0008): #125's frontend stage is TASK-213-S2."
+  ],
+  "required_checks": [
+    "python3 -m pytest tests/test_server.py -q",
+    "python3 -m unittest discover -s engine/tests -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-1", "text": "GET /breakdown/{diff_id} with an id returned by an immediately preceding POST /diff returns 200 and a body that validates against the Breakdown schema in contracts/openapi.yaml, with diff_id echoed unchanged." },
+    { "id": "AC-2", "text": "An unknown diff_id returns 404 with no invented body; a diff_id evicted by the 64-entry bound also returns 404 (tested by driving 65 distinct diffs and re-requesting the first)." },
+    { "id": "AC-3", "text": "A test proves each contribution_pct is a real measurement: for the top driver, re-running POST /diff on the same item with that one mod line removed moves the card's delta for that driver's stat by the reported contribution (within a stated numeric tolerance)." },
+    { "id": "AC-4", "text": "A test proves the honest-empty path: when no mod line is attributable the response is drivers: [], and a mod whose leave-one-out run raises ItemParseError or WorkerUnavailable is absent from drivers rather than estimated." },
+    { "id": "AC-5", "text": "grep proves server/ reads no file under web/mock/ and contains no hardcoded driver text; the endpoint's only data sources are the stored diff and the engine." },
+    { "id": "AC-6", "text": "The response omits pob_breakdown entirely, and engine/GAPS.md's 'Breakdown references are placeholders' bullet is narrowed to the Tier-3 raw tree with Tier-2 drivers recorded as landed." },
+    { "id": "AC-7", "text": "server/README.md documents the leave-one-out definition of contribution_pct and states explicitly that drivers do not sum to 100 because mods interact." },
+    { "id": "AC-8", "text": "All three required checks pass and no test was deleted or skipped." }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 6,
+    "max_diff_lines": 600,
+    "max_tool_calls": 80,
+    "max_wall_clock_seconds": 2700,
+    "cost_ceiling_usd": 40.0,
+    "value_usd": 130.0
+  },
+  "routing": { "reasoning_effort": "high", "review_only_if": [] },
+  "rollback": "git revert the stage commit; /breakdown returns to not existing and the details panel returns to its honest 'Breakdown unavailable' error state. No other endpoint changes behavior."
+}
