@@ -123,3 +123,22 @@ def test_dispatch_gate_precedes_invocation():
     invoke = src.index("_run_capped")
     assert gate < invoke, "provider-limit gate must precede the model call"
     assert src.index('mailroom / "HALT"') < gate, "HALT still comes first"
+
+
+def test_dispatch_provider_limit_returns_structured_suppression(
+    tmp_path, monkeypatch
+):
+    """An active role cap must suppress without touching the message queue."""
+    from agents import dispatch as dispatch_mod
+
+    mailroom = tmp_path / "mailroom"
+    pl.mark(mailroom, "backend", matched="session limit reached")
+    monkeypatch.setattr(dispatch_mod, "mailroom_root", lambda: mailroom)
+
+    outcome = dispatch_mod.dispatch(
+        "backend", "unread-message", tmp_path, dry_run=True
+    )
+
+    assert outcome.decision == "suppressed_preflight"
+    assert outcome.message_id == "unread-message"
+    assert outcome.role == "backend"
