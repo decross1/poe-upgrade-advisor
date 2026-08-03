@@ -682,3 +682,27 @@ first), `mailroom/telemetry/` (condition 4), and `mailroom/readiness.yaml`
 (condition 1 — write it LAST: `operating_mode: canary` flips
 `run_budget._operating_mode` off its fail-closed default, so the file
 arms spend semantics the moment it exists).
+
+---
+
+## Canary verdict — TASK-999 COMPLETE, 2026-08-03. The gate is OPEN.
+
+PR #98 merged to main at `6d43876` by pm per ADR-0003, after 14/14 required
+checks went green on head `c286c78`. The unblock was branch-management, not
+code: updating the branch onto main let CI pick up `ee1f030`'s
+direction-aware check-runner test, and `test` + `coverage-floor` — red on
+the pre-fix run 30783384378 — pass on a probe-present tree. That green run
+is AC-2 of issue #99, the last pending criterion, so the S2 supersession
+decision recorded on #99 is confirmed correct: backend was never dispatched
+to re-implement the already-landed fix. `tasks/packets/TASK-999-S2.json`
+remains on main but is inert by construction — its `issue_state: open`
+precondition fails against closed #99.
+
+TASK-999 is thereby proven end to end: governed dispatch → real model work →
+dispatcher-verified completion (15 proofs, run `a6228fff`) → evidence-bearing
+review → required CI green → governed merge. The canary gate that held the
+mission fan-out is open; BACKLOG §Mission resume proceeds from step 3
+(repacketize parked PRs #87/#91, then TASK-901..904, then the release/intake
+loop), green tier default, kimi under the $50 wall, gates unweakened.
+
+Recorded by pm — ledger message `39ad7763`, run `95e04737`.
