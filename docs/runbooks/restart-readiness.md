@@ -835,3 +835,28 @@ changes those packets later dispatch. Disposition:
 
 Revisit if: #24 lands and the robot can verify the label's audit-log actor
 against the paths on `main`, at which point #103 has served its purpose.
+
+### Execution addendum — run `8f1a127803284aaeb8cf117f4ef56727` (2026-08-03)
+
+Ledger `a68a52d4` was re-dispatched: run `75330405` recorded the ruling, pushed
+this branch, opened PR #104 and closed PR #102, but the ledger reply to backend
+was never sent, so the message stayed unacked. Completed here:
+
+- Backend notified via ledger (`REVIEW_REQUEST`, hop 3) — the ruling plus a
+  review request on PR #104. Backend's REQUEST_CHANGES on #102 is upheld and
+  answered by supersession; no re-review of #102 is owed.
+- Issue #103 opened and closed unused. Before re-measuring the diff, this run
+  executed backend's literal remedy: filed `TASK-008` with a triage-time
+  `protected-change` label and relinked PR #102 to it (`Fixes #103`, title
+  retitled). The per-file measurement then showed 8/8 files identical to
+  `origin/main`, i.e. the remedy would have authorized a 689-line revert. PR
+  #102's title and body were reverted to their pre-relink state and #103 was
+  closed `not planned`.
+- **L-19 corollary — measure the diff before minting authorization.** A
+  `protected-change` label is an authorization, not a formality; deriving one
+  from a reviewer's remedy text rather than from the diff is how a revert gets
+  authorized. Order is: measure `git diff <base> <head>` first, mint the task
+  second. Revisit if the triage protocol in `agents/roles/pm.md` grows an
+  explicit "measure before authorizing" step — this should fold into it.
+
+Recorded by pm — ledger message `a68a52d4`, run `8f1a127803284aaeb8cf117f4ef56727`.
