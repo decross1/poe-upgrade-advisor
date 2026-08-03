@@ -654,6 +654,36 @@ directories / 71 MB within the first hour of live operation. Next cycle: prune
 `.fan/stale/` entries older than N days whose HEAD is already pinned to a
 recovery ref, and surface the count in the readiness gate.
 
+### L-14 — no provider session-cap detection existed (FIXED live)
+
+Grep for session/rate/quota across `agents/` returned one unrelated ENOSPC
+comment. On 2026-07-27 six pm workers hit the Claude cap; the CLI printed
+"You've hit your session limit" and exited **rc=0**, so the dispatcher saw
+only a missing result file — the founding lesson wearing the provider's hat.
+`agents/provider_limit.py` now matches the CLI's OUTPUT, writes
+`mailroom/blocked/provider-limit-<role>.json`, and dispatch step 1.5
+(after HALT, before the budget ledger, before any model call) suppresses that
+ROLE at zero spend. Role-scoped, so a capped pm does not stop backend or
+frontend on other providers. Cooldown 6h per operator ruling; the marker
+self-expires so the role resumes with nobody awake. Not fail-closed on
+absence — a false positive would idle a healthy role (`3598b17`).
+
+### L-15 — HALT spends an agent's attempt budget (OPEN — needs an operator ruling)
+
+Observed: message `003c6e0b` burned attempt 1 on a real gate defect (L-10),
+attempt 2 on `stopped (halt)` when the orchestrator paused the org, and was
+dead-lettered on attempt 3. **The operator's kill switch is supposed to be a
+free, reversible pause; instead every in-flight message loses an attempt per
+halt.** Two halts in one session were enough to dead-letter a live ruling.
+
+Not fixed unilaterally, deliberately. The attempt ledger's
+increment-BEFORE-invoke rule is the specific correction that bounded the
+977-fan cascade, and it is the last invariant that should be edited casually.
+A halt-refund looks safe (HALT is operator-only, so an agent cannot game it)
+but it needs a deliberate ruling, not a 6am patch. Options: refund the
+attempt when `stop_reason == "halt"`; or record halted attempts in a separate
+column excluded from the cap.
+
 Also carried: B4 census/recalibration (caps stay `[E]`), B5 pm-lite, B6
 checkpoint, B7 ceiling + `branch_pattern`, A5, A4 telemetry tail, full
 `.fan` recovery, F6/F9 probes, proof #8 exact-SHA match, and **L-6**:
