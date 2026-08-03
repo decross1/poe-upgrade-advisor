@@ -846,3 +846,38 @@ def test_reject_labels_set_matches_spec():
     """The label set is EXACTLY the W1-3 check-2 list — no drift either way."""
     assert REJECT_LABELS == {"needs-redesign", "blocked", "blocked:human",
                              "quarantine", "parked", "shelved", "deferred"}
+
+
+def test_unfetchable_labels_degrade_rather_than_block(tmp_path):
+    """L-19 (2026-08-03, observed live). `labels` stays [] when the issue view
+    fails for ANY reason, so `issue_labels` read "could not look" as "the
+    label is not there" — it BLOCKED the task and ACKED the message, silently
+    discarding real mission work (TASK-210-S2, the overlay) on a transient gh
+    failure while issue #79 carried the required label the whole time.
+    issue_state already degraded correctly on UNKNOWN; the label check did
+    not. §5's recurring shape: a gate reading from a place that may not have
+    been written."""
+    msg = {
+        "schema_version": "1.0", "message_id": "m1", "task_id": "TASK-210-S2",
+        "from_role": "pm", "to_role": "frontend", "intent": "TASK_ASSIGN",
+        "hop_count": 0, "max_hops": 6, "refs": {"issue": 79},
+        "body_markdown": "go", "idempotency_key": "k1",
+    }
+    packet = {"preconditions": [{"check": "issue_labels", "require": ["task"]}]}
+
+    # gh unusable -> must NOT block; the check is surfaced as degraded.
+    v = preflight_mod.preflight(msg, packet, gh=lambda *a: None,
+                                blocked_dir=tmp_path)
+    assert v.ok, f"unfetchable labels must not block: {v.reason}"
+    assert "precondition:issue_labels" in v.degraded_checks
+
+    # gh working and the label genuinely absent -> STILL blocks. The fix must
+    # not weaken the gate.
+    def _gh_no_label(*args):
+        return json.dumps({"state": "OPEN", "labels": [{"name": "role:frontend"}],
+                           "title": "t"})
+
+    v2 = preflight_mod.preflight(msg, packet, gh=_gh_no_label,
+                                 blocked_dir=tmp_path)
+    assert not v2.ok
+    assert "issue_labels" in (v2.reason or "")

@@ -152,7 +152,9 @@ def _protected_globs():
 def _packet_preconditions(packet: dict, *, issue_state: str,
                           labels: list[str], head_sha: str | None,
                           missing: list[str], degraded: list[str],
-                          blocked_dir, issue) -> tuple[str | None, str | None]:
+                          blocked_dir, issue,
+                          labels_fetched: bool = True,
+                          ) -> tuple[str | None, str | None]:
     """Evaluate `packet["preconditions"]` — schema shape: array of
     {check, expect, require, forbid, require_if_touching, ...} objects.
 
@@ -174,6 +176,9 @@ def _packet_preconditions(packet: dict, *, issue_state: str,
                 return (f"precondition issue_state: {issue_state} != {want}",
                         f"issue #{issue} state becomes {want}")
         elif check == "issue_labels":
+            if not labels_fetched:
+                degraded.append("precondition:issue_labels")
+                continue
             need = set(pc.get("require") or []) - set(labels)
             hit = set(pc.get("forbid") or []) & set(labels)
             if need:
@@ -226,6 +231,7 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
     role = role or message.get("to_role")
     task_id = message["task_id"]
     labels: list[str] = []
+    labels_fetched = True   # False once an issue/PR view fails (L-19)
     issue_state = "UNKNOWN"
     head_sha: str | None = None
     missing: list[str] = []
@@ -250,7 +256,18 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
     if issue is not None:
         info = _issue_view(gh, issue)
         if info is None:
+            # L-19 (2026-08-03, observed live): `labels` stays [] when the
+            # issue view fails for ANY reason — gh missing, unauthenticated,
+            # network, timeout — and the issue_labels precondition below then
+            # read "could not look" as "the label is not there", BLOCKED the
+            # task and ACKED the message, silently discarding real mission
+            # work (TASK-210-S2, the overlay, on a transient failure while
+            # #79 carried the required label the whole time). issue_state
+            # already handled this correctly via UNKNOWN -> degraded; the
+            # label check had no equivalent. This is §5's recurring shape:
+            # a gate reading from a place that may not have been written.
             degraded.append("issue_state")
+            labels_fetched = False
         else:
             issue_state = info.get("state", "UNKNOWN")
             labels = [l["name"] if isinstance(l, dict) else str(l)
@@ -331,6 +348,7 @@ def preflight(message: dict, packet: dict | None = None, gh=None,
     if reason is None and packet is not None:
         reason, resume = _packet_preconditions(
             packet, issue_state=issue_state, labels=labels,
+            labels_fetched=labels_fetched,
             head_sha=head_sha, missing=missing, degraded=degraded,
             blocked_dir=blocked_dir, issue=issue)
 
