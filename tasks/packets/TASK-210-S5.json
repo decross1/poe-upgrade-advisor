@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-210-S5",
+  "parent_task_id": "TASK-210",
+  "issue": 79,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Close issue #79's latency checkbox honestly: measure the one capture-to-card segment that has no number, and record the whole I6 budget with its gaps named. Two of three segments are measured today. Render (response receipt -> committed card) is asserted under 50 ms per golden fixture by overlay/test/renderBudget.test.tsx. Trigger->frame on the native stack is p95 32.8 ms in overlay/bench/results/2026-07-26-linux-arm64-headless-electron.json (ADR-0004). The SHELL's own segment -- the clipboard sample that first sees new item text, through createClipboardPipeline, to the VERDICT ShellState arriving at onState -- is unmeasured. (1) Add overlay/test/captureLatency.test.ts: drive createClipboardPipeline with a stub ClipboardSource and a stub postDiff resolving a golden verdict fixture immediately (no network), and measure per fixture the elapsed time from the pollNow() that observes the new item text to the VERDICT state reaching onState. Assert a 20 ms per-capture shell-overhead budget and log per-fixture timings as renderBudget.test.tsx does. (2) Write overlay/bench/results/2026-08-03-capture-to-card-budget.md: one row per segment with its number, source file, and measurement conditions, INCLUDING the two segments this stage does NOT measure, stated as not measured rather than estimated -- (a) the server /diff call, backend-owned, and (b) the CLIPBOARD_POLL_MS = 100 detection lag, a hard 0-100 ms (mean ~50 ms) charge against the 300 ms budget imposed by the polling design, since Electron exposes no clipboard-change event. (3) Index it in overlay/bench/results/README.md in the existing per-run style. Do NOT change CLIPBOARD_POLL_MS or anything under overlay/src: if the shell overhead exceeds budget, report it in the PR and leave the source alone -- retuning the poll interval is a separate stage with its own evidence.",
+  "preconditions": [
+    { "check": "issue_state", "expect": "open" },
+    { "check": "issue_labels", "require": ["task"] }
+  ],
+  "files_in_scope": [
+    "overlay/test/captureLatency.test.ts",
+    "overlay/bench/results/2026-08-03-capture-to-card-budget.md",
+    "overlay/bench/results/README.md"
+  ],
+  "files_out_of_scope": [
+    "overlay/src/**",
+    "overlay/bench/run_bench.py",
+    "overlay/bench/electron/**",
+    "overlay/bench/tauri/**",
+    "overlay/bench/shared/**",
+    "overlay/bench/results/2026-07-26-linux-arm64-headless-electron.json",
+    "overlay/test/renderBudget.test.tsx",
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "bot/**", "packaging/**", "scripts/**", "tasks/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/adr/**", "docs/agent-org/**", "docs/specs/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "constraints": [
+    "Measurement only. No overlay/src change of any kind, including CLIPBOARD_POLL_MS.",
+    "The recorded artifact must name what it does not measure. A budget table that silently omits the server segment and reads as a passing 300 ms is a doctrine I5 violation, not a completed checkbox.",
+    "Timings come from the runner on the box that ran them; never hand-write a number into the record that no check produced.",
+    "Existing files in overlay/bench/results/ are append-only evidence (results/README.md line 4) -- add a new file and a new README section; never edit the 2026-07-26 run.",
+    "Stage PR uses 'Refs #79', never 'Fixes' (ADR-0008): TASK-210 has open stages after this one."
+  ],
+  "required_checks": [
+    "npm --prefix overlay run test"
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-1", "text": "overlay/test/captureLatency.test.ts measures, per golden verdict fixture, clipboard-sample-observes-item-text -> VERDICT ShellState delivered to onState, and asserts each is under the 20 ms shell-overhead budget; the full overlay suite passes." },
+    { "id": "AC-2", "text": "The test exercises the real createClipboardPipeline composition (watcher + flow + state projection) with only the clipboard source and postDiff stubbed -- it does not re-implement or bypass the pipeline." },
+    { "id": "AC-3", "text": "overlay/bench/results/2026-08-03-capture-to-card-budget.md tabulates every capture-to-card segment with number, source, and conditions, and explicitly marks the server /diff segment and the CLIPBOARD_POLL_MS detection lag as NOT measured by this stage." },
+    { "id": "AC-4", "text": "The record states that no end-to-end p95 < 300 ms (I6) claim follows from this artifact alone, and names what would have to be measured to make that claim." },
+    { "id": "AC-5", "text": "overlay/bench/results/README.md indexes the new record; the 2026-07-26 run file is byte-identical to its committed state." },
+    { "id": "AC-6", "text": "Diff touches only the three in-scope files; overlay/src is unmodified." }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 3,
+    "max_diff_lines": 300,
+    "max_tool_calls": 40,
+    "max_wall_clock_seconds": 1200,
+    "cost_ceiling_usd": 25.0,
+    "value_usd": 12.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "git revert the stage commit; only a test and two evidence documents are removed, no product behavior changes."
+}

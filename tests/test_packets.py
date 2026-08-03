@@ -156,6 +156,12 @@ def test_every_example_packet_validates():
         # 2026-08-03: overlay show/hide hotkey — hotkey.ts existed but nothing
         # called it, so the feature was dead code.
         "TASK-210-S4.json",
+        # 2026-08-03: capture->card latency budget. Render (<50 ms) and
+        # trigger->frame (ADR-0004) have numbers; the shell's own segment has
+        # none, and the server segment is backend-owned. The stage measures
+        # the shell and RECORDS the gaps rather than synthesizing a 300 ms
+        # pass (I5) -- see AC-3/AC-4.
+        "TASK-210-S5.json",
         # 2026-08-03: mission-resume repacketization (orchestrator ruling
         # 003c6e0b, issue #97). Parked PR #87 (TASK-102, issue #7) replays as
         # four budget-fit stages — code/CI first, frozen seed builds inert
