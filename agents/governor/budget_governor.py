@@ -99,10 +99,24 @@ class Governor:
         # case. ORG's caps come from the same per-task machinery; its tier
         # budgets live in execution_classes.org (policy.yaml).
         p = self.policy
+        # L-17 (2026-08-03, observed live): this counted LIFETIME invocations
+        # per (role, task_id). ORG is the perpetual governance task — every
+        # org-level message pm will ever handle shares that one id — so the
+        # cap was a time bomb: pm/ORG reached 12 and pm could never do
+        # governance again, permanently, with no reset path. Keeping ORG
+        # non-exempt is right (the 2026-07-27 cascade ran under ORG-adjacent
+        # heartbeats), but the bound has to be a ROLLING WINDOW, not a
+        # lifetime total. 12/day/task still catches that cascade decisively —
+        # it put 180 invocations on ONE message in six hours — and the real
+        # anti-cascade controls are unchanged: per-MESSAGE attempt cap,
+        # per-day role cap, exponential backoff, breaker, anti-loop.
         used = self._count(
-            "SELECT COUNT(*) FROM ledger WHERE role=? AND task_id=?", (role, task_id))
-        if used >= p["per_task_max_invocations"]:
-            self._dead_letter(role, task_id, f"per-task cap {used} reached")
+            "SELECT COUNT(*) FROM ledger WHERE role=? AND task_id=? AND ts>=?",
+            (role, task_id, self._day_start()))
+        cap = int((p.get("per_task_max_invocations_by_task") or {}).get(
+            task_id, p["per_task_max_invocations"]))
+        if used >= cap:
+            self._dead_letter(role, task_id, f"per-task cap {cap} reached")
             return False, "per-task cap"
         cf = self._consecutive_failures(role, task_id)
         if cf >= p["circuit_breaker_consecutive_failures"]:

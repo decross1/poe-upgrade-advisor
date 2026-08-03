@@ -61,8 +61,18 @@ class _Clock:
 
 
 def _freeze_clock(monkeypatch: pytest.MonkeyPatch, now: float) -> _Clock:
+    """Freeze BOTH of the governor's clocks to the same instant.
+
+    The module reads `time.time()` for ledger writes and backoff, and
+    `datetime.now()` for the day boundary. That split was invisible until
+    L-17 windowed the per-task cap to a rolling day: a test freezing only
+    `time` at epoch 1e6 wrote 1970 rows and had them judged against 2026's
+    boundary, so the cap silently stopped tripping. Freezing one clock and
+    not the other is not a realistic state — pin them together.
+    """
     clock = _Clock(now)
     monkeypatch.setattr(budget_governor, "time", clock)
+    _freeze_now(monkeypatch, datetime.fromtimestamp(now, tz=UTC))
     return clock
 
 

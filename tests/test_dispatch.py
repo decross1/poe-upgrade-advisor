@@ -1186,3 +1186,23 @@ def test_spawn_site_receives_the_packet(mailroom, worktree, monkeypatch):
     assert seen["role"] == "backend"
     assert seen["packet"] is not None
     assert seen["packet"]["routing"]["reasoning_effort"] == "low"
+
+
+def test_pm_model_is_pinned_not_inherited(monkeypatch):
+    """L-18 (2026-08-03). role_command had no --model, so pm took the CLI's
+    ambient default and the entire first live session ran pm on Fable instead
+    of Opus — the planning/judgment role, silently retiered by a config the
+    org does not own. Pin it; PM_MODEL overrides."""
+    mr = Path("/mailroom-unused")
+    monkeypatch.delenv("PM_MODEL", raising=False)
+    cmd = dispatch_mod.role_command("pm", "p", mr)
+    assert "--model" in cmd, "pm must not inherit an ambient model default"
+    assert cmd[cmd.index("--model") + 1] == "opus"
+
+    monkeypatch.setenv("PM_MODEL", "sonnet")
+    cmd = dispatch_mod.role_command("pm", "p", mr)
+    assert cmd[cmd.index("--model") + 1] == "sonnet"
+
+    # The worker roles keep their own explicit model selection.
+    monkeypatch.setenv("CODEX_MODEL", "gpt-5.6-sol")
+    assert "gpt-5.6-sol" in dispatch_mod.role_command("backend", "p", mr)

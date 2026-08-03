@@ -1,5 +1,16 @@
 # The spend firewall. Edit caps here; nothing else in the org limits spend.
-per_task_max_invocations: 12       # lifetime invocations per TASK-id per role
+per_task_max_invocations: 12       # per TASK-id per role PER DAY (L-17: was lifetime,
+                                   # which permanently killed the perpetual ORG task at 12)
+
+# L-17b: ORG is a HUB, not a work item — every governance message the org
+# will ever send shares that one task id, where a TASK-nnn id covers a single
+# bounded unit. Capping them identically is the same category error as L-16
+# (subscription spend charged to the frontier cash pool). ORG's real bound is
+# the ROLE's daily invocation budget (per_day_max: pm 24), so this is set
+# above it deliberately: the role cap binds first and the per-task cap stays
+# as a backstop rather than a second, tighter, arbitrary ceiling.
+per_task_max_invocations_by_task:
+  ORG: 48
 backoff:
   base_minutes: 10                 # after a failed invocation: base * 2^(consecutive_failures-1)
   max_minutes: 480

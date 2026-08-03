@@ -263,7 +263,17 @@ def role_command(role: str, prompt: str, mailroom: Path,
         # --output-format stream-json (verified live 2026-08-03: without it
         # the CLI exits in ~1s with a usage error — the first real pm
         # invocation found this; every prior run was a fake).
+        #
+        # --model is REQUIRED for a different reason (L-18, 2026-08-03): it
+        # was absent, so pm took the CLI's ambient default and every pm
+        # invocation of the first live session ran on Fable rather than
+        # Opus. pm is the planning and judgment role — decomposition,
+        # verification, arbitration — and it is the one role whose model
+        # choice is a policy decision, not an inherited default. Pinning it
+        # here means a change to the operator's own CLI config can never
+        # silently retier the org's judgment. PM_MODEL overrides.
         return ["env", "-u", "ANTHROPIC_API_KEY", "claude", "-p", prompt,
+                "--model", os.environ.get("PM_MODEL", "opus"),
                 "--output-format", "stream-json", "--verbose",
                 "--dangerously-skip-permissions", "--add-dir", str(mailroom)]
     if role == "frontend":
