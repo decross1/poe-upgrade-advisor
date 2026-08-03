@@ -224,3 +224,36 @@ which needs npm + Electron on the tester's box. The three seams now hold, so
 this is no longer worthless work; it is still Electron bundling, which is
 larger than one green stage and needs decomposition before it is dispatched.
 Revisit at the next routing pass, ahead of TASK-102-S3.
+
+## TASK-214-S1 is TASK-213-S1 and it already landed — 2026-08-03 (issue #125)
+
+Backend reported TASK-214-S1 COMPLETE at `7171228` on
+`backend/TASK-214-S1-breakdown` (PR #133, 14/14 CI green). The report is
+substantively true and materially stale: the tree it carries is **already on
+`main`**. `git diff origin/main 7171228` is empty — `main^{tree}` and
+`7171228^{tree}` are both `11ec57c3`. The implementation landed as `c05ae0e`
+(PR #128's head) via merge `e77a343` while the renumber was still in flight.
+
+**Ruling: the stage is ACCEPTED as delivered at `c05ae0e`; PR #133 is CLOSED as
+a zero-diff duplicate.** Merging it would add a merge commit that changes no
+file. Backend closed #128 as "superseded" believing #133 would carry the work,
+but #128's commit had already merged — the supersession ran the wrong way.
+No new backend invocation is owed; nothing is lost.
+
+**The ID stays TASK-213-S1.** The earlier renumber to TASK-214 was reversed by
+the landed ruling on #125: renaming stages would invalidate a merged packet, a
+pushed branch and a landed PR to fix a label, so the finished CI regression was
+renamed `TASK-213-CI` (#123) instead and the Tier-2 stages kept `TASK-213-S1/S2`
+(#125). `tasks/packets/` already matches that ruling — there is no
+`TASK-214-*.json` and none should be created. Treat `TASK-214-S1` as a dead
+alias for `TASK-213-S1`; it names no distinct work.
+
+**Flagged for the next triage pass, not touched here:** PRs #130, #131 and #132
+are pm branches that still propose the reversed renumber. They are superseded by
+the ruling above and would reintroduce a resolved collision if landed. Whoever
+routes next should close them; this invocation owned only the #133 disposition.
+
+**Remaining on #125: TASK-213-S2 (frontend), already dispatched** — its
+precondition was S1 on `main`, which has held since `e77a343`. #125 stays open
+until S2 is green. Revisit if a fourth thing claims the `TASK-213` prefix; the
+next free integer is cheaper than more disambiguation.
