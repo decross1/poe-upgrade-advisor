@@ -224,13 +224,48 @@ def _recovery_state(root: Path, mailroom: Path) -> tuple[bool, str]:
     return True, "no unresolved verified recovery bundles"
 
 
+def _process_started_at(pid: int, proc_root: Path = Path("/proc")) -> float | None:
+    """Return process start epoch, or None when procfs cannot corroborate it."""
+    try:
+        stat_tail = (proc_root / str(pid) / "stat").read_text().rsplit(")", 1)[1]
+        start_ticks = int(stat_tail.split()[19])
+        boot_line = next(
+            line for line in (proc_root / "stat").read_text().splitlines()
+            if line.startswith("btime ")
+        )
+        boot_epoch = int(boot_line.split()[1])
+        return boot_epoch + start_ticks / os.sysconf("SC_CLK_TCK")
+    except (OSError, ValueError, IndexError, StopIteration):
+        return None
+
+
+def _marker_process_is_live(marker: Path, pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    started_at = _process_started_at(pid)
+    if started_at is None:
+        return True
+    # A process born after the marker is a reused PID, not the marker owner.
+    return started_at <= marker.stat().st_mtime + 1.0
+
+
 def _stale_markers(mailroom: Path) -> tuple[bool, str]:
     stale = []
     for marker in sorted((mailroom / "locks" / "running").glob("*")):
         try:
             pid = int(marker.read_text().strip())
-            os.kill(pid, 0)
+            live = _marker_process_is_live(marker, pid)
         except (ValueError, OSError):
+            live = False
+        if not live:
             stale.append(marker.name)
     return not stale, "no stale markers" if not stale else f"stale markers: {stale}"
 
@@ -259,10 +294,14 @@ def _worktrees_clean(state: dict[str, Any]) -> tuple[bool, str]:
             continue
         try:
             run = subprocess.run(
-                ["git", "-C", str(path), "status", "--porcelain"],
+                [
+                    "git", "--no-optional-locks", "-C", str(path),
+                    "status", "--porcelain",
+                ],
                 text=True,
                 capture_output=True,
                 check=False,
+                env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
             )
         except OSError as exc:
             bad.append(f"{path}: git status failed: {exc}")

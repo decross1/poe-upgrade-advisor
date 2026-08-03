@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import yaml
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,6 +63,17 @@ def test_required_checks_have_real_ci_jobs(monkeypatch):
     assert REQUIRED_CHECKS >= previous
     assert {"web-test", "overlay-test", "coverage-floor"} <= REQUIRED_CHECKS
     assert REQUIRED_CHECKS <= jobs
+
+
+def test_overlay_gate_forbids_timeout_raises_and_focused_or_skipped_tests():
+    config = (ROOT / "overlay/vitest.config.ts").read_text()
+    tests = "\n".join(
+        path.read_text() for path in sorted((ROOT / "overlay/test").glob("*.test.*"))
+    )
+    assert not re.search(r"\b(?:testTimeout|hookTimeout)\s*:", config)
+    assert not re.search(r"\b(?:it|test|describe)\.(?:skip|only)\s*\(", tests)
+    assert "RULING-21: each failed retry keeps its own transient message" in tests
+    assert "a re-diff timing out counts as failure (RULING-19/21)" in tests
 
 
 def test_ci_collects_packaging_tests_and_upstream_sync_is_not_a_noop():

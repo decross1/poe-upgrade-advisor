@@ -138,7 +138,12 @@ def ack_message(root: Path, role: str, message_id: str) -> None:
         f.write(message_id + "\n")
 
 
-def load_run_budget_port(warn=None):
+def load_run_budget_port(
+    warn=None,
+    *,
+    read_only: bool = False,
+    mailroom: Path | None = None,
+):
     """Lane B's `agents.run_budget.load()` if present, else AlwaysAllow.
 
     RUN_BUDGET=0 is the dispatch-side rollback flag (W2-3 'set all caps to
@@ -154,6 +159,8 @@ def load_run_budget_port(warn=None):
     loader = getattr(rb, "load", None)
     if loader is None:
         return run_budget_iface.AlwaysAllow(warn=warn)
+    if read_only:
+        return loader(read_only=True, mailroom=mailroom)
     return loader()
 
 
@@ -551,7 +558,10 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
 
     # 2 — budget ledger, fail-closed. Cannot record spend => do not spend.
     try:
-        bl = SqliteBudgetLedger(mailroom / "governor" / BUDGET_DB)
+        bl = SqliteBudgetLedger(
+            mailroom / "governor" / BUDGET_DB,
+            read_only=dry_run,
+        )
     except BudgetLedgerUnavailable as e:
         print(f"budget ledger unavailable, refusing to invoke: {e}",
               file=sys.stderr)
@@ -687,8 +697,11 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
 
     # 5 — per-task governor. A role the policy does not know is a denial, not
     # a crash (the raw governor raises KeyError — pinned in W1-1).
-    gov = Governor(worktree / "agents" / "governor" / "policy.yaml",
-                   mailroom / "governor" / GOVERNOR_DB)
+    gov = Governor(
+        worktree / "agents" / "governor" / "policy.yaml",
+        mailroom / "governor" / GOVERNOR_DB,
+        read_only=dry_run,
+    )
     try:
         allowed, reason = gov.allow(role, task_id)
     except KeyError as e:
@@ -709,7 +722,10 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
     # 5.5 — aggregate run budget (Lane B port; AlwaysAllow until it lands).
     policy = load_policy(worktree / "agents" / "governor")
     tier = resolve_tier(task_id, packet)
-    port = load_run_budget_port()
+    port = load_run_budget_port(
+        read_only=dry_run,
+        mailroom=mailroom if dry_run else None,
+    )
     rbv = port.check(role=role, task_id=task_id, tier=tier)
     if not rbv.allowed:
         if rbv.reassign_to and msg["hop_count"] + 1 >= msg["max_hops"]:

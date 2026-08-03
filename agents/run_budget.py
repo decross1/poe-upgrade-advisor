@@ -59,6 +59,7 @@ class RunBudget:
         run_started_at: float | None = None,
         distress: DistressState | None = None,
         operating_mode: str = "unattended-10d",
+        record_decisions: bool = True,
     ) -> None:
         self.policy = policy
         self.ledger = ledger
@@ -68,6 +69,7 @@ class RunBudget:
         self.operating_mode = (
             operating_mode if operating_mode in OPERATING_MODES else "unattended-10d"
         )
+        self.record_decisions = record_decisions
         self._level = 0
 
     def level(self) -> int:
@@ -226,12 +228,13 @@ class RunBudget:
         reassign_to: str | None = None,
     ) -> RunBudgetVerdict:
         self._level = level
-        self.ledger.record_decision(
-            role=role,
-            task_id=task_id,
-            decision="allow" if allowed else "deny",
-            reason=reason,
-        )
+        if self.record_decisions:
+            self.ledger.record_decision(
+                role=role,
+                task_id=task_id,
+                decision="allow" if allowed else "deny",
+                reason=reason,
+            )
         return RunBudgetVerdict(allowed, reason, level, reassign_to)
 
     def check(self, *, role: str, task_id: str, tier: str) -> RunBudgetVerdict:
@@ -396,9 +399,22 @@ def _find_project_root(start: Path) -> Path:
 
 
 def _run_started_at(
-    ledger: AccountingBudgetLedger, *, run_id: str, now: float
+    ledger: AccountingBudgetLedger, *, run_id: str, now: float,
+    read_only: bool = False,
 ) -> float:
     """Persist run identity in the fail-closed store across dispatcher loads."""
+    if read_only:
+        try:
+            row = ledger._x(
+                "SELECT started_at FROM run_state WHERE run_id=?", (run_id,)
+            ).fetchone()
+        except BudgetLedgerUnavailable as exc:
+            raise BudgetLedgerUnavailable(
+                f"read-only run state unavailable for {run_id}: {exc}"
+            ) from exc
+        if row is None:
+            raise BudgetLedgerUnavailable(f"read-only run state missing: {run_id}")
+        return float(row[0])
     ledger._x(
         """CREATE TABLE IF NOT EXISTS run_state (
              run_id TEXT PRIMARY KEY, started_at REAL NOT NULL, status TEXT NOT NULL)"""
@@ -428,10 +444,17 @@ def _operating_mode(mailroom: Path) -> str:
     return str(mode) if mode in OPERATING_MODES else "unattended-10d"
 
 
-def load() -> RunBudget | UnconfiguredRunBudget:
+def load(
+    *,
+    read_only: bool = False,
+    mailroom: str | Path | None = None,
+) -> RunBudget | UnconfiguredRunBudget:
     """Load the production port; missing policy is a denial, never unbounded."""
     code_root = Path(__file__).resolve().parents[1]
-    project = _find_project_root(code_root)
+    if read_only and mailroom is None:
+        return UnconfiguredRunBudget(
+            "read-only run budget requires an explicit mailroom; discovery refused"
+        )
     policy_path = code_root / "agents/governor/run_policy.yaml"
     if not policy_path.is_file():
         return UnconfiguredRunBudget("run policy absent; aggregate headroom unproven")
@@ -442,18 +465,28 @@ def load() -> RunBudget | UnconfiguredRunBudget:
         policy = load_policy(code_root / "agents/governor")
     except (OSError, yaml.YAMLError, PolicyError) as exc:
         return UnconfiguredRunBudget(f"run policy unreadable: {exc}")
-    mailroom = project / "mailroom"
+    if mailroom is None:
+        project = _find_project_root(code_root)
+        mailroom_path = project / "mailroom"
+    else:
+        mailroom_path = Path(mailroom)
     try:
-        ledger = AccountingBudgetLedger(mailroom / "governor/budget_ledger.sqlite3")
+        ledger = AccountingBudgetLedger(
+            mailroom_path / "governor/budget_ledger.sqlite3",
+            read_only=read_only,
+        )
         run_id = str((policy.get("run") or {}).get("id") or "")
         if not run_id:
             return UnconfiguredRunBudget("run policy has no run.id")
-        started_at = _run_started_at(ledger, run_id=run_id, now=time.time())
+        started_at = _run_started_at(
+            ledger, run_id=run_id, now=time.time(), read_only=read_only
+        )
     except BudgetLedgerUnavailable as exc:
         return UnconfiguredRunBudget(f"budget ledger unavailable: {exc}")
     return RunBudget(
         policy,
         ledger,
         run_started_at=started_at,
-        operating_mode=_operating_mode(mailroom),
+        operating_mode=_operating_mode(mailroom_path),
+        record_decisions=not read_only,
     )

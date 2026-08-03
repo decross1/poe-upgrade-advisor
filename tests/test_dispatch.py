@@ -10,9 +10,12 @@ a recorder (as in the W1-1 characterisation tests) so `gh` is never run.
 from __future__ import annotations
 
 import itertools
+import hashlib
 import json
 import re
 import sqlite3
+import subprocess
+import sys
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -204,6 +207,28 @@ def fake(name: str) -> str:
     return str(FAKES / name)
 
 
+def _mailroom_manifest(mailroom: Path) -> dict[str, tuple[int, int, str]]:
+    return {
+        str(path.relative_to(mailroom)): (
+            path.stat().st_size,
+            path.stat().st_mtime_ns,
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
+        for path in sorted(mailroom.rglob("*"))
+        if path.is_file()
+    }
+
+
+def _seed_dry_run_ledgers(mailroom: Path, worktree: Path) -> None:
+    budget = SqliteBudgetLedger(mailroom / "governor" / dispatch_mod.BUDGET_DB)
+    budget.db.close()
+    governor = Governor(
+        worktree / "agents/governor/policy.yaml",
+        mailroom / "governor" / dispatch_mod.GOVERNOR_DB,
+    )
+    governor.db.close()
+
+
 # ------------------------------------------------------------------ test 1
 def test_attempt_cap_dead_letters_and_acks(mailroom, worktree, counter):
     """Test 1 (HANDOFF section 5) — the per-MESSAGE attempt cap, the binding
@@ -277,7 +302,7 @@ def test_governor_allow_is_consulted_before_invocation(
     calls: list[tuple] = []
 
     class SpyGovernor:
-        def __init__(self, policy_path, db_path):
+        def __init__(self, policy_path, db_path, **kwargs):
             pass
 
         def allow(self, role, task_id):
@@ -305,7 +330,7 @@ def test_governor_deny_suppresses_with_zero_invocations(
         mailroom, worktree, counter, monkeypatch):
     """Test 8b — a governor denial yields SUPPRESSED_GOVERNOR, zero runs."""
     class DenyGovernor:
-        def __init__(self, policy_path, db_path):
+        def __init__(self, policy_path, db_path, **kwargs):
             pass
 
         def allow(self, role, task_id):
@@ -498,7 +523,7 @@ def test_halt_blocks_before_anything(mailroom, worktree, counter):
 def test_budget_ledger_unavailable_fails_closed(
         mailroom, worktree, counter, monkeypatch, capsys):
     """Cannot record spend => do not spend: exit 3, zero invocations."""
-    def raise_unavailable(path):
+    def raise_unavailable(path, **kwargs):
         raise BudgetLedgerUnavailable("disk on fire")
 
     monkeypatch.setattr(dispatch_mod, "SqliteBudgetLedger", raise_unavailable)
@@ -647,8 +672,25 @@ def test_run_budget_deny_without_reassign_suppresses(
 
 # ---------------------------------------------------------------- dry run
 def test_dry_run_consumes_nothing(mailroom, worktree, counter):
-    """--dry-run decides INVOKE but writes no attempt, telemetry, or ack."""
+    """A full dry-run leaves every mailroom byte, size, and mtime unchanged."""
     msg = write_message(mailroom)
+    _seed_dry_run_ledgers(mailroom, worktree)
+    before = _mailroom_manifest(mailroom)
+    readiness = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts/check_agent_readiness.py"),
+            "--mode", "canary",
+            "--root", str(REPO_ROOT),
+            "--mailroom", str(mailroom),
+            "--json",
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert readiness.returncode in {0, 1}
+    assert _mailroom_manifest(mailroom) == before
     out = dispatch("backend", msg["message_id"], worktree, dry_run=True,
                    fake_agent=fake("good_agent.py"))
 
@@ -656,6 +698,7 @@ def test_dry_run_consumes_nothing(mailroom, worktree, counter):
     assert out.extra.get("dry_run") is True
     assert out.attempts == 1  # prospective, read not written
     assert out.invoked is False
+    assert _mailroom_manifest(mailroom) == before
 
     bl = SqliteBudgetLedger(mailroom / "governor" / dispatch_mod.BUDGET_DB)
     assert bl.attempts(msg["message_id"]) == 0

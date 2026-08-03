@@ -8,7 +8,6 @@ Env: GITHUB_REPOSITORY, MERGE_ROBOT_TOKEN, PR_NUMBER (or sweeps all labeled PRs)
 """
 from __future__ import annotations
 
-import fnmatch
 import os
 import re
 import sys
@@ -17,7 +16,12 @@ from pathlib import Path
 import requests
 
 from agents.interfaces.packet import parent_of
-from agents.merge_robot.patterns import BANNED, PROTECTED, TEST_SIG
+from agents.merge_robot.patterns import (
+    BANNED,
+    PROTECTED,
+    TEST_SIG,
+    matches_protected,
+)
 
 API = "https://api.github.com"
 REPO = os.environ["GITHUB_REPOSITORY"]
@@ -208,8 +212,7 @@ def check_pr(pr_number: int) -> None:
     # 5/6/7 — diff inspection
     files = gh(f"/repos/{REPO}/pulls/{pr_number}/files", params={"per_page": 300})
     for f in files:
-        if any(fnmatch.fnmatch(f["filename"], p) for p in PROTECTED) \
-                and "protected-change" not in labels:
+        if matches_protected(f["filename"]) and "protected-change" not in labels:
             fail(pr_number, f"(5) protected path {f['filename']} without protected-change label")
         patch = f.get("patch", "") or ""
         for pat in BANNED:

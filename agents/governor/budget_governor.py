@@ -24,18 +24,27 @@ from agents.interfaces.policy import load_policy  # noqa: E402
 
 
 class Governor:
-    def __init__(self, policy_path: Path, ledger_path: Path):
+    def __init__(self, policy_path: Path, ledger_path: Path, *, read_only: bool = False):
         # Merged view of policy.yaml (Lane A keys) + run_policy.yaml (Lane B:
         # per_day_max, daily_reset_hour_utc since pm's atomic move 7d95d79).
         # load_policy raises on a key defined in both files, so the lane
         # boundary stays a test failure rather than a silent overwrite.
         self.policy = load_policy(Path(policy_path).parent)
-        self.db = sqlite3.connect(ledger_path)
-        self.db.execute(
-            """CREATE TABLE IF NOT EXISTS ledger (
-                 ts REAL, role TEXT, task_id TEXT, success INTEGER)"""
-        )
-        self.db.commit()
+        self.read_only = read_only
+        ledger_path = Path(ledger_path)
+        if read_only:
+            if ledger_path.is_file():
+                uri = f"{ledger_path.resolve().as_uri()}?mode=ro&immutable=1"
+                self.db = sqlite3.connect(uri, uri=True)
+            else:
+                self.db = None
+        else:
+            self.db = sqlite3.connect(ledger_path)
+            self.db.execute(
+                """CREATE TABLE IF NOT EXISTS ledger (
+                     ts REAL, role TEXT, task_id TEXT, success INTEGER)"""
+            )
+            self.db.commit()
         self.repo = Path(policy_path).resolve().parents[2]  # repo root
         cb = self.policy.get("circuit_breaker_consecutive_failures", 0)
         if cb > 10:
@@ -56,6 +65,8 @@ class Governor:
         return rs.timestamp()
 
     def _count(self, q: str, args: tuple) -> int:
+        if self.db is None:
+            return 0
         return self.db.execute(q, args).fetchone()[0]
 
     def _consecutive_failures(self, role: str, task_id: str) -> int:
@@ -63,7 +74,7 @@ class Governor:
         # can NEVER trip (12 straight failures count as 10). Pinned in the
         # W1-1 characterisation suite; __init__ warns when a policy crosses
         # the coupling. W2-4's anti-loop controller is the deeper defence.
-        rows = self.db.execute(
+        rows = [] if self.db is None else self.db.execute(
             "SELECT success FROM ledger WHERE role=? AND task_id=? ORDER BY ts DESC LIMIT 10",
             (role, task_id)).fetchall()
         n = 0
@@ -73,6 +84,8 @@ class Governor:
         return n
 
     def _last_failure_ts(self, role: str, task_id: str) -> float | None:
+        if self.db is None:
+            return None
         r = self.db.execute(
             "SELECT ts FROM ledger WHERE role=? AND task_id=? AND success=0 ORDER BY ts DESC LIMIT 1",
             (role, task_id)).fetchone()
@@ -108,12 +121,16 @@ class Governor:
         return True, "ok"
 
     def record(self, role: str, task_id: str, success: bool) -> None:
+        if self.read_only:
+            raise OSError("read-only governor cannot record")
         self.db.execute("INSERT INTO ledger VALUES (?,?,?,?)",
                         (time.time(), role, task_id, int(success)))
         self.db.commit()
 
     # ------------------------------------------------------------ actions
     def _dead_letter(self, role: str, task_id: str, reason: str) -> None:
+        if self.read_only:
+            return
         dl = self.repo / "tasks" / "dead_letter" / f"{task_id}.md"
         if dl.exists():
             return

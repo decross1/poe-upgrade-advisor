@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import json
 import os
 import subprocess
@@ -9,7 +10,11 @@ from pathlib import Path
 
 import yaml
 
-from scripts.check_agent_readiness import evaluate, find_mailroom
+from scripts.check_agent_readiness import (
+    _marker_process_is_live,
+    evaluate,
+    find_mailroom,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -75,6 +80,18 @@ def _by_name(checks):
     return {check.name: check for check in checks}
 
 
+def _manifest(root: Path) -> dict[str, tuple[int, int, str]]:
+    return {
+        str(path.relative_to(root)): (
+            path.stat().st_size,
+            path.stat().st_mtime_ns,
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
 def test_default_mailroom_discovery_walks_above_worktrees(tmp_path):
     mailroom = tmp_path / "mailroom"
     root = tmp_path / "worktrees/lane-b"
@@ -89,14 +106,24 @@ def test_missing_config_fails_complete_canary_passes_and_no_model_call(tmp_path,
     commands = []
 
     def recording_run(command, *args, **kwargs):
-        commands.append(command)
+        commands.append((command, kwargs))
         return real_run(command, *args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", recording_run)
     monkeypatch.setattr("scripts.check_agent_readiness.shutil.which", lambda command: f"/bin/{command}")
     checks = evaluate(root, mailroom, "canary")
     assert not [check for check in checks if check.verdict == "fail"]
-    assert all(Path(command[0]).name not in {"claude", "codex", "kimi"} for command in commands)
+    assert all(
+        Path(command[0][0]).name not in {"claude", "codex", "kimi"}
+        for command in commands
+    )
+    git_status = [
+        (command, kwargs)
+        for command, kwargs in commands
+        if command[:2] == ["git", "--no-optional-locks"]
+    ]
+    assert len(git_status) == 3
+    assert all(kwargs["env"]["GIT_OPTIONAL_LOCKS"] == "0" for _, kwargs in git_status)
 
     (mailroom / "readiness.yaml").unlink()
     missing = evaluate(root, mailroom, "canary")
@@ -117,6 +144,30 @@ def test_stale_running_marker_fails(tmp_path, monkeypatch):
     monkeypatch.setattr("scripts.check_agent_readiness.shutil.which", lambda command: f"/bin/{command}")
     (mailroom / "locks/running/backend-deadbeef").write_text("999999999")
     assert _by_name(evaluate(root, mailroom, "canary"))["stale_markers"].verdict == "fail"
+
+
+def test_running_marker_rejects_invalid_and_reused_pids(tmp_path, monkeypatch):
+    marker = tmp_path / "marker"
+    marker.write_text("1")
+    monkeypatch.setattr("scripts.check_agent_readiness.os.kill", lambda pid, sig: None)
+    monkeypatch.setattr(
+        "scripts.check_agent_readiness._process_started_at",
+        lambda pid: marker.stat().st_mtime + 10,
+    )
+    assert not _marker_process_is_live(marker, 1)
+    assert not _marker_process_is_live(marker, 0)
+    assert not _marker_process_is_live(marker, -1)
+
+
+def test_running_marker_permission_error_means_process_is_alive(tmp_path, monkeypatch):
+    marker = tmp_path / "marker"
+    marker.write_text("123")
+
+    def denied(pid, sig):
+        raise PermissionError("different uid")
+
+    monkeypatch.setattr("scripts.check_agent_readiness.os.kill", denied)
+    assert _marker_process_is_live(marker, 123)
 
 
 def test_unacked_messages_fail_until_the_role_cursor_contains_the_id(tmp_path, monkeypatch):
@@ -281,7 +332,9 @@ def test_json_cli_lists_every_check_and_unknown_mode_fails(tmp_path, monkeypatch
     env = {**os.environ, "PATH": os.environ["PATH"]}
     command = [sys.executable, str(ROOT / "scripts/check_agent_readiness.py"),
                "--mode", "canary", "--root", str(root), "--mailroom", str(mailroom), "--json"]
+    before = _manifest(mailroom)
     run = subprocess.run(command, text=True, capture_output=True, env=env, check=False)
+    assert _manifest(mailroom) == before
     payload = json.loads(run.stdout)
     assert isinstance(payload["checks"], list)
     assert {"name", "verdict", "detail"} == set(payload["checks"][0])

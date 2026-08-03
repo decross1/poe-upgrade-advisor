@@ -8,9 +8,46 @@ from agents.run_budget import (
     _day_start,
     _operating_mode,
     _run_started_at,
+    load,
 )
 
 NOW = 1_800_000_000.0
+
+
+def test_read_only_loader_refuses_implicit_live_mailroom_resolution(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("read-only loader must not discover the live mailroom")
+
+    monkeypatch.setattr("agents.run_budget._find_project_root", forbidden)
+    budget = load(read_only=True)
+    assert isinstance(budget, UnconfiguredRunBudget)
+    assert "explicit mailroom" in budget.reason
+
+
+def test_read_only_loader_and_check_leave_explicit_ledger_unchanged(tmp_path):
+    mailroom = tmp_path / "mailroom"
+    (mailroom / "governor").mkdir(parents=True)
+    (mailroom / "readiness.yaml").write_text("operating_mode: canary\n")
+    writable = load(mailroom=mailroom)
+    assert isinstance(writable, RunBudget)
+    writable.ledger.db.close()
+    ledger_path = mailroom / "governor/budget_ledger.sqlite3"
+    before = (
+        ledger_path.stat().st_size,
+        ledger_path.stat().st_mtime_ns,
+        ledger_path.read_bytes(),
+    )
+
+    read_only = load(read_only=True, mailroom=mailroom)
+    assert isinstance(read_only, RunBudget)
+    read_only.check(role="pm", task_id="TASK-X", tier="green")
+    read_only.ledger.db.close()
+
+    assert (
+        ledger_path.stat().st_size,
+        ledger_path.stat().st_mtime_ns,
+        ledger_path.read_bytes(),
+    ) == before
 
 
 def _policy() -> dict:
