@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import fnmatch
 import shlex
 import shutil
 import subprocess
@@ -147,10 +148,11 @@ def test_every_example_packet_validates():
         # Packet B + R4 check). Its check asserts POST-work state — see the
         # canary carve-out in the check-runner test below.
         "TASK-999-S1.json",
-        # 2026-08-03: canary-unblock stage (issue #99, test-change-authorized):
-        # makes the check-runner test below direction-aware so S1's probe can
-        # land. Registered here by pm; the fix itself is backend's S2 work.
-        "TASK-999-S2.json",
+        # 2026-08-03: Discord release-note renderer (mission leg 3 of #97),
+        # render-only — wiring it to the live announce channel is an
+        # operator-gated follow-up stage. Its check targets a test file the
+        # packet itself creates; see _check_targets_unbuilt_scope below.
+        "TASK-300-S1.json",
         # 2026-08-03: mission-resume repacketization (orchestrator ruling
         # 003c6e0b, issue #97). Parked PR #87 (TASK-102, issue #7) replays as
         # four budget-fit stages — code/CI first, frozen seed builds inert
@@ -165,12 +167,43 @@ def test_every_example_packet_validates():
     }
 
 
+def _check_targets_unbuilt_scope(command: str, packet: dict) -> bool:
+    """True when a check names a path the packet itself is scoped to CREATE.
+
+    A required check asserts POST-work state, so a packet that adds a test
+    file declares a check that cannot pass until the work lands. Asserting
+    such a check passes today would force someone to pre-create the agent's
+    deliverable — hollowing out the task, which is exactly what the canary
+    carve-out below exists to prevent. What IS meaningful is that the check
+    is well-formed and its target is in the packet's own files_in_scope, so
+    the work will bring it into existence.
+    """
+    scope = packet.get("files_in_scope") or []
+    for token in shlex.split(command):
+        if token.startswith("-") or "/" not in token:
+            continue
+        if (ROOT / token).exists():
+            continue
+        if any(fnmatch.fnmatch(token, glob) or token == glob for glob in scope):
+            return True
+    return False
+
+
 def test_every_unique_example_required_check_exists_and_runs():
     commands = []
+    unbuilt = set()
     for path in sorted((ROOT / "tasks/packets").glob("*.json")):
-        commands.extend(json.loads(path.read_text())["required_checks"])
+        packet = json.loads(path.read_text())
+        for command in packet["required_checks"]:
+            commands.append(command)
+            if _check_targets_unbuilt_scope(command, packet):
+                unbuilt.add(command)
     assert commands
     for command in dict.fromkeys(commands):
+        if command in unbuilt:
+            # Well-formed and in-scope; it runs once the work exists.
+            assert shlex.split(command)[0] in {"python3", "npm"}
+            continue
         argv = shlex.split(command)
         assert argv and (argv[0] in {"python3", "npm"})
         # A packet check must be RUNNABLE, but this test runs in a Python-only

@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-300-S1",
+  "parent_task_id": "TASK-300",
+  "issue": 97,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Render a Discord release note from merged mission work — RENDER ONLY, no posting. Add bot/release_notes.py exposing collect_release(repo, since_ref, until_ref) and render_release(data) -> str|None, following the shape of the existing bot/digest.py (collect_/render_ split, MAX_DISCORD_MESSAGE truncation, None when there is nothing to say). It summarises merged mission commits — task id, one-line what-changed, PR/issue refs — into a message under 1900 chars. It MUST NOT import discord, open a network connection, or post anything; wiring it to the live announce channel is a separate operator-gated stage (S2). Add bot/tests/test_release_notes.py covering: a normal multi-commit range, an empty range returning None, truncation past MAX_DISCORD_MESSAGE, and a commit with no task id.",
+  "files_in_scope": [
+    "bot/release_notes.py",
+    "bot/tests/test_release_notes.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "packaging/**", "scripts/**", "tasks/packets/**",
+    "bot/bot.py", "bot/digest.py",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/runbooks/**", "docs/adr/**", "docs/agent-org/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "required_checks": [
+    "python3 -m pytest bot/tests/test_release_notes.py -q"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "bot/release_notes.py exposes collect_release and render_release; render_release returns None for an empty range and a string under 1900 chars otherwise."},
+    {"id": "AC-2", "text": "The module does not import discord and makes no network call — posting is out of scope for this stage."},
+    {"id": "AC-3", "text": "bot/tests/test_release_notes.py covers the normal, empty, truncated and no-task-id cases, and passes."}
+  ],
+  "budgets": {
+    "max_attempts": 2, "max_files_modified": 2, "max_diff_lines": 260,
+    "max_tool_calls": 40, "max_wall_clock_seconds": 900,
+    "cost_ceiling_usd": null,
+    "value_usd": 8.0
+  },
+  "routing": { "reasoning_effort": "low", "review_only_if": [] }
+}
