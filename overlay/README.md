@@ -41,7 +41,10 @@ cd overlay
 npm install
 npm test          # vitest (clipboard pipeline + snapshot matrix §9,
                   # diff-flow over real HTTP via the generated client,
-                  # ≤50 ms render assertion per fixture) + tsc typecheck
+                  # ≤50 ms render assertion per fixture,
+                  # realServer e2e: the production pipeline against the REAL
+                  #   server + engine — LOUDLY skipped unless the pinned
+                  #   runtime is built: engine/runtime/build.sh) + tsc typecheck
 npm start         # build + launch the shell (needs a display or
                   #   --no-sandbox --ozone-platform=headless for a smoke run)
 ```
