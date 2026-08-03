@@ -47,7 +47,11 @@ banned:
 allowlist:
   - entry: 1
     kind: pytest
-    target_prefixes: [tests, packaging, engine/tests]
+    # L-24: bot/tests added — bot/ is a real source tree with its own test
+    # root, and its absence refused the Discord release-note packet at the
+    # pre-invoke gate. The control is "checks run TESTS"; a missing test root
+    # is a gap, not a gate.
+    target_prefixes: [tests, packaging, engine/tests, bot/tests]
   - entry: 2
     kind: exact
     argv: [python3, scripts/check_fixture_coverage.py]

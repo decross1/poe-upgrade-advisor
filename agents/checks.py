@@ -118,8 +118,13 @@ def _v_pytest(argv, entry, context):
         rest = argv[3:]
     else:
         return "no-match"
+    # L-24: the default omitted bot/tests, so a packet adding tests for the
+    # Discord release-note renderer (mission leg 3 of #97) was refused at the
+    # pre-invoke gate. bot/ is a real source tree with its own test root; the
+    # control here is "checks run TESTS, not arbitrary code", and a test root
+    # missing from the list is a gap rather than a gate. Same shape as L-21.
     prefixes = tuple(entry.get("target_prefixes")
-                     or ["tests", "packaging", "engine/tests"])
+                     or ["tests", "packaging", "engine/tests", "bot/tests"])
     for a in rest:
         if a in ("-q", "--cov", "--cov-report=json"):
             continue

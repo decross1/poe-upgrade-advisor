@@ -511,3 +511,20 @@ def test_unittest_verbosity_flags_both_allowed():
     for bad in ("-k pattern", "-f", "--failfast", "-s other/tests"):
         cmd = f"python3 -m unittest discover -s engine/tests {bad}"
         assert validate_packet_commands({"required_checks": [cmd]}) != []
+
+
+def test_pytest_targets_cover_every_real_test_root():
+    """L-24: bot/tests was missing from the default target prefixes, refusing
+    a packet that adds tests for the Discord release-note renderer. Every
+    directory the repo actually keeps tests in must be reachable; paths
+    outside a test root still reject."""
+    from agents.checks import validate_packet_commands
+
+    for target in ("tests/test_packets.py", "packaging/test_launch.py",
+                   "engine/tests", "bot/tests/test_release_notes.py"):
+        cmd = f"python3 -m pytest {target} -q"
+        assert validate_packet_commands({"required_checks": [cmd]}) == [], target
+
+    for bad in ("agents/dispatch.py", "scripts/", "/etc/passwd", "overlay/src"):
+        cmd = f"python3 -m pytest {bad} -q"
+        assert validate_packet_commands({"required_checks": [cmd]}) != [], bad
