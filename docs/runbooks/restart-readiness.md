@@ -1185,3 +1185,45 @@ proof #12 and left the anti-loop breaker still dead-lettering pm. L-26 fixed
 #10/#11 for reviews. L-27 is the anti-loop reader of the same idea. The
 standing question stays on the board and should be asked of every gate:
 **what ELSE reads the thing this gate reads, and does it agree?**
+
+---
+
+## L-28: a per-task breaker can permanently disable a standing channel
+
+pm's ORG circuit breaker was reset 2026-08-03 by the orchestrator. The
+reasoning is recorded here in full because the `--reason` field is short and
+the honest answer is mixed.
+
+**What tripped it.** Four consecutive failures:
+
+- 2x pm committing `agents/dispatch.py`, 1x `agents/checks.py` — **genuine**
+  refusals, correctly caught by proof #12 and the anti-loop breaker, already
+  dead-lettered, and **not** fixed by anything since. pm was doing what it is
+  not allowed to do, and the gate was right.
+- packet/doc writes of the L-26/L-27 class — the reviewer judged against the
+  builder's packet. Those **are** fixed, on main at `4c77a2b` and `45b63ac`.
+
+So this is NOT a clean "defects since fixed" reset, and it should not be
+recorded as one.
+
+**Why reset anyway.** Because of what the breaker had come to block. `ORG` is
+not a task that can be redesigned and retried — it is pm's **permanent
+routing channel**. A per-task breaker latched onto it takes the org's only
+router offline indefinitely, and nothing ever clears it, because there is no
+"fixed version of ORG" to ship. The two messages it was actually holding were
+duplicate backend APPROVE verdicts for PR #104 — now merged at `b4a783c` —
+so they were moot and could never have succeeded. The breaker was no longer
+protecting anything; it was just holding two dead messages and two of pm's
+six parallel slots.
+
+**Residual risk, accepted and bounded.** If pm goes at a PROTECTED path
+again, proof #12 circuit-breaks it on that same invocation. The reset buys
+back routing; it does not lower the floor.
+
+**The design defect** is the durable finding: *a per-task circuit breaker
+should not be able to permanently disable a standing channel.* `ORG` (and any
+long-lived task id) needs either a decaying failure window or an explicit
+exemption from latching. Otherwise the breaker's success condition —
+"redesign the task and retry" — is unsatisfiable by construction, and the
+only exit is an operator reset like this one. Carry-list item; not fixed
+today.
