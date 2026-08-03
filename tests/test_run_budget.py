@@ -305,6 +305,46 @@ def test_run_start_is_durable_across_dispatcher_loads(tmp_path):
     assert _run_started_at(ledger, run_id="run-b", now=999.0) == 999.0
 
 
+# --- L-1: unknown allowance_pct is mode-aware everywhere ------------------
+
+
+def test_unknown_task_allowance_is_mode_aware(tmp_path):
+    """2026-08-03 orchestrator ruling. A NULL allowance_pct on a prior spend
+    row is the same ignorance the missing-reading branch already treats
+    mode-aware (W2-3). Denying it unconditionally gave every task exactly one
+    invocation and then a permanent stall — observed live on TASK-999-S1."""
+    ledger = _ledger(tmp_path)
+    _reading(ledger, "backend", 20.0)
+    _spend(ledger, ts=NOW - 60, role="backend", task="TASK-A", cash=None, pct=None)
+
+    allowed = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="backend", task_id="TASK-A", tier="green")
+    assert allowed.allowed
+    # The same NULL row trips both the per-task and daily branches; the later
+    # warning supersedes the earlier one in `reason` (they are one class).
+    assert "allowance usage unknown" in allowed.reason
+
+    denied = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="unattended-7d"
+    ).check(role="backend", task_id="TASK-A", tier="green")
+    assert not denied.allowed
+    assert "task allowance usage unknown" in denied.reason  # per-task fires first
+
+
+def test_known_allowance_over_cap_still_denies_in_canary(tmp_path):
+    """The L-1 relaxation must not weaken a cap: KNOWN spend over the
+    per-task cap denies in every mode, canary included."""
+    ledger = _ledger(tmp_path)
+    _reading(ledger, "backend", 20.0)
+    _spend(ledger, ts=NOW - 60, role="backend", task="TASK-A", cash=None, pct=99.0)
+    verdict = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="backend", task_id="TASK-A", tier="green")
+    assert not verdict.allowed
+    assert "per-task cap reached" in verdict.reason
+
+
 # --- kimi cash wall (2026-08-03 operator ruling: frontend on kimi) --------
 
 

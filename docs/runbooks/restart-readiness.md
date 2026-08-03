@@ -474,6 +474,98 @@ every run (observed 12:59, 14:28, 15:36, 16:42, 17:48Z today) — 401 by design
 while `MERGE_ROBOT_TOKEN` is unset. Disposition is the operator's; recorded so
 the failure stream is not mistaken for new breakage.
 
+## GO-LIVE — the org is online. Canary GREEN, 2026-08-03T04:04Z
+
+`HALT` lifted 04:03:27Z after the readiness gate exited **0** for the first
+time in its existence (20 checks PASS, `merge_automation` WARN only). The
+canary dispatched one second later and completed in **81 seconds**.
+
+```
+approved_mode:        GO-SUPERVISED — concurrency per effort.env, human observed
+temporary_exception:  none; no gate waived
+risk:                 low-moderate — controls proven live; three live defects
+                      found and fixed in-session; recalibration deferred
+mitigation:           per-message attempt cap, anti-loop, preflight, dispatcher-run
+                      checks, 15 completion proofs, per-day caps, $50 kimi wall
+owner:                human operator (Derrick)
+expiration_date:      2026-08-17 — re-verify if idle by then
+shutdown_condition:   touch mailroom/HALT
+work_required_for_full_go: the carry-list below; GO-UNATTENDED remains NO-GO
+```
+
+### Canary evidence — TASK-999-S1, run `a6228fff`, all fifteen proofs PASS
+
+Real `codex` invocation, real branch, real push. Verified by pm from the
+artifacts, not from the exit code:
+
+| Proof | Result |
+|---|---|
+| #1–#2 result valid, completed fields | PASS |
+| #3 pushed · #4 branch `canary/TASK-999-S1` conforms | PASS |
+| #5 commit `c877430` exists · #6 descends from `e346c4c` | PASS |
+| #7 tree clean after CC-3 sweep | PASS |
+| #8 remote agreement — `ls-remote` raw output persisted | PASS |
+| #9 **1 dispatcher-run check rc=0; the agent's `tests[]` was not consulted** | PASS |
+| #10 2 ACs, exact id-set, evidence present | PASS |
+| #11 scope · #12 protected paths · #13 banned patterns | PASS |
+| #14 budgets · #15 accounting before ack, bundle persisted | PASS |
+
+Spend recorded: 249,826 in / 3,085 out tokens. Message acked. **v1.1's
+central finding is closed in production: the system no longer asks the agent
+whether the agent succeeded.**
+
+### What the first live run found that no fake could
+
+1. **The pm `claude` spawn was broken.** The first real pm invocation
+   (mission SYNC) died in 1.2s: `--output-format stream-json` with `-p`
+   *requires* `--verbose`. Every prior exercise of that branch used a fake —
+   §7's "no model was invoked" limit was hiding exactly this. Fixed and
+   verified live at `314cd8d`. The message was **retained, not lost**
+   (attempt 1 of 2) — the control plane behaving correctly.
+2. **`kimi` prompt mode rejects `--auto`/`--yolo`.** Found by live probe
+   before it could burn an attempt; fixed at `e346c4c`.
+3. **Degradation ladder fired for real.** pm hit level 1 (allowance
+   unknown) and *reassigned* the canary's review to backend — unprompted,
+   exactly as designed.
+4. **Zero-cost empty polls confirmed** (`suppressed_preflight/empty_inbox`,
+   `invoked: false`) and `at cap (1/1)` held concurrency.
+
+### L-1 — per-task allowance-unknown was fail-closed while the aggregate was mode-aware (FIXED live)
+
+Symptom: the *second* invocation on any task was denied
+`task allowance usage unknown` — one invocation per task, then a stall. Root
+cause: a spend row whose `allowance_pct` is NULL (no baseline reading has
+ever been recorded, so the estimator emits NULL) makes
+`_spend(field="allowance_pct")` report unknown, and the per-task and daily
+branches denied unconditionally — while the *missing-reading* branch
+immediately above them had been ruled mode-aware by W2-3 (canary/supervised
+warn and allow bounded invocation; unattended deny). Two policies for the
+same class of ignorance, in one function.
+
+Ruled by the orchestrator and fixed: the per-task and daily unknown checks
+now use the same mode-aware path. Unattended still denies. **Known** spend
+over any cap still denies in every mode — no cap was weakened. Recording a
+baseline reading remains the real fix and is the operator's cheapest lever:
+
+```
+python3 scripts/agent_metrics.py record-allowance --role backend --pct <0-100>
+python3 scripts/agent_metrics.py record-allowance --role pm      --pct <0-100>
+```
+
+### L-2 — governor-suppressed messages retry unboundedly (carried)
+
+When the governor suppresses *before* invoke, the attempt ledger does not
+increment (`invoked: false`, `attempts: 0`), so the message is retained and
+re-polled forever — observed every 30s on `c3c49821`. Model cost is **zero**,
+so this is not the 977-fan cascade, but nothing retires it and pm had to ack
+it by hand. Next cycle: a suppression counter with its own retirement path.
+
+Also carried: B4 census/recalibration (caps stay `[E]`), B5 pm-lite, B6
+checkpoint, B7 ceiling + `branch_pattern`, A5, A4 telemetry tail, full
+`.fan` recovery, F6/F9 probes, proof #8 exact-SHA match.
+
+---
+
 ### Marker disposition — executed 2026-08-02T19:20Z (operator-directed)
 
 §7 condition 2 is DONE, by move not deletion. All nine
