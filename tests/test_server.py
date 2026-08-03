@@ -22,6 +22,7 @@ from server.calculator import (
     ImportedBuild,
     ItemParseError,
     JsonRpcWorker,
+    WorkerUnavailable,
     decode_pob_code,
     extract_build_facts,
 )
@@ -40,6 +41,17 @@ SIMPLE_XML = b"""<?xml version="1.0"?>
     </Skill>
   </Skills>
 </PathOfBuilding>
+"""
+ATTRIBUTION_ITEM = """Rarity: RARE
+Measured Candidate
+Vaal Spirit Shield
+Item Level: 83
+Implicits: 1
+5% increased Spell Damage
+20% increased Spell Damage
++50 to maximum Life
+Unsupported Modifier
+Worker Sensitive Modifier
 """
 
 
@@ -116,7 +128,23 @@ class StubCalculator:
             "downgrade": (90, 90),
             "zero-baseline": (1, 100),
         }
-        if item_text.startswith("Item Class:"):
+        if item_text.startswith("Rarity: RARE\nMeasured Candidate"):
+            if "Unsupported Modifier" not in item_text:
+                raise ItemParseError("leave-one-out item is unparseable")
+            if "Worker Sensitive Modifier" not in item_text:
+                raise WorkerUnavailable("leave-one-out worker unavailable")
+            candidate_dps = 100
+            candidate_ehp = 100
+            if "5% increased Spell Damage" in item_text:
+                candidate_dps += 5
+            if "20% increased Spell Damage" in item_text:
+                candidate_dps += 20
+            if "+50 to maximum Life" in item_text:
+                candidate_ehp += 10
+        elif item_text.startswith("eviction-"):
+            candidate_dps = 101 + int(item_text.removeprefix("eviction-"))
+            candidate_ehp = 100
+        elif item_text.startswith("Item Class:"):
             candidate_dps, candidate_ehp = candidates["upgrade"]
         else:
             try:
@@ -341,6 +369,132 @@ def test_diff_validation_determinism_and_evaluator_config(
     assert calculator.configurations[-1]["flasks_active"] is False
 
 
+def test_breakdown_is_measured_bounded_and_matches_contract(
+    app: ApiApplication, calculator: StubCalculator
+) -> None:
+    endpoint = f"{BASE_PATH}/breakdown"
+    assert app.dispatch("GET", f"{endpoint}/unknown") == (404, None)
+    import_stub_build(app)
+
+    status, original = app.dispatch(
+        "POST", f"{BASE_PATH}/diff", {"item_text": ATTRIBUTION_ITEM}
+    )
+    assert status == 200
+    assert original is not None
+    calls_before_breakdown = len(calculator.item_texts)
+    status, breakdown = app.dispatch(
+        "GET", f"{endpoint}/{original['diff_id']}"
+    )
+    assert status == 200
+    assert breakdown is not None
+    assert breakdown == {
+        "diff_id": original["diff_id"],
+        "drivers": [
+            {
+                "mod_text": "20% increased Spell Damage",
+                "contribution_pct": 20.0,
+                "stat": "total_dps",
+            },
+            {
+                "mod_text": "+50 to maximum Life",
+                "contribution_pct": 10.0,
+                "stat": "ehp",
+            },
+        ],
+    }
+    assert "pob_breakdown" not in breakdown
+    assert len(calculator.item_texts) - calls_before_breakdown == 4
+    assert all(
+        "5% increased Spell Damage" in omitted
+        for omitted in calculator.item_texts[calls_before_breakdown:]
+    )
+    assert not any(
+        driver["mod_text"]
+        in {"Unsupported Modifier", "Worker Sensitive Modifier"}
+        for driver in breakdown["drivers"]
+    )
+
+    contract = yaml.safe_load((ROOT / "contracts/openapi.yaml").read_text())
+    schema = {
+        "$ref": "#/components/schemas/Breakdown",
+        "components": contract["components"],
+    }
+    jsonschema.validate(breakdown, schema)
+
+    top_driver = breakdown["drivers"][0]
+    omitted_item = ATTRIBUTION_ITEM.replace(
+        f"{top_driver['mod_text']}\n", "", 1
+    )
+    status, omitted = app.dispatch(
+        "POST", f"{BASE_PATH}/diff", {"item_text": omitted_item}
+    )
+    assert status == 200
+    assert omitted is not None
+    movement = (
+        original["offense_delta_pct"] - omitted["offense_delta_pct"]
+    )
+    assert movement == pytest.approx(top_driver["contribution_pct"], abs=0.1)
+
+    status, honest_empty_card = app.dispatch(
+        "POST", f"{BASE_PATH}/diff", {"item_text": "upgrade"}
+    )
+    assert status == 200
+    assert honest_empty_card is not None
+    assert app.dispatch(
+        "GET", f"{endpoint}/{honest_empty_card['diff_id']}"
+    ) == (
+        200,
+        {"diff_id": honest_empty_card["diff_id"], "drivers": []},
+    )
+
+    ids = []
+    for index in range(65):
+        status, card = app.dispatch(
+            "POST",
+            f"{BASE_PATH}/diff",
+            {"item_text": f"eviction-{index}"},
+        )
+        assert status == 200
+        assert card is not None
+        ids.append(card["diff_id"])
+    assert app.dispatch("GET", f"{endpoint}/{ids[0]}") == (404, None)
+    assert app.dispatch("GET", f"{endpoint}/{ids[-1]}") == (
+        200,
+        {"diff_id": ids[-1], "drivers": []},
+    )
+
+
+def test_breakdown_store_is_cleared_when_build_changes(app: ApiApplication) -> None:
+    import_stub_build(app)
+    status, card = app.dispatch(
+        "POST", f"{BASE_PATH}/diff", {"item_text": "upgrade"}
+    )
+    assert status == 200
+    assert card is not None
+    import_stub_build(app)
+    assert app.dispatch(
+        "GET", f"{BASE_PATH}/breakdown/{card['diff_id']}"
+    ) == (404, None)
+
+
+def test_breakdown_extracts_only_explicit_game_clipboard_modifiers() -> None:
+    fixture_root = ROOT / "engine/tests/fixtures/game_clipboard"
+    shield = (fixture_root / "rare_spirit_shield.txt").read_text()
+    modifiers = [
+        mod_text
+        for _, mod_text in ApiApplication._explicit_modifiers(shield)
+    ]
+    assert modifiers == [
+        "+60 to Intelligence",
+        "30% increased Energy Shield",
+        "+100 to maximum Life",
+        "+1 to Level of all Cold Spell Skill Gems",
+        "+43% to Cold Resistance (crafted)",
+    ]
+    unidentified = (fixture_root / "unidentified_wand.txt").read_text()
+    assert ApiApplication._explicit_modifiers(unidentified) == []
+
+
 def test_game_clipboard_text_crosses_server_boundary_unchanged(
     app: ApiApplication, calculator: StubCalculator
 ) -> None:
@@ -531,7 +685,12 @@ def test_http_round_trip_uses_bare_contract_errors(app: ApiApplication) -> None:
         assert json.loads(raw)["main_skill"]["name"] == "Arc"
         status, raw = post("/diff", {"item_text": "sidegrade"})
         assert status == 200
-        assert json.loads(raw)["verdict"] == "SIDEGRADE"
+        card = json.loads(raw)
+        assert card["verdict"] == "SIDEGRADE"
+        status, raw = get(f"/breakdown/{card['diff_id']}")
+        assert status == 200
+        assert json.loads(raw) == {"diff_id": card["diff_id"], "drivers": []}
+        assert get("/breakdown/unknown") == (404, b"")
         status, raw = post(
             "/scan", {"items": ["downgrade", "upgrade", "sidegrade"]}
         )

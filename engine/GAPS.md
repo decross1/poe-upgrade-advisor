@@ -13,8 +13,10 @@ parity.
 - **Desktop confirmation remains deferred under ADR-0005.** The frozen
   poe.ninja oracle is the binding TASK-101 gate. A later desktop capture
   outranks ninja on any disputed cell, but it no longer blocks this spike.
-- **Breakdown references are placeholders.** They identify a calculation slot
-  but are not yet backed by persisted Tier-2 breakdown data.
+- **Tier-3 raw breakdown trees remain unavailable.** Engine breakdown
+  references identify calculation slots, not raw PoB trees, and must not be
+  exposed as Tier-3 data. Tier-2 modifier drivers landed as measured
+  leave-one-out attribution and do not depend on these references.
 
 ## Closed
 
