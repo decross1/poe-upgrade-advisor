@@ -191,8 +191,12 @@ def test_every_example_packet_validates():
         # S1 (backend) implements the route with real leave-one-out mod
         # attribution; S2 (frontend, after S1 merges) proves the affordance
         # against a live server the way S6 proved the overlay.
-        "TASK-213-S1.json",
-        "TASK-213-S2.json",
+        # Registered as TASK-214-*, not TASK-213-*: TASK-213 was already taken by
+        # the CI regression on issue #123, whose fix shipped under that ID at
+        # ead5b5a. Renumbered to the next free parent before either stage was
+        # dispatched.
+        "TASK-214-S1.json",
+        "TASK-214-S2.json",
     }
 
 

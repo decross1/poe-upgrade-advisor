@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "task_id": "TASK-213-S1",
-  "parent_task_id": "TASK-213",
+  "task_id": "TASK-214-S1",
+  "parent_task_id": "TASK-214",
   "issue": 125,
   "owner_role": "backend",
   "tier": "green",
@@ -40,7 +40,7 @@
     "Attribution is a Tier-2 tap, not the clipboard->verdict path, so I6's 300 ms budget does not bind it; it must still reuse the warm worker and issue at most one engine diff per attributable mod line (the base numbers come from the stored calculation, not a re-run).",
     "Do not emit pob_breakdown. Shipping the breakdown_ref placeholder as a Tier-3 tree would be the exact dishonesty engine/GAPS.md exists to prevent.",
     "Existing tests may be EXTENDED, never deleted or skipped; engine/tests/fixtures/item.txt stays byte-identical, and the runtime-availability skips must keep skipping LOUDLY -- a missing runtime never silently passes.",
-    "Stage PR uses 'Refs #125', never 'Fixes' (ADR-0008): #125's frontend stage is TASK-213-S2."
+    "Stage PR uses 'Refs #125', never 'Fixes' (ADR-0008): #125's frontend stage is TASK-214-S2."
   ],
   "required_checks": [
     "python3 -m pytest tests/test_server.py -q",
