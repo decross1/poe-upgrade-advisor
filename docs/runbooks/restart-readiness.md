@@ -736,3 +736,71 @@ mission fan-out is open; BACKLOG §Mission resume proceeds from step 3
 loop), green tier default, kimi under the $50 wall, gates unweakened.
 
 Recorded by pm — ledger message `39ad7763`, run `95e04737`.
+
+---
+
+## Ruling — PR #102 is SUPERSEDED, not fixable. Closed 2026-08-03.
+
+Backend's REQUEST_CHANGES on PR #102 @ `a91fff0` (ledger `a68a52d4`) was
+mechanically correct on both cited gates — merge condition 4 (no structurally
+valid single `Fixes`/`Refs` task link) and condition 5 (protected
+`tasks/packets/*` changes with no `protected-change`-labelled linked issue).
+Its remedy — file one dedicated TASK issue with triage-time
+`protected-change`, relink, re-review — is **not** the right fix, because the
+PR no longer proposes any change.
+
+Measured, not assumed. All eight files in the PR are byte-identical between
+`origin/main` and the PR head:
+
+```
+git rev-parse origin/main:<f>  ==  git rev-parse origin/pr102:<f>   for each of
+tasks/BACKLOG.md  tasks/packets/TASK-{102-S2,102-S3,102-S4,102-S5}.json
+tasks/packets/TASK-{210-S2,210-S3}.json  tests/test_packets.py
+```
+
+`a91fff0` was rebased onto main as `9f8ecd5` (identical author + author date,
+different tree because of the rebase). The packet substance is already live.
+What `git diff origin/main origin/pr102` still shows is 689 lines of pure
+**deletion**: `agents/provider_limit.py`, `scripts/breaker_reset.py`,
+`docs/runbooks/restart-readiness.md`, the L-16/L-17/L-18 fixes in
+`run_budget.py` / `budget_governor.py` / `policy.yaml` / `dispatch.py`, and
+proof changes in `completion_proofs.yaml` — i.e. every commit that landed
+after the merge base `3456178`. GitHub reports the PR `MERGEABLE / CLEAN`
+because it diffs against that stale base; the merge robot's condition 9
+(branch up to date with main) would force a rebase, and the rebase result is
+empty.
+
+So authorizing it would mean minting a `protected-change` task whose only
+possible effect is to revert unrelated org work. Decision: **close PR #102 as
+superseded by `9f8ecd5`**; no TASK issue is created for it; backend's review
+finding is upheld and satisfied by supersession rather than by relink. The
+six packets and the BACKLOG mission-resume re-sequencing stand as merged.
+Revisit if: a future `git diff origin/main <branch>` on this work shows any
+non-deletion hunk — that would mean substance was lost in the rebase.
+
+### L-19 — protected paths reached `main` without passing the merge robot (OPEN)
+
+The same measurement exposes the real defect. `9f8ecd5` put seven protected
+`tasks/packets/*` + `tasks/BACKLOG.md` files on `main` by **direct push** —
+no robot merge, no condition-4 task link, no `protected-change` label, no
+evidence-bearing counterpart approval. PR #102 was opened for that work and
+then bypassed. Every ORG commit from `3456178` to `a9e86af` has the same
+shape: no `(#N)` merge suffix, straight to `main`.
+
+This is not an agent misbehaving around a gate; it is a gate that is not
+installed. The merge robot is specified as "the only identity with merge
+rights on `main`" (`agents/merge_robot/SPEC.md`), but nothing enforces that,
+so its nine conditions are advisory for anyone with push access. Backend
+correctly refused to wave through condition 5 on the PR — while the identical
+bytes sat unauthorized on `main` the whole time. Reviewing the front door
+while the side door is open is the failure mode to fix.
+
+The fix is already scoped and already open: **TASK-007 / issue #24**
+(merge-robot identity + branch protection, human-gated, `protected-change`,
+`role:backend`). No new issue is filed — this raises #24 from routine to the
+blocking prerequisite for treating any merge condition as real, and it is
+human-gated because branch protection needs repo-admin rights that no agent
+identity holds. Until #24 lands, do not read "condition 5 passed" as
+"protected paths were authorized"; it only means the PR path was authorized.
+
+Recorded by pm — ledger message `a68a52d4`, run `75330405`.
