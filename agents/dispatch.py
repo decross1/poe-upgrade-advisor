@@ -98,6 +98,14 @@ RESULT_SCHEMA_REL = "agents/interfaces/schemas/result.schema.json"
 STDERR_TAIL_LINES = 200
 PREPASS_TIMEOUT = 300
 
+#: Intents whose handling actually EXECUTES the task packet — the only ones
+#: the CC-1 pre-invoke command gate should block on (L-8). Everything else
+#: (ANSWER, SYNC, STATUS, REVIEW_VERDICT, ARBITRATION_RULING, QUESTION,
+#: INTAKE_TICKET, BOOTSTRAP) is governance traffic that never runs
+#: required_checks; blocking it on a bad packet makes the packet's own
+#: correction undeliverable.
+WORK_INTENTS = frozenset({"TASK_ASSIGN", "REVIEW_REQUEST"})
+
 #: Where dispatcher state lives, all under the mailroom (shared across the
 #: throwaway fan worktrees — repo-relative state would vanish with them):
 #:   <mailroom>/governor/budget_ledger.sqlite3    fail-closed attempts + spend
@@ -717,7 +725,19 @@ def dispatch(role: str, message_id: str, worktree: Path, *,
         # policy rejects fails HERE, before any model spend — same standing
         # as a schema-invalid packet. The runner enforces again at
         # execution (defense in depth).
-        cmd_violations = validate_packet_commands(packet)
+        #
+        # L-8 (2026-08-03, observed live): gate WORK-BEARING messages only.
+        # This gate is about not spending an invocation on a packet whose
+        # checks cannot legally run. A governance message — the ANSWER that
+        # says "this packet is superseded", a SYNC, a STATUS — never executes
+        # required_checks, so blocking it buys nothing and costs everything:
+        # an invalid packet made its own task's mailbox UNDELIVERABLE,
+        # including the very ruling that would retire the packet. That is a
+        # deadlock only out-of-band intervention can break. The orchestrator's
+        # superseded-ruling for TASK-999-S2 was suppressed by the exact packet
+        # it was superseding.
+        cmd_violations = (validate_packet_commands(packet)
+                          if msg.get("intent") in WORK_INTENTS else [])
         if cmd_violations:
             out = Outcome(decision=DispatchDecision.SUPPRESSED_PREFLIGHT.value,
                           reason="packet command policy: "
