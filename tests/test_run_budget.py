@@ -273,6 +273,16 @@ def test_unknown_spend_measurement_refuses_to_certify_headroom(tmp_path):
 
 
 def test_unknown_frontier_cash_refuses_to_certify_total_headroom(tmp_path):
+    """L-16 + operator ruling 2026-08-03 ("only monitor real token spend for
+    kimi; use the provider's return messages as the exhaustion signal").
+
+    Unknown frontier cash is the same class of ignorance as a missing
+    allowance reading, and now takes the same mode-aware path: unattended
+    DENIES, canary/supervised warn and allow bounded invocation. It had been
+    the only one of the four unknown-spend branches still hard-denying, and
+    it blocked every red-tier task in the mission — both parked-PR replays
+    are red. KNOWN spend over a cap still denies in every mode (pinned by
+    test_frontier_cash_total_cap_still_denies_when_known below)."""
     ledger = _ledger(tmp_path)
     _reading(ledger, "backend", 10.0)
     _spend(
@@ -283,11 +293,49 @@ def test_unknown_frontier_cash_refuses_to_certify_total_headroom(tmp_path):
         cash=None,
         pct=0.1,
     )
-    verdict = RunBudget(_policy(), ledger, now=lambda: NOW).check(
-        role="backend", task_id="TASK-NEW", tier="red"
-    )
+    denied = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="unattended-7d"
+    ).check(role="backend", task_id="TASK-NEW", tier="red")
+    assert not denied.allowed
+    assert "frontier cash total usage unknown" in denied.reason
+
+    allowed = RunBudget(
+        _policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="backend", task_id="TASK-NEW", tier="red")
+    assert allowed.allowed
+    assert "frontier cash" in allowed.reason and "unknown" in allowed.reason
+
+
+def test_frontier_cash_total_cap_still_denies_when_known(tmp_path):
+    """The L-16 relaxation must not weaken a cap: MEASURED cash over the
+    frontier total denies in canary too."""
+    policy = _kimi_policy()  # frontend on kimi => a cash-denominated role
+    ledger = _ledger(tmp_path)
+    _spend(ledger, ts=NOW - 86400 * 3, role="frontend", task="TASK-A",
+           cash=60.0, pct=None)
+    verdict = RunBudget(
+        policy, ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="frontend", task_id="TASK-B", tier="red")
     assert not verdict.allowed
-    assert verdict.reason == "frontier cash total usage unknown"
+    assert "cap" in verdict.reason
+
+
+def test_subscription_spend_does_not_consume_the_frontier_pool(tmp_path):
+    """L-16's core point. pm's claude cash_usd is a subscription EQUIVALENT
+    the CLI reports, not metered dollars. Summing it into frontier_cash blew
+    the $4.20/day cap in the first hour of live operation and hard-blocked
+    every red-tier mission task. Only cash-denominated roles count."""
+    policy = _kimi_policy()
+    ledger = _ledger(tmp_path)
+    start = _day_start(NOW, 4)
+    _spend(ledger, ts=start + 1, role="pm", task="ORG", cash=30.28, pct=None)
+    verdict = RunBudget(
+        policy, ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="frontend", task_id="TASK-NEW", tier="red")
+    assert verdict.allowed, (
+        "pm's subscription-equivalent spend must not consume frontier cash: "
+        f"{verdict.reason}"
+    )
 
 
 def test_unconfigured_loader_state_denies_instead_of_allowing():

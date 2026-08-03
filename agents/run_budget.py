@@ -402,14 +402,37 @@ class RunBudget:
 
         if tier in {"red", "frontier", "frontier_cash"}:
             cash = ((self.run.get("budgets") or {}).get("frontier_cash") or {})
-            cash_roles = tuple(sorted((self.policy.get("per_day_max") or {}).keys()))
+            # L-16 (2026-08-03): count only CASH-denominated roles. This
+            # summed every role, so pm's claude spend — a subscription
+            # EQUIVALENT the CLI reports, not metered dollars — landed in the
+            # frontier pool and blew its $4.20/day cap on the first hour of
+            # live operation, hard-blocking every red-tier task in the
+            # mission. Backend's NULL cash rows then denied it a second way
+            # as "usage unknown". A category error, not a budget breach:
+            # subscription capacity and cash are different currencies and the
+            # claude/codex allowance branch above already governs the former.
+            _cash_budgets = {"frontier_cash", "kimi"}
+            cash_roles = tuple(sorted(
+                r for r, cfg in (self.policy.get("roles") or {}).items()
+                if str((cfg or {}).get("budget")) in _cash_budgets
+            )) or tuple(sorted((self.policy.get("per_day_max") or {}).keys()))
             _, total_used, total_unknown = self._spend(
                 roles=cash_roles, field="cash_usd"
             )
             if total_unknown:
-                return self._verdict(
-                    allowed=False, reason="frontier cash total usage unknown", level=1,
-                    role=role, task_id=task_id,
+                # L-16: same mode-aware ruling already applied to the
+                # allowance and kimi branches — canary/supervised warn and
+                # allow bounded invocation, unattended denies. KNOWN spend
+                # over any cap still denies below, in every mode.
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason="unattended mode denies invocation: frontier cash total usage unknown",
+                        level=1, role=role, task_id=task_id,
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"frontier cash total usage unknown"
                 )
             total = float(cash["total_usd"])
             reserve = float((self.run.get("reserve") or {}).get("cash_usd", 0.0))
@@ -423,9 +446,19 @@ class RunBudget:
                 roles=cash_roles, task_id=task_id, field="cash_usd"
             )
             if task_cash_unknown:
-                return self._verdict(
-                    allowed=False, reason="frontier cash task usage unknown", level=1,
-                    role=role, task_id=task_id,
+                # L-16: same mode-aware ruling already applied to the
+                # allowance and kimi branches — canary/supervised warn and
+                # allow bounded invocation, unattended denies. KNOWN spend
+                # over any cap still denies below, in every mode.
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason="unattended mode denies invocation: frontier cash task usage unknown",
+                        level=1, role=role, task_id=task_id,
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"frontier cash task usage unknown"
                 )
             if float(task_cash or 0.0) >= float(cash["per_task_usd"]):
                 return self._verdict(
@@ -441,9 +474,19 @@ class RunBudget:
                 roles=cash_roles, since=day_start, field="cash_usd"
             )
             if daily_cash_unknown:
-                return self._verdict(
-                    allowed=False, reason="frontier cash daily usage unknown", level=1,
-                    role=role, task_id=task_id,
+                # L-16: same mode-aware ruling already applied to the
+                # allowance and kimi branches — canary/supervised warn and
+                # allow bounded invocation, unattended denies. KNOWN spend
+                # over any cap still denies below, in every mode.
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason="unattended mode denies invocation: frontier cash daily usage unknown",
+                        level=1, role=role, task_id=task_id,
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"frontier cash daily usage unknown"
                 )
             if float(daily_cash or 0.0) >= daily_limit:
                 return self._verdict(
