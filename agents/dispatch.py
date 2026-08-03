@@ -253,6 +253,17 @@ def role_command(role: str, prompt: str, mailroom: Path,
         return ["env", "-u", "ANTHROPIC_API_KEY", "claude", "-p", prompt,
                 "--output-format", "stream-json",
                 "--dangerously-skip-permissions", "--add-dir", str(mailroom)]
+    if role == "frontend":
+        # 2026-08-03 operator ruling: frontend is the kimi CLI (metered
+        # provider). Spend is governed by run_policy's `kimi` cash budget —
+        # run_budget.check's kimi branch — with the Kimi-console limit as
+        # the provider-side backstop. kimi has no reasoning-effort flag;
+        # KIMI_MODEL overrides config.toml's default_model when set.
+        cmd = ["kimi", "--auto", "--output-format", "stream-json"]
+        kimi_model = os.environ.get("KIMI_MODEL")
+        if kimi_model:
+            cmd += ["-m", kimi_model]
+        return cmd + ["--prompt", prompt]
     return ["codex", "exec", "--json",
             "--dangerously-bypass-approvals-and-sandbox",
             "-m", os.environ.get("CODEX_MODEL", "gpt-5.6-sol"),

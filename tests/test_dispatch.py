@@ -1125,6 +1125,30 @@ def test_effort_precedence_ladder(monkeypatch):
     assert dispatch_mod.resolve_effort("pm", packet) == "not_applicable"
 
 
+def test_role_command_frontend_is_kimi(monkeypatch):
+    """2026-08-03 operator ruling: frontend is the kimi CLI (metered).
+
+    Headless flags pinned: --auto (fully autonomous, never asks),
+    stream-json (usage recovery seam), prompt LAST via --prompt. KIMI_MODEL
+    env overrides config.toml's default only when set. No codex tokens —
+    the spend-attribution seam (kimi cash wall vs codex allowance) depends
+    on the roles never sharing a CLI.
+    """
+    mr = Path("/mailroom-unused")
+    monkeypatch.delenv("KIMI_MODEL", raising=False)
+    cmd = dispatch_mod.role_command("frontend", "p", mr)
+    assert cmd[0] == "kimi"
+    assert "--auto" in cmd
+    assert "--output-format" in cmd and "stream-json" in cmd
+    assert cmd[-2:] == ["--prompt", "p"]
+    assert "-m" not in cmd
+    assert not any("codex" in tok for tok in cmd)
+
+    monkeypatch.setenv("KIMI_MODEL", "kimi-k2-turbo")
+    cmd = dispatch_mod.role_command("frontend", "p", mr)
+    assert cmd[cmd.index("-m") + 1] == "kimi-k2-turbo"
+
+
 def test_spawn_site_receives_the_packet(mailroom, worktree, monkeypatch):
     """The packet must reach the ONLY model-spawn site. role_command is
     replaced by a recorder that runs `true` instead of a model; the

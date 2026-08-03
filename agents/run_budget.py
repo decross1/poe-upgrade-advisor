@@ -314,6 +314,67 @@ class RunBudget:
                     reassign_to=self._reassignment(role, now),
                 )
 
+        if budget_name == "kimi":
+            # 2026-08-03 operator ruling: frontend runs on the metered kimi
+            # provider under a hard cash wall (run.budgets.kimi), tier-
+            # independent — unlike frontier_cash, which is tier-keyed.
+            # Unknown spend is MODE-AWARE (the kimi usage parser is a
+            # next-cycle deliverable): canary/supervised warn and allow
+            # bounded invocation, unattended denies — the same semantics
+            # W2-3 ruled for missing allowance readings. Known spend over
+            # any cap denies regardless of mode.
+            kimi = ((self.run.get("budgets") or {}).get("kimi") or {})
+            if not kimi:
+                return self._verdict(
+                    allowed=False, reason="kimi budget not configured", level=1,
+                    role=role, task_id=task_id,
+                )
+            kimi_roles = roles
+            _, k_total, k_total_unknown = self._spend(
+                roles=kimi_roles, field="cash_usd"
+            )
+            _, k_task, k_task_unknown = self._spend(
+                roles=kimi_roles, task_id=task_id, field="cash_usd"
+            )
+            k_daily_base = float(kimi["per_day_usd"])
+            k_daily_limit = k_daily_base + self._carry_forward(
+                roles=kimi_roles, field="cash_usd", base_daily=k_daily_base,
+                day_start=day_start,
+            )
+            _, k_daily, k_daily_unknown = self._spend(
+                roles=kimi_roles, since=day_start, field="cash_usd"
+            )
+            if k_total_unknown or k_task_unknown or k_daily_unknown:
+                if self._missing_allowance_blocks():
+                    return self._verdict(
+                        allowed=False,
+                        reason="unattended mode denies invocation: kimi cash usage unknown",
+                        level=1, role=role, task_id=task_id,
+                        reassign_to=self._reassignment(role, now),
+                    )
+                allowance_warning = (
+                    f"WARNING ({self.operating_mode} allows bounded invocation): "
+                    f"kimi cash usage partially unknown — provider-side limit is "
+                    f"the backstop until the usage parser lands"
+                )
+            if float(k_total or 0.0) >= float(kimi["total_usd"]):
+                return self._verdict(
+                    allowed=False, reason="kimi cash total cap reached", level=3,
+                    role=role, task_id=task_id,
+                    reassign_to=self._reassignment(role, now),
+                )
+            if float(k_task or 0.0) >= float(kimi["per_task_usd"]):
+                return self._verdict(
+                    allowed=False, reason="kimi cash per-task cap reached", level=1,
+                    role=role, task_id=task_id,
+                )
+            if float(k_daily or 0.0) >= k_daily_limit:
+                return self._verdict(
+                    allowed=False, reason="kimi cash daily cap; throttle role", level=1,
+                    role=role, task_id=task_id,
+                    reassign_to=self._reassignment(role, now),
+                )
+
         if tier in {"red", "frontier", "frontier_cash"}:
             cash = ((self.run.get("budgets") or {}).get("frontier_cash") or {})
             cash_roles = tuple(sorted((self.policy.get("per_day_max") or {}).keys()))

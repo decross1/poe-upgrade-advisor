@@ -3,7 +3,9 @@ from __future__ import annotations
 import copy
 import json
 import shlex
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -139,7 +141,12 @@ def test_protected_scope_forces_frontier_route_and_review_policy(protected_scope
 def test_every_example_packet_validates():
     paths = validate_all(ROOT)
     assert {path.name for path in paths} == {
-        "TASK-901-S1.json", "TASK-902-S1.json", "TASK-903-S1.json", "TASK-904-S1.json"
+        "TASK-901-S1.json", "TASK-902-S1.json", "TASK-903-S1.json",
+        "TASK-904-S1.json",
+        # 2026-08-03: the ratified canary packet (base contract §16.3
+        # Packet B + R4 check). Its check asserts POST-work state — see the
+        # canary carve-out in the check-runner test below.
+        "TASK-999-S1.json",
     }
 
 
@@ -166,4 +173,32 @@ def test_every_unique_example_required_check_exists_and_runs():
         result = subprocess.run(
             argv, cwd=ROOT, capture_output=True, text=True, timeout=120, check=False
         )
+        if argv[-1] == "scripts/check_canary_probe.py":
+            # The canary's check asserts the canary TASK's outcome
+            # (docs/agent-org/canary-probe.md), which by design does not
+            # exist until the canary agent creates it. Before the work, the
+            # correct verdict is a clean FAIL — asserting rc==0 here would
+            # force someone to pre-create the probe file and hollow out the
+            # canary. Pin BOTH directions instead: a deterministic FAIL in
+            # the repo, and a PASS against a valid probe in a scratch tree
+            # (checker copied, since it resolves paths relative to cwd).
+            assert result.returncode == 1 and "missing" in result.stdout, (
+                f"{command}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+            )
+            with tempfile.TemporaryDirectory() as scratch:
+                root = Path(scratch)
+                (root / "scripts").mkdir()
+                shutil.copy(ROOT / "scripts/check_canary_probe.py", root / "scripts")
+                probe = root / "docs/agent-org/canary-probe.md"
+                probe.parent.mkdir(parents=True)
+                probe.write_text("# Canary probe\n\nvalid scratch probe\n")
+                good = subprocess.run(
+                    argv, cwd=root, capture_output=True, text=True,
+                    timeout=120, check=False,
+                )
+                assert good.returncode == 0, (
+                    f"checker cannot pass even against a valid probe:\n"
+                    f"STDOUT:\n{good.stdout}\nSTDERR:\n{good.stderr}"
+                )
+            continue
         assert result.returncode == 0, f"{command}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"

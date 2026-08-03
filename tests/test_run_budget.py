@@ -303,3 +303,78 @@ def test_run_start_is_durable_across_dispatcher_loads(tmp_path):
     assert _run_started_at(ledger, run_id="run-a", now=100.0) == 100.0
     assert _run_started_at(ledger, run_id="run-a", now=999.0) == 100.0
     assert _run_started_at(ledger, run_id="run-b", now=999.0) == 999.0
+
+
+# --- kimi cash wall (2026-08-03 operator ruling: frontend on kimi) --------
+
+
+def _kimi_policy() -> dict:
+    p = _policy()
+    p["roles"]["frontend"] = {"budget": "kimi", "allowance_owner": "frontend"}
+    p["run"]["budgets"]["kimi"] = {
+        "total_usd": 50.0, "per_day_usd": 10.0, "per_task_usd": 1.5,
+    }
+    return p
+
+
+def test_kimi_total_cap_denies_frontend_tier_independent(tmp_path):
+    """The $50 wall holds for GREEN work — unlike frontier_cash, the kimi
+    budget is role-keyed, not tier-keyed."""
+    ledger = _ledger(tmp_path)
+    _spend(ledger, ts=NOW - 3 * 86400, role="frontend", task="TASK-A", cash=30.0, pct=None)
+    _spend(ledger, ts=NOW - 3 * 86400 + 1, role="frontend", task="TASK-B", cash=20.0, pct=None)
+    verdict = RunBudget(
+        _kimi_policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="frontend", task_id="TASK-C", tier="green")
+    assert not verdict.allowed
+    assert "kimi cash total cap" in verdict.reason
+
+
+def test_kimi_per_task_cap_denies(tmp_path):
+    ledger = _ledger(tmp_path)
+    _spend(ledger, ts=NOW - 60, role="frontend", task="TASK-A", cash=1.5, pct=None)
+    verdict = RunBudget(
+        _kimi_policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="frontend", task_id="TASK-A", tier="green")
+    assert not verdict.allowed
+    assert "kimi cash per-task cap" in verdict.reason
+
+
+def test_kimi_daily_cap_throttles(tmp_path):
+    ledger = _ledger(tmp_path)
+    start = _day_start(NOW, 4)
+    for i, task in enumerate(("TASK-A", "TASK-B", "TASK-C")):
+        _spend(ledger, ts=start + 1 + i, role="frontend", task=task, cash=10.0, pct=None)
+    verdict = RunBudget(
+        _kimi_policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="frontend", task_id="TASK-D", tier="green")
+    assert not verdict.allowed
+    assert "kimi cash daily cap" in verdict.reason
+
+
+def test_kimi_unknown_spend_is_mode_aware(tmp_path):
+    """Usage parser is next-cycle work: canary/supervised warn and allow
+    bounded invocation (provider-side limit is the backstop); unattended
+    denies — the W2-3 semantics."""
+    ledger = _ledger(tmp_path)
+    _spend(ledger, ts=NOW - 60, role="frontend", task="TASK-A", cash=None, pct=None)
+    allowed = RunBudget(
+        _kimi_policy(), ledger, now=lambda: NOW, operating_mode="canary"
+    ).check(role="frontend", task_id="TASK-B", tier="green")
+    assert allowed.allowed
+    assert "kimi cash usage" in allowed.reason  # warning folded into reason
+    denied = RunBudget(
+        _kimi_policy(), ledger, now=lambda: NOW, operating_mode="unattended-7d"
+    ).check(role="frontend", task_id="TASK-B", tier="green")
+    assert not denied.allowed
+    assert "kimi cash usage unknown" in denied.reason
+
+
+def test_kimi_missing_budget_block_fails_closed(tmp_path):
+    p = _kimi_policy()
+    del p["run"]["budgets"]["kimi"]
+    verdict = RunBudget(p, _ledger(tmp_path), now=lambda: NOW).check(
+        role="frontend", task_id="TASK-A", tier="green"
+    )
+    assert not verdict.allowed
+    assert "kimi budget not configured" in verdict.reason
