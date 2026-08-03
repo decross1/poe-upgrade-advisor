@@ -67,6 +67,8 @@ jobs:
         run: engine/runtime/build.sh
       - name: run engine integration tests
         run: python3 -m unittest discover -s engine/tests -v
+      - name: run strict corpus parity
+        run: engine/corpus/run_corpus.sh
       - name: capture Linux runtime parity spot-check
         run: >-
           python3 -m engine.runtime_parity

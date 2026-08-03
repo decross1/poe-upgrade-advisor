@@ -1,0 +1,10 @@
+# Frozen poe.ninja Penance Brand Inquisitor export with a charge setup.
+# Fetch provenance and immutable hashes are recorded in the corpus manifest.
+build: engine/corpus/seed/ninja/14-inquisitor-penance-brand.json
+preset: bossing
+expected:
+  - rule_id: config.power_charges_from_generation
+    fires: true
+  - rule_id: main_skill.most_linked_highest_dps
+    resolved: { main_skill: "Penance Brand of Dissipation" }
+min_confidence: 0.8

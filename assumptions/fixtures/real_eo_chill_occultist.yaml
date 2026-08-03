@@ -1,0 +1,14 @@
+# Frozen poe.ninja Elementalist export with a Cold Snap cold DoT setup.
+# Fetch provenance and immutable hashes are recorded in the corpus manifest.
+build: engine/corpus/seed/ninja/12-elementalist-ci-cold-snap.json
+preset: bossing
+expected:
+  - rule_id: config.elemental_overload
+    fires: true
+  - rule_id: config.chill_from_setup
+    fires: true
+  - rule_id: config.flasks_up
+    fires: true
+  - rule_id: main_skill.most_linked_highest_dps
+    resolved: { main_skill: "Vaal Cold Snap" }
+min_confidence: 0.7
