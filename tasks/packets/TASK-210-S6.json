@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-210-S6",
+  "parent_task_id": "TASK-210",
+  "issue": 79,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Prove the overlay's own pipeline against the REAL server and the REAL engine. web/test/realServer.e2e.test.tsx already boots python3 -m server (PobCalculator + AssumptionsEvaluator on an ephemeral port) and drives the web app through it, but every overlay test to date -- clipboardPipeline, diffFlow, snapshots, captureLatency -- runs against a stub postDiff or the fixture mock. Nothing has ever shown that the shell's production composition reaches a real engine-computed card. Add overlay/test/realServer.e2e.test.ts: boot the real server exactly as the web e2e does (same construction, same golden corpus PoB code from engine/corpus/seed/ninja/12-elementalist-ci-cold-snap.json, same loud-skip-when-the-runtime-is-absent banner policy -- read that file and copy its lifecycle, do not invent a second one), POST the golden build once through the generated client, then drive the PRODUCTION composition: createClipboardPipeline with the real createDiffFlow and bindGeneratedDiff(resolveServerBaseUrl(env)) pointed at the ephemeral port, with ONLY the clipboard source stubbed (the one seam Electron owns). Feed it engine/tests/fixtures/item.txt through that clipboard seam and assert the ShellState sequence LOADING -> VERDICT, with the VERDICT card schema-valid against contracts/verdict.schema.json and its offense/defense deltas being the engine's real numbers, not a fixture's. Then assert the two honest failure modes on the same real server: a capture BEFORE any build is imported yields ERROR_NO_BUILD, and unreadable text yields ERROR_UNPARSEABLE. Real in-game-format clipboard text is NOT this stage's job -- that seam is issue #119, backend-owned; use the existing golden item so this stage is independent of it, and say so in a comment.",
+  "preconditions": [
+    {
+      "check": "issue_state",
+      "expect": "open"
+    },
+    {
+      "check": "issue_labels",
+      "require": [
+        "task"
+      ]
+    }
+  ],
+  "files_in_scope": [
+    "overlay/test/realServer.e2e.test.ts",
+    "overlay/vitest.config.ts",
+    "overlay/package.json",
+    "overlay/README.md"
+  ],
+  "files_out_of_scope": [
+    "overlay/src/**",
+    "overlay/bench/**",
+    "overlay/build.mjs",
+    "overlay/test/clipboardPipeline.test.tsx",
+    "overlay/test/diffFlow.test.ts",
+    "overlay/test/clipboardWatcher.test.ts",
+    "overlay/test/renderBudget.test.tsx",
+    "overlay/test/captureLatency.test.ts",
+    "web/**",
+    "engine/**",
+    "server/**",
+    "bot/**",
+    "agents/**",
+    ".github/**",
+    "contracts/**",
+    "packaging/**",
+    "scripts/**",
+    "tasks/**",
+    "docs/**",
+    "tests/**",
+    "PRODUCT_DOCTRINE.md",
+    "AGENTS.md",
+    "README.md",
+    "ARCHITECTURE.md",
+    "CLAUDE.md"
+  ],
+  "constraints": [
+    "Test-only stage. overlay/src is not modified: if the production composition cannot be driven without a source change, that is a finding -- report it in the PR and stop, do not reshape src to fit the test.",
+    "Only the clipboard source is stubbed. postDiff, diffFlow, the state projection, and the generated client are the real ones; a test that reimplements the pipeline proves nothing.",
+    "A missing engine runtime or missing python3/pyyaml must skip LOUDLY with a banner (the web e2e's policy) -- never a silent pass and never a soft assertion.",
+    "package.json and vitest.config.ts changes are limited to what the e2e needs (a longer hook timeout, a script entry). No dependency additions beyond a JSON-schema validator already used elsewhere in the repo.",
+    "Existing overlay tests may not be deleted, skipped, or edited.",
+    "Stage PR uses 'Refs #79', never 'Fixes' (ADR-0008)."
+  ],
+  "required_checks": [
+    "npm --prefix overlay run test"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "text": "overlay/test/realServer.e2e.test.ts boots the real server (python3 -m server construction, ephemeral port) and imports the golden corpus build through the generated client."
+    },
+    {
+      "id": "AC-2",
+      "text": "The production createClipboardPipeline composition -- real diffFlow, real bindGeneratedDiff, only the clipboard source stubbed -- receives the golden item text and emits LOADING then VERDICT."
+    },
+    {
+      "id": "AC-3",
+      "text": "The VERDICT card validates against contracts/verdict.schema.json and its deltas come from the engine's response, asserted against the response body rather than a hardcoded fixture card."
+    },
+    {
+      "id": "AC-4",
+      "text": "Against the same real server: a capture before any build import yields ERROR_NO_BUILD, and unreadable text yields ERROR_UNPARSEABLE."
+    },
+    {
+      "id": "AC-5",
+      "text": "Absent python3, pyyaml, or the engine runtime the suite skips with a printed banner naming what is missing; it never silently passes."
+    },
+    {
+      "id": "AC-6",
+      "text": "npm --prefix overlay run test passes (suite plus tsc); overlay/src is unmodified and no existing test was deleted, skipped, or edited."
+    }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 4,
+    "max_diff_lines": 400,
+    "max_tool_calls": 60,
+    "max_wall_clock_seconds": 2400,
+    "cost_ceiling_usd": 30.0,
+    "value_usd": 70.0
+  },
+  "routing": {
+    "reasoning_effort": "medium",
+    "review_only_if": []
+  },
+  "rollback": "git revert the stage commit; one test file and its config entry are removed, no product behavior changes."
+}

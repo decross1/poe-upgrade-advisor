@@ -173,6 +173,17 @@ def test_every_example_packet_validates():
         "TASK-102-S5.json",
         "TASK-210-S2.json",
         "TASK-210-S3.json",
+        # 2026-08-03: the three stages that close the end-to-end mission gap
+        # (#97) — a player copies an item and sees a real engine verdict.
+        # S1 gives the shipped page an item paste box (today's picker has two
+        # hardcoded entries, so no tester can evaluate their own item, #90);
+        # TASK-212-S1 shows the engine real in-game clipboard text for the
+        # first time (#119 — grep for "Item Class:" hits only overlay/);
+        # TASK-210-S6 drives the overlay's production pipeline against the
+        # real server instead of a stub postDiff (#79).
+        "TASK-211-S1.json",
+        "TASK-212-S1.json",
+        "TASK-210-S6.json",
     }
 
 
