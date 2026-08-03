@@ -128,6 +128,15 @@ a player. Each is a green stage; each is dispatched with a packet.
    `server/`. The stage shows the real engine real in-game text for the first
    time and either canonicalizes at the server boundary or records the failure
    in `engine/GAPS.md`. Nothing silently becomes CANT_EVALUATE (I5).
+   **LANDED `69a1f6a` / PR #121. Answer: the engine accepts game clipboard
+   text directly.** The pinned real worker read all three new fixtures
+   (`engine/tests/fixtures/game_clipboard/`) with no normalizer: corrupted
+   Hubris Circlet DOWNGRADE, rare Vaal Spirit Shield SIDEGRADE, unidentified
+   Prophecy Wand DOWNGRADE. The overlay's "the server canonicalizes" contract
+   needed no implementation because upstream `Item:ParseRaw` already handles
+   the shape; no `engine/GAPS.md` entry was warranted. Canonicalization is
+   therefore OFF the critical path (see the dispatch note below). Follow-up
+   TASK-213 (#123) fixes the CI regression the merge introduced.
 9. **TASK-210-S6** (frontend, issue #79). Every overlay test runs against a
    stub `postDiff` or the fixture mock; the web app has a real-server e2e and
    the overlay has none. The stage drives the production
@@ -139,6 +148,22 @@ Dispatch order: 7 and 8 in parallel (different roles); 9 after 7 clears
 frontend's queue. Revisit if TASK-212-S1 finds the engine rejects real game
 text — that outcome promotes canonicalization to the critical path and
 TASK-210-S6 should then re-run its e2e against a game-format fixture.
+**RESOLVED (2026-08-03): it does not reject.** The reversal condition did not
+fire. Canonicalization stays off the critical path and TASK-210-S6 keeps its
+golden-item e2e. Revisit only if a player report shows a real clipboard shape
+the engine rejects — that becomes a fixture first (I8), then a fix.
+
+10. **TASK-213** (backend, issue #123 — P0, blocks everything). `main` is red
+    on the required `engine-integration` check and has been since `69a1f6a`.
+    TASK-212-S1 correctly added a contract-schema assertion importing
+    `jsonschema`, but that job's `pip install` lists only `pyyaml`, so
+    `unittest discover` dies at collection. One-line fix in
+    `.github/workflows/ci.yml`; `protected-change` is on the issue to
+    authorize it. This is the second instance of a job-local dependency list
+    drifting from what its entrypoints import (`docs/runbooks/
+    restart-readiness.md` records the `packet-validation` mirror image), so
+    the task also asks for a recurrence guard or a filed issue saying why not.
+    Nothing else should dispatch while a required check is red on main.
 
 Not packeted, deliberately: shipping the overlay itself to players. The MVP
 zip (`scripts/package_mvp.sh`, `packaging/launch.py`) contains no overlay at
