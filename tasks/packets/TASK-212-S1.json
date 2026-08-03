@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-212-S1",
+  "parent_task_id": "TASK-212",
+  "issue": 97,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Prove the OVERLAY works against the REAL server end to end — the one thing the product has never demonstrated. web/test/realServer.e2e.test.tsx already does this for the web app: it boots the real `python3 -m server` on an ephemeral port and drives real /build and /diff calls. The overlay — the actual in-game surface a player uses — has no equivalent, so every overlay test to date mocks the server and nothing proves a copied item produces a real verdict. Add overlay/test/realServer.e2e.test.ts that boots the same real server the same way (copy the spawn/readiness/teardown approach from the web test; do NOT refactor or import it, duplication across package boundaries is correct here) and drives the overlay's OWN path: import the golden PoB code via POST /build, then feed the golden item text through the real createClipboardPipeline composition with bindGeneratedDiff(baseUrl) pointed at that live server, and assert the pipeline emits a schema-valid VerdictCard whose content came from the real engine — not a fixture. Use the same golden inputs the web test pins: engine/corpus/seed/ninja/12-elementalist-ci-cold-snap.json's pathOfBuildingExport and engine/tests/fixtures/item.txt. Follow the web test's availability policy exactly: a missing python3/pyyaml or engine runtime must skip LOUDLY with a clear banner, never silently. If this test finds a real defect in the overlay's live path, STOP and report it in your completion summary rather than changing overlay/src to make the test pass — a red result here is a valuable finding, not a failure to fix.",
+  "files_in_scope": [
+    "overlay/test/realServer.e2e.test.ts"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "bot/**", "packaging/**", "scripts/**", "tasks/packets/**",
+    "overlay/src/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/runbooks/**", "docs/adr/**", "docs/agent-org/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "required_checks": [
+    "npm --prefix overlay run test"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "overlay/test/realServer.e2e.test.ts boots the real server via `python3 -m server` on an ephemeral port and tears it down reliably, mirroring web/test/realServer.e2e.test.tsx."},
+    {"id": "AC-2", "text": "The test drives the overlay's real path — createClipboardPipeline composed with bindGeneratedDiff(baseUrl) — against that live server. No stubbed fetch, no fixture verdict, no hand-rolled request body."},
+    {"id": "AC-3", "text": "It asserts a schema-valid VerdictCard produced by the real engine from the golden PoB code + golden item text, and that the same input is deterministic across two calls."},
+    {"id": "AC-4", "text": "A missing python3/pyyaml or engine runtime skips the suite LOUDLY with a clear banner — never a silent skip."},
+    {"id": "AC-5", "text": "Diff touches only overlay/test/realServer.e2e.test.ts; overlay/src is unmodified. The full overlay suite passes (or the new suite skips loudly per AC-4)."}
+  ],
+  "budgets": {
+    "max_attempts": 2, "max_files_modified": 1, "max_diff_lines": 320,
+    "max_tool_calls": 50, "max_wall_clock_seconds": 1200,
+    "cost_ceiling_usd": null,
+    "value_usd": 14.0
+  },
+  "routing": { "reasoning_effort": "low", "review_only_if": [] }
+}
