@@ -7,12 +7,18 @@ import { app, ipcMain, shell } from "electron";
 import { createClipboardPipeline } from "./clipboardPipeline";
 import { electronClipboardSource } from "./clipboardText";
 import { bindGeneratedDiff } from "./diffRequest";
+import { wireGlobalHotkey } from "./hotkey";
 import { resolveServerBaseUrl, resolveWebAppUrl } from "./serverEndpoint";
 import type { ShellState } from "./shellState";
 import { createOverlayWindow } from "./window";
 
 app.whenReady().then(() => {
   const win = createOverlayWindow();
+
+  // Global show/hide hotkey — the only manual summon/dismiss path. The
+  // toggle never steals game focus (showInactive only, AC-2) and a failed
+  // registration is logged and non-fatal (AC-3).
+  wireGlobalHotkey(app, win);
 
   const pipeline = createClipboardPipeline({
     clipboard: electronClipboardSource,
