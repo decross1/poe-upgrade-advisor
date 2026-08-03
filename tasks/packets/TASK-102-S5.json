@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-102-S5",
+  "parent_task_id": "TASK-102",
+  "issue": 7,
+  "owner_role": "backend",
+  "tier": "red",
+  "objective": "Replay the final stage of parked PR #87 (commit dde7e04): add seed build 25-luminary-aura-support (.json + .meta.json), flip engine/corpus/seed/ninja/manifest.json to the full 25-build corpus (including the rejected-oracle inventory entry for the irreproducible Decay response), and update engine/README.md. DEPENDS ON TASK-102-S2..S4 being merged: if engine/corpus/run_corpus.sh or seed builds 16-24 are absent on main, stop and return status blocked. This is the merge that activates the expanded corpus gate.",
+  "preconditions": [
+    {
+      "check": "issue_state",
+      "expect": "open"
+    },
+    {
+      "check": "issue_labels",
+      "require": [
+        "task",
+        "protected-change"
+      ]
+    }
+  ],
+  "files_in_scope": [
+    "engine/corpus/seed/ninja/25-luminary-aura-support*",
+    "engine/corpus/seed/ninja/manifest.json",
+    "engine/README.md"
+  ],
+  "files_out_of_scope": [
+    "engine/reports/**",
+    "engine/*.py",
+    "engine/tests/**",
+    "scripts/**",
+    ".github/**",
+    "contracts/**",
+    "tasks/**",
+    "agents/**",
+    "assumptions/**",
+    "PRODUCT_DOCTRINE.md",
+    "AGENTS.md"
+  ],
+  "constraints": [
+    "Replay parked commit dde7e04; deviations only where the rebase forces them.",
+    "Never commit engine/reports/ninja-parity.json — report refresh is escalated separately (issue #7).",
+    "Run engine/corpus/run_corpus.sh locally and attach its output to the PR as evidence: 25/25 imported, zero unclassified/our-bug cells; the four ADR-0005 PoB-version-skew cells stay classified."
+  ],
+  "required_checks": [
+    "python3 scripts/check_fixture_coverage.py",
+    "python3 -m unittest discover -s engine/tests -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "text": "Manifest lists 25 active builds plus the rejected-oracle inventory, matching dde7e04."
+    },
+    {
+      "id": "AC-2",
+      "text": "run_corpus.sh evidence in the PR: 25/25 imported, zero unclassified cells."
+    },
+    {
+      "id": "AC-3",
+      "text": "No commit touches engine/reports/** or any path outside files_in_scope."
+    }
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 4,
+    "max_diff_lines": 680,
+    "max_tool_calls": 40,
+    "max_wall_clock_seconds": 1800,
+    "cost_ceiling_usd": null,
+    "value_usd": 80.0
+  },
+  "routing": {
+    "reasoning_effort": "high",
+    "review_only_if": [
+      "evidence-bearing-non-author-approval"
+    ]
+  },
+  "rollback": "git revert the stage commit; the corpus gate returns to 15 builds with S2-S4 content dormant but harmless."
+}

@@ -68,22 +68,32 @@ Sequence gates are strict: Phase 1 is go/no-go for everything downstream.
 
 ## Mission resume — 2026-08-03 (issue #97, operator directive)
 
-Sequenced by pm from ledger message f3239313. Canary gate governs: nothing below
-fans out until TASK-999 completes green (dispatcher-verified).
+Sequenced by pm from ledger message f3239313; re-sequenced by pm from
+orchestrator ruling 003c6e0b. The canary (TASK-999) is GREEN and CLOSED —
+the gate is open and canary bookkeeping is over.
 
-1. **TASK-999-S2 (backend, S, issue #99, packet filed)** Direction-aware fix for
-   `test_every_unique_example_required_check_exists_and_runs` — unblocks PR #98
-   (`test` + `coverage-floor` red because S1 correctly created the probe the
-   test pins as absent). `test-change-authorized`.
-2. **Merge PR #98** (canary TASK-999-S1) once green; record the canary verdict
-   in `docs/runbooks/restart-readiness.md` per issue #96. Canary gate opens.
-3. **Repacketize parked PR #87** (TASK-102 backend parity corpus, approved+green
-   when parked): new stage packet TASK-102-S2 rebasing/replaying the corpus
-   expansion through the control plane — pm authors packet after canary green.
-4. **Repacketize parked PR #91** (TASK-210-S1 frontend clipboard→verdict card,
-   issue #79 stays open; ADR-0008 stage semantics): stage packet TASK-210-S2,
-   frontend on kimi under the $50 org-side cash wall.
-5. **Fan out TASK-901..904** (packets validated, dependency-ready).
+1. ~~TASK-999-S2~~ **SUPERSEDED** (ruling 003c6e0b): its substance landed at
+   main ee1f030; issue #99 is closed. The packet stays registered as a record;
+   its `issue_state: open` precondition now fails closed, so it cannot
+   dispatch. The CC-1 rejection of its `-k`-deselecting required_check STANDS
+   (forbidden-fix class F1): narrow a check by PATH, never by deselection.
+2. ~~Merge PR #98~~ **DONE** — landed via PR #100 at d90a1cc under ADR-0003.
+3. **Repacketize parked PR #87** (TASK-102, issue #7, `protected-change`) —
+   PACKETS FILED: TASK-102-S2 (harness/fixtures/CI code), -S3/-S4 (frozen
+   seed builds 16–24, inert), -S5 (build 25 + manifest flip activates the
+   25-build gate). Ordering is binding — code first, data inert until the
+   manifest flips last — so every intermediate merge stays green.
+   `engine/reports/ninja-parity.json` (7,820 generated lines) exceeds every
+   tier's diff budget and is OUT of all stage scopes; its refresh is
+   escalated to the orchestrator on issue #7. Revisit if budget policy
+   gains a generated-artifact lane.
+4. **Repacketize parked PR #91** (TASK-210, issue #79 stays open; ADR-0008
+   stage semantics) — PACKETS FILED: TASK-210-S2 (core watcher→pipeline→card
+   + watcher tests), TASK-210-S3 (e2e golden snapshots; depends on S2).
+   Frontend on kimi; the $50 org-side cash wall is split as a $25
+   `cost_ceiling_usd` per stage.
+5. **Fan out TASK-901..904** (packets validated, dependency-ready) — unblocked
+   now that the canary gate is open.
 6. **Release loop**: extend bot/ announce plumbing with release announcements;
    triage Discord feedback via INTAKE_TICKET (intake backlog: #92, #93 pending).
 
