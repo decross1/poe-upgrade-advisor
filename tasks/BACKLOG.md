@@ -137,6 +137,19 @@ a player. Each is a green stage; each is dispatched with a packet.
    the shape; no `engine/GAPS.md` entry was warranted. Canonicalization is
    therefore OFF the critical path (see the dispatch note below). Follow-up
    TASK-213 (#123) fixes the CI regression the merge introduced.
+   **CLOSED 2026-08-03. Parent #119 is done with S1 as its only slice.** The
+   held-open condition was "close when the TASK-213 fix is on main and
+   `engine-integration` is green there." Both hold: `ead5b5a` landed the
+   dependency and the job passed on main runs 30842024806 (`ead5b5a`) and
+   30842373663 (`f08b119`). All four acceptance criteria are satisfied on
+   `main`, verified against the tree rather than the completion report:
+   three fixtures in `engine/tests/fixtures/game_clipboard/`;
+   `test_game_clipboard_items_reach_real_worker` at
+   `engine/tests/test_server_adapter.py:101` drives each through the real
+   worker and schema-validates the card; runtime-free boundary coverage in
+   `tests/test_server.py:344`; and the canonicalize-or-record criterion is
+   met by "neither was needed" — no shape failed, so no `engine/GAPS.md`
+   entry was owed. Nothing was downgraded to CAN'T EVALUATE to pass (I5).
 9. **TASK-210-S6** (frontend, issue #79). Every overlay test runs against a
    stub `postDiff` or the fixture mock; the web app has a real-server e2e and
    the overlay has none. The stage drives the production
