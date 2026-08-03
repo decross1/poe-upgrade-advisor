@@ -1287,3 +1287,53 @@ stream-json` can emit usage at all (a CLI/flag question), or failing that, a
 priced estimate from prompt/response sizes the dispatcher already sees —
 which must be recorded as an ESTIMATE in a separate column, never as
 `cash_usd`. Carry-list, escalated: this is the top accounting defect.
+
+---
+
+## L-30: don't guess the session window — probe it
+
+The flat 6h park assumed an **exhausted quota**. The operator's numbers say
+otherwise: codex at **2%** and claude at **5%** of their WEEKLY limits, while
+both roles sat parked. These are rolling **session windows** — shaped by
+burst density, not by consumption — so a 6h park spends hours of a 95%-unused
+allowance recovering from a limit that clears on its own.
+
+Measured, not assumed: backend was capped 13:03Z, probed by the orchestrator
+at 16:10Z (~3h07m in), came back **immediately** and worked productively for
+~25 minutes before capping again at 16:36Z. The true window is well under the
+six hours we were waiting — but its exact length is unknown, and picking one
+number for every provider would just swap one wrong constant for another.
+
+So the fix does not guess. It **probes**: park briefly, let ONE dispatch try,
+and escalate only if the provider refuses again.
+
+    45m -> 90m -> 3h -> 6h
+
+A probe costs **zero tokens** — the gate suppresses before invoking, so a
+re-refusal is a CLI round-trip and nothing more. The ladder self-calibrates
+to whatever window a provider actually runs, and still tops out at the
+operator's ruled 6h for genuine exhaustion.
+
+Two guards keep it honest:
+
+- **A clean run resets the ladder.** The streak only continues if the role is
+  refused again within an hour of its last park ending; otherwise one bad
+  afternoon would keep a role on 6h parks for the rest of the run.
+- **Transient blips never escalate.** L-25's rule survives inside L-30: an
+  `overloaded`/`503` is a capacity blip, not a limit, and stays at 5 minutes
+  no matter how often it repeats.
+
+Streak state lives in `provider-limit-<role>.history.json` because the marker
+itself is deleted on expiry — without it the ladder would reset on every park
+and never escalate.
+
+**Applied to the two live parks immediately**, since a fix that only helps
+tomorrow misses the point: backend 22:37Z -> **18:06Z** (90m, second
+consecutive refusal), pm 22:30Z -> **17:14Z** (45m, first). That returns
+roughly nine role-hours to today's run.
+
+One test changed rather than added: `test_mark_applies_the_proportional_
+cooldown` asserted a first quota refusal parks for the flat 6h. It now
+asserts the first rung. The distinction L-25 wrote it to protect — a blip
+parks for minutes, a limit for substantially longer, never conflated — is
+still asserted, explicitly.

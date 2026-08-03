@@ -106,12 +106,69 @@ TRANSIENT_PATTERNS: tuple[re.Pattern, ...] = (
 TRANSIENT_COOLDOWN_SECONDS = 300
 
 
-def cooldown_for(matched: str) -> int:
-    """Seconds to quiet a role, chosen by the KIND of refusal it hit."""
+#: Escalating parks for a session/quota refusal, in seconds. L-30
+#: (2026-08-03): the flat 6h park assumed an EXHAUSTED QUOTA, but the operator
+#: reported codex at 2% and claude at 5% of their WEEKLY limits while both
+#: roles sat parked. These are rolling SESSION WINDOWS — shaped by burst
+#: density, not by consumption — so a 6h park spends hours of a 95%-unused
+#: allowance recovering from a limit that clears on its own.
+#:
+#: Measured, not assumed: backend was capped 13:03Z, probed by the
+#: orchestrator at 16:10Z (~3h07m), came back IMMEDIATELY and worked
+#: productively for ~25 minutes before capping again. So the true window is
+#: well under the 6h we were waiting, but its exact length is unknown — and
+#: guessing one number for every provider would just replace one wrong
+#: constant with another.
+#:
+#: So don't guess: probe. Park briefly, let ONE dispatch try, and if the
+#: provider refuses again escalate the next park. A probe costs zero tokens —
+#: the gate suppresses before invoking, and a re-refusal is a CLI round-trip.
+#: The ladder self-calibrates to whatever window the provider actually runs,
+#: and still tops out at the operator's ruled 6h for a genuine exhaustion.
+ESCALATING_COOLDOWNS: tuple[int, ...] = (
+    45 * 60,        # probe soon — most session windows are shorter than this
+    90 * 60,
+    3 * 3600,
+    DEFAULT_COOLDOWN_SECONDS,   # 6h — the operator's ruled floor for real
+)                               # quota exhaustion
+
+#: Consecutive-refusal state survives the marker, which is deleted on expiry.
+#: Without this the ladder resets every time and we are back to a flat park.
+def history_path(mailroom: Path, role: str) -> Path:
+    return Path(mailroom) / "blocked" / f"provider-limit-{role}.history.json"
+
+
+def _streak(mailroom: Path, role: str, *, now: float) -> int:
+    """How many times running this role has been refused.
+
+    A streak only continues if the role was refused again SOON after its last
+    park ended. If it worked normally in between, the previous refusal was a
+    passing window and the ladder starts over — otherwise one bad afternoon
+    would keep a role on 6h parks for the rest of the run.
+    """
+    try:
+        data = json.loads(history_path(mailroom, role).read_text())
+        last = float(data["last_expires_at"])
+        streak = int(data["streak"])
+    except (OSError, ValueError, TypeError, KeyError):
+        return 0
+    # Grace: refusal within an hour of the last park ending means the window
+    # had not really cleared.
+    return streak if now - last <= 3600 else 0
+
+
+def cooldown_for(matched: str, *, streak: int = 0) -> int:
+    """Seconds to quiet a role, chosen by the KIND of refusal it hit.
+
+    `streak` walks the escalating ladder for session/quota refusals; a
+    transient overload is always the short wait (L-25) and never escalates —
+    it is a capacity blip, not a limit.
+    """
     for pattern in TRANSIENT_PATTERNS:
         if pattern.search(matched or ""):
             return TRANSIENT_COOLDOWN_SECONDS
-    return DEFAULT_COOLDOWN_SECONDS
+    index = min(max(streak, 0), len(ESCALATING_COOLDOWNS) - 1)
+    return ESCALATING_COOLDOWNS[index]
 
 
 def marker_path(mailroom: Path, role: str) -> Path:
@@ -123,8 +180,9 @@ def mark(mailroom: Path, role: str, *, matched: str, run_id: str | None = None,
          now: float | None = None) -> Path:
     """Record the cap durably and start the role's quiet period."""
     ts = time.time() if now is None else now
+    streak = _streak(mailroom, role, now=ts)
     if cooldown is None:
-        cooldown = cooldown_for(matched)
+        cooldown = cooldown_for(matched, streak=streak)
     path = marker_path(mailroom, role)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
@@ -132,11 +190,23 @@ def mark(mailroom: Path, role: str, *, matched: str, run_id: str | None = None,
         "detected_at": ts,
         "expires_at": ts + cooldown,
         "cooldown_seconds": cooldown,
+        "refusal_streak": streak + 1,
         "matched": matched,
         "run_id": run_id,
         "note": ("Provider refused work for this role. Every dispatch for it "
                  "is suppressed BEFORE invoking (zero spend) until "
-                 "expires_at. Delete this file to retry immediately."),
+                 "expires_at, when ONE dispatch probes the provider again. "
+                 "If it is refused the next park escalates "
+                 f"({'/'.join(str(c // 60) + 'm' for c in ESCALATING_COOLDOWNS)}). "
+                 "Delete this file to retry immediately."),
+    }, indent=2) + "\n")
+    # Persist the streak: the marker above is deleted on expiry, so without
+    # this the ladder would reset on every park and never escalate.
+    history_path(mailroom, role).write_text(json.dumps({
+        "role": role,
+        "streak": streak + 1,
+        "last_expires_at": ts + cooldown,
+        "last_matched": matched,
     }, indent=2) + "\n")
     return path
 

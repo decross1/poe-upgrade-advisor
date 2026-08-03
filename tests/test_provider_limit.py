@@ -160,17 +160,74 @@ def test_try_again_with_a_limit_word_is_a_cap(text):
     ("503 Service Unavailable", 5),
     ("the server is busy", 5),
     ("temporarily unavailable", 5),
-    ("You've hit your session limit", 360),
-    ("quota exceeded", 360),
-    ("usage limit reached", 360),
+    ("You've hit your session limit", 45),
+    ("quota exceeded", 45),
+    ("usage limit reached", 45),
 ])
 def test_cooldown_matches_the_kind_of_refusal(matched, minutes):
     """L-25: a transient overload is not an exhausted quota. kimi returned a
     429 'engine overloaded' seconds after COMPLETING a task, and the flat 6h
     cooldown parked the org's only working role — pm and backend were both
-    quota-capped — for six hours over a capacity blip. Quota exhaustion still
-    parks for the operator's ruled 6h."""
+    quota-capped — for six hours over a capacity blip.
+
+    L-30 (2026-08-03) revised the OTHER arm of this from a flat 6h to the
+    first rung of an escalating ladder. The operator reported codex at 2% and
+    claude at 5% of WEEKLY limits while both roles sat parked: these are
+    rolling session windows, not exhausted quotas. Measured — backend capped
+    13:03Z, probed 16:10Z, came back immediately. 6h is still the ladder's
+    top rung for a provider that keeps refusing; see the escalation test."""
     assert pl.cooldown_for(matched) == minutes * 60
+
+
+def test_repeated_refusals_escalate_but_a_clean_run_resets(tmp_path):
+    """The ladder self-calibrates: park briefly, probe, and only lengthen the
+    park if the provider refuses again. A probe costs zero tokens — the gate
+    suppresses before invoking — so guessing the window is unnecessary."""
+    now = 1_000_000.0
+    expected = [45 * 60, 90 * 60, 3 * 3600, 6 * 3600, 6 * 3600]
+    for want in expected:
+        pl.mark(tmp_path, "backend", matched="You've hit your session limit",
+                now=now)
+        marker = json.loads(pl.marker_path(tmp_path, "backend").read_text())
+        assert marker["cooldown_seconds"] == want, expected
+        # Refused again right after the park ended: the window had not cleared.
+        now += want + 60
+
+    # A role that worked normally for a while starts the ladder over, so one
+    # bad afternoon cannot keep it on 6h parks for the rest of the run.
+    now += 2 * 3600
+    pl.mark(tmp_path, "backend", matched="You've hit your session limit",
+            now=now)
+    assert json.loads(
+        pl.marker_path(tmp_path, "backend").read_text()
+    )["cooldown_seconds"] == 45 * 60
+
+
+def test_a_transient_blip_never_escalates(tmp_path):
+    """L-25 still holds inside L-30: an overload is a capacity blip, not a
+    limit, so repeated ones must not walk the ladder up to six hours."""
+    now = 1_000_000.0
+    for _ in range(4):
+        pl.mark(tmp_path, "frontend", matched="429 engine is overloaded",
+                now=now)
+        assert json.loads(
+            pl.marker_path(tmp_path, "frontend").read_text()
+        )["cooldown_seconds"] == pl.TRANSIENT_COOLDOWN_SECONDS
+        now += pl.TRANSIENT_COOLDOWN_SECONDS + 30
+
+
+def test_escalation_state_survives_marker_expiry(tmp_path):
+    """The marker is deleted on expiry; if the streak lived only there, the
+    ladder would reset every park and never escalate."""
+    now = 1_000_000.0
+    pl.mark(tmp_path, "pm", matched="quota exceeded", now=now)
+    assert pl.active(tmp_path, "pm", now=now + 45 * 60 + 1) is None
+    assert not pl.marker_path(tmp_path, "pm").exists()
+
+    pl.mark(tmp_path, "pm", matched="quota exceeded", now=now + 45 * 60 + 60)
+    assert json.loads(
+        pl.marker_path(tmp_path, "pm").read_text()
+    )["cooldown_seconds"] == 90 * 60
 
 
 def test_mark_applies_the_proportional_cooldown(tmp_path):
@@ -180,6 +237,13 @@ def test_mark_applies_the_proportional_cooldown(tmp_path):
     assert live["cooldown_seconds"] == pl.TRANSIENT_COOLDOWN_SECONDS
     assert pl.active(tmp_path, "frontend", now=now + 301) is None
 
+    # A first quota refusal now parks for the ladder's FIRST rung, not the
+    # flat 6h this originally asserted (L-30). The distinction the L-25 test
+    # was written to protect still holds and is what matters here: a
+    # transient blip is parked for minutes, a limit for substantially longer,
+    # and the two are never conflated.
     pl.mark(tmp_path, "pm", matched="quota exceeded", now=now)
-    assert pl.active(tmp_path, "pm", now=now + 301)["cooldown_seconds"] == \
-        pl.DEFAULT_COOLDOWN_SECONDS
+    parked = pl.active(tmp_path, "pm", now=now + 301)["cooldown_seconds"]
+    assert parked == pl.ESCALATING_COOLDOWNS[0]
+    assert parked > pl.TRANSIENT_COOLDOWN_SECONDS
+    assert pl.ESCALATING_COOLDOWNS[-1] == pl.DEFAULT_COOLDOWN_SECONDS
