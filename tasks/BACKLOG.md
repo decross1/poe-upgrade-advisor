@@ -509,6 +509,13 @@ game focus or failing to start on a real machine — the fallback is a separate
     failing overlay as non-fatal, honors `--no-overlay` and `--overlay-path`,
     and terminates the child on shutdown. `packaging/test_launch.py` 21 passed,
     `scripts/check_invariants.py` OK. Accepted; nothing outstanding.
+    **Loop closed, 2026-08-04** (backend acceptance receipt `211e182` on
+    `backend/TASK-215-S2-acceptance-receipt`, an empty commit — no code, so
+    nothing to land; the branch is the record and it is not merged). Re-verified
+    by me on `e4afc3f` (S3 landed): `packaging/test_launch.py` 23 passed (S3
+    added two staging assertions), `scripts/check_invariants.py` OK,
+    `packaging/launch.py` unchanged since `1f9d181`. S2 is terminal — no
+    further messages on this thread and no PM action outstanding.
     Spec as filed: `packaging/launch.py` gains the overlay lifecycle above, plus
     `--no-overlay` and `--overlay-path`. It must hand the child `POE_ADVISOR_WEB_URL=http://127.0.0.1:47791`:
     `overlay/src/serverEndpoint.ts` defaults that to the Vite dev server at
