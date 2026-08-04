@@ -424,6 +424,47 @@ def test_package_script_stages_real_engine():
     assert "contracts/fixtures" not in script
 
 
+def test_windows_package_script_stages_overlay_or_explicit_stub():
+    script = (ROOT / "scripts" / "package_mvp_windows.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert "[string] $OverlayDir" in script
+    assert 'Join-Path $OverlaySource "PoEUpgradeAdvisorOverlay.exe"' in script
+    assert 'throw "error: -OverlayDir is not a packaged Windows overlay: missing $OverlayExecutable"' in script
+    assert '$overlayStage = Join-Path $Stage "overlay"' in script
+    assert "Copy-Item -LiteralPath $OverlaySource -Destination $overlayStage -Recurse" in script
+    assert 'Join-Path $overlayStage "OVERLAY-STUB.txt"' in script
+    assert "NOTE: STUB overlay" in script
+
+    cleanroom = (ROOT / "scripts" / "cleanroom_windows_check.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert 'Join-Path $overlayRoot "PoEUpgradeAdvisorOverlay.exe"' in cleanroom
+    assert 'Join-Path $overlayRoot "OVERLAY-STUB.txt"' in cleanroom
+    assert "$hasOverlayExe -and -not $hasOverlayStub" in cleanroom
+    assert "$hasOverlayStub -and -not $hasOverlayExe" in cleanroom
+    assert "Overlay is not included in this build" in cleanroom
+
+
+def test_packaged_readme_describes_the_shipped_overlay():
+    readme = (ROOT / "packaging" / "README.txt").read_text(encoding="utf-8")
+    lowered = readme.lower()
+
+    assert "later build" not in lowered
+    assert "upcoming overlay" not in lowered
+    for instruction in (
+        "starts automatically with run.bat",
+        "Ctrl+Alt+D",
+        "OVERLAY_HOTKEY",
+        "never steals game focus",
+        "open details",
+        "run.bat --no-overlay",
+        "OVERLAY-STUB.txt",
+    ):
+        assert instruction in readme
+
+
 def test_launch_exits_honestly_when_engine_unavailable(tmp_path, monkeypatch, capsys):
     """Unsupported platform => honest dead stop, no traceback, no fallback."""
     web = tmp_path / "web"
