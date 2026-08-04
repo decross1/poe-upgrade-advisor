@@ -1,4 +1,5 @@
 import asyncio
+import sqlite3
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -63,6 +64,17 @@ def test_announcement_reserves_range_scrubs_and_only_sends_once(
     assert "item you paste yourself" in first
     assert "in-game overlay" in first
     assert "mods actually drove the delta" in first
+    for overlay_fact in (
+        "now in the download",
+        "starts automatically with `run.bat`",
+        "Ctrl+Alt+D",
+        "`OVERLAY_HOTKEY` overrides",
+        "`run.bat --no-overlay` to run the web page alone",
+        "earlier post said the overlay was absent from the download",
+        "That is no longer true",
+    ):
+        assert overlay_fact in first
+        assert overlay_fact not in later
     assert "/suggest" in first and "/suggest" in later
     assert "v0 is live" not in later
     for forbidden in (
@@ -79,13 +91,14 @@ def test_announcement_reserves_range_scrubs_and_only_sends_once(
     assert scrubber.call_count == 2
     rows = list(
         module.bot.db.execute(
-            "SELECT range_end, range_start, posted_at, includes_v0 "
+            "SELECT range_end, range_start, posted_at, includes_v0, "
+            "includes_overlay "
             "FROM release_announce ORDER BY rowid"
         )
     )
-    assert [(row[0], row[1], row[3]) for row in rows] == [
-        ("end-1", "start", 1),
-        ("end-2", "end-1", 0),
+    assert [(row[0], row[1], row[3], row[4]) for row in rows] == [
+        ("end-1", "start", 1, 1),
+        ("end-2", "end-1", 0, 0),
     ]
     assert all(row[2] is not None for row in rows)
 
@@ -138,9 +151,10 @@ def test_empty_ranges_record_marker_without_sending(
         collect.assert_called_once_with("/repo", "start", "end")
     channel.send.assert_not_awaited()
     assert module.bot.db.execute(
-        "SELECT range_start, includes_v0 FROM release_announce WHERE range_end=?",
+        "SELECT range_start, includes_v0, includes_overlay "
+        "FROM release_announce WHERE range_end=?",
         (until,),
-    ).fetchone() == ("start", 0)
+    ).fetchone() == ("start", 0, 0)
 
 
 def test_missing_initial_ref_logs_once_and_does_not_resolve(
@@ -159,14 +173,63 @@ def test_missing_initial_ref_logs_once_and_does_not_resolve(
     assert list(module.bot.db.execute("SELECT * FROM release_announce")) == []
 
 
-def test_composer_caps_long_release_but_keeps_footer(tmp_path, monkeypatch):
+def test_composer_caps_long_release_but_keeps_headlines_and_footer(
+    tmp_path, monkeypatch
+):
     module = load_bot_module(tmp_path, monkeypatch)
 
-    message = module.compose_release_announcement("x" * 3000, True)
+    message = module.compose_release_announcement("x" * 3000, True, True)
 
     assert len(message) == 1900
     assert "v0 is live" in message
+    assert module.OVERLAY_HEADLINE in message
     assert message.endswith(module.SUGGEST_FOOTER)
+    assert "x" * 3000 not in message
+
+
+def test_open_database_migrates_existing_release_rows_idempotently(
+    tmp_path, monkeypatch
+):
+    module = load_bot_module(tmp_path, monkeypatch)
+    database_path = tmp_path / "legacy.sqlite3"
+    old = sqlite3.connect(database_path)
+    old.execute(
+        "CREATE TABLE release_announce ("
+        "range_end TEXT PRIMARY KEY, range_start TEXT NOT NULL, "
+        "reserved_at TEXT NOT NULL, posted_at TEXT, "
+        "includes_v0 INTEGER NOT NULL DEFAULT 0)"
+    )
+    old.execute(
+        "INSERT INTO release_announce VALUES "
+        "('end', 'start', 'reserved', 'posted', 1)"
+    )
+    old.commit()
+    old.close()
+
+    first = module.open_database(str(database_path))
+    expected_row = ("end", "start", "posted", 1, 0)
+    assert first.execute(
+        "SELECT range_end, range_start, posted_at, includes_v0, includes_overlay "
+        "FROM release_announce"
+    ).fetchone() == expected_row
+    first.close()
+    second = module.open_database(str(database_path))
+
+    columns = [row[1] for row in second.execute("PRAGMA table_info(release_announce)")]
+    assert columns[-1] == "includes_overlay"
+    assert second.execute(
+        "SELECT range_end, range_start, posted_at, includes_v0, includes_overlay "
+        "FROM release_announce"
+    ).fetchone() == expected_row
+    second.close()
+
+
+def test_v0_copy_no_longer_claims_overlay_will_ship_later(tmp_path, monkeypatch):
+    module = load_bot_module(tmp_path, monkeypatch)
+
+    source = module.Path(module.__file__).read_text()
+    assert "later build" not in source
+    assert "not in this download" not in source
 
 
 @pytest.mark.parametrize(

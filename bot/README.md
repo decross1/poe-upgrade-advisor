@@ -76,6 +76,12 @@ because a missed announcement is less disruptive than making players read a
 duplicate. Keep `BOT_DB` on durable storage or that guarantee cannot survive a
 restart.
 
+The `includes_overlay` column records the one-shot overlay release headline. An
+idempotent startup migration adds it to existing databases, preserving their
+announcement rows. The headline is reserved with the first non-empty range after
+this change and attaches to that announcement only; empty ranges leave it
+available for the next release with player-facing notes.
+
 A non-bot message in the announcement channel gets a short nudge to use
 `/suggest`, the only intake path. The bot never reads message content and runs
 with default Discord intents; the privileged Message Content intent is neither

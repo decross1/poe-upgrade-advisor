@@ -50,9 +50,19 @@ V0_HEADLINE = (
     "**PoE Upgrade Advisor v0 is live**\n"
     "• The engine parses a real in-game Ctrl+C item and returns a verdict.\n"
     "• The web app gives you a verdict on an item you paste yourself.\n"
-    "• The in-game overlay renders the verdict card — it works, but it is "
-    "not in this download yet; it ships in a later build.\n"
+    "• The in-game overlay renders the verdict card and is included in the "
+    "download.\n"
     '• "Open details" now shows which mods actually drove the delta.'
+)
+# This revised copy cannot repost because every existing deployment has
+# includes_v0=1.
+OVERLAY_HEADLINE = (
+    "**The in-game overlay is now in the download**\n"
+    "Correction: our earlier post said the overlay was absent from the download. "
+    "That is no longer true.\n"
+    "• It starts automatically with `run.bat`.\n"
+    "• Press **Ctrl+Alt+D** to show it; `OVERLAY_HOTKEY` overrides the hotkey.\n"
+    "• Use `run.bat --no-overlay` to run the web page alone."
 )
 SUGGEST_FOOTER = (
     "Something wrong or missing? Use `/suggest` in this channel and tell us."
@@ -235,8 +245,17 @@ def open_database(path: str | None = None) -> sqlite3.Connection:
         "CREATE TABLE IF NOT EXISTS release_announce ("
         "range_end TEXT PRIMARY KEY, range_start TEXT NOT NULL, "
         "reserved_at TEXT NOT NULL, posted_at TEXT, "
-        "includes_v0 INTEGER NOT NULL DEFAULT 0)"
+        "includes_v0 INTEGER NOT NULL DEFAULT 0, "
+        "includes_overlay INTEGER NOT NULL DEFAULT 0)"
     )
+    release_columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(release_announce)")
+    }
+    if "includes_overlay" not in release_columns:
+        connection.execute(
+            "ALTER TABLE release_announce ADD COLUMN "
+            "includes_overlay INTEGER NOT NULL DEFAULT 0"
+        )
     connection.commit()
     return connection
 
@@ -325,15 +344,19 @@ def release_announce_poll_seconds() -> int:
         return 300
 
 
-def compose_release_announcement(rendered: str, include_v0: bool) -> str:
+def compose_release_announcement(
+    rendered: str, include_v0: bool, include_overlay: bool
+) -> str:
     """Keep the player-facing framing even when release notes need truncation."""
     fixed = [V0_HEADLINE] if include_v0 else []
+    if include_overlay:
+        fixed.append(OVERLAY_HEADLINE)
     fixed.append(SUGGEST_FOOTER)
     separators = 2 * len(fixed)
     available = MAX_ANNOUNCEMENT_LENGTH - sum(map(len, fixed)) - separators
     if len(rendered) > available:
         rendered = rendered[: available - 1].rstrip() + "…"
-    parts = ([V0_HEADLINE] if include_v0 else []) + [rendered, SUGGEST_FOOTER]
+    parts = fixed[:-1] + [rendered, SUGGEST_FOOTER]
     message = scrub("\n\n".join(parts))
     for pattern in INTERNAL_RELEASE_PATTERNS:
         message = pattern.sub("[internal]", message)
@@ -409,27 +432,33 @@ class Bot(discord.Client):
 
         cursor = self.db.execute(
             "INSERT OR IGNORE INTO release_announce "
-            "(range_end, range_start, reserved_at, includes_v0) "
+            "(range_end, range_start, reserved_at, includes_v0, includes_overlay) "
             "SELECT ?, ?, datetime('now'), "
             "CASE WHEN ? AND NOT EXISTS "
             "(SELECT 1 FROM release_announce WHERE includes_v0=1) "
+            "THEN 1 ELSE 0 END, "
+            "CASE WHEN ? AND NOT EXISTS "
+            "(SELECT 1 FROM release_announce WHERE includes_overlay=1) "
             "THEN 1 ELSE 0 END",
-            (until, since, bool(rendered)),
+            (until, since, bool(rendered), bool(rendered)),
         )
         self.db.commit()
         if cursor.rowcount != 1 or not rendered:
             return False
 
-        include_v0 = bool(
+        include_v0, include_overlay = map(
+            bool,
             self.db.execute(
-                "SELECT includes_v0 FROM release_announce WHERE range_end=?",
-                (until,),
-            ).fetchone()[0]
+                "SELECT includes_v0, includes_overlay FROM release_announce "
+                "WHERE range_end=?", (until,)
+            ).fetchone(),
         )
         channel = self.get_channel(int(os.environ["ANNOUNCE_CHANNEL_ID"]))
         if channel is None:
             raise RuntimeError("announcement channel is unavailable")
-        await channel.send(compose_release_announcement(rendered, include_v0))
+        await channel.send(
+            compose_release_announcement(rendered, include_v0, include_overlay)
+        )
         self.db.execute(
             "UPDATE release_announce SET posted_at=datetime('now') "
             "WHERE range_end=?",
