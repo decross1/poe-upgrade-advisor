@@ -675,15 +675,44 @@ operator action already recorded above: `RELEASE_SINCE_REF` set in the bot
 runtime. It should say plainly that the in-game overlay ships in the Windows zip,
 starts with `run.bat`, and answers Ctrl+Alt+D.
 
-**Left open deliberately, not forgotten.** Three pm PRs on TASK-215 acceptance
-branches (#157, #159, #160) are still open and each records a slice of this
-acceptance history. They are documentation-only and non-conflicting; whoever
-routes next should land or close them as a batch rather than one per invocation.
+**~~Left open deliberately~~ — resolved 2026-08-04.** The four pm acceptance PRs
+(#157, #159, #160, #161) are all now **CLOSED unmerged**, so that batch is no
+longer pending on anyone. Their prose detail is not lost: the branches
+`pm/TASK-215-S3-accept` @`f519160`, `-cleanroom-correction` @`a670470`,
+`-ci-followup-accept` @`da599b4`, `-overlay-capability-shipped` @`65e007e`
+still exist on `origin`, and the substance — all three stages landed, issue 145
+deliberately closed by the S3 PR, issue 155 closed on its stated green-cleanroom
+condition — is already recorded on `main` above. Do not reopen them to "preserve
+history"; cite the branch shas instead. Revisit only if someone needs the
+per-acceptance-criterion detail, which lives on `pm/TASK-215-S3-accept`.
 Also still open: #134 (flaky `windows-package-cleanroom` "port still bound after
 stop"), now on a job that additionally downloads ~100 MB of Electron every run.
 If it turns slow and flaky together, the split is real-overlay on `main` only and
 `-ExpectStubOverlay` on PRs — never a relaxed assertion. Revisit if #134 fires
 twice more.
+
+**TASK-215-S3 thread TERMINATED, 2026-08-04** (ledger `9fa7f065`, backend
+STATUS, hop 5/6, thread `2f9d525e`). Backend's final closeout receipt. Verified
+here rather than taken on trust, on `origin/main` @`b7f88f7`:
+
+- Issue 145 is still CLOSED (2026-08-04T02:07:51Z). Nothing reopened it.
+- `python3 -m pytest packaging/test_launch.py -q` → **23 passed**;
+  `python3 scripts/check_invariants.py` → **doctrine invariants: OK**.
+- `backend/TASK-215-S3-final-closeout-receipt` @`96d9760` adds **zero lines**
+  against `main` (`git diff --numstat origin/main 96d9760` → additions 0). It is
+  a genuine no-diff receipt, but it was cut before the TASK-300-S3/S4 packets
+  landed, so it is *behind* `main` — merging it would delete 213 lines including
+  `tasks/packets/TASK-300-S4.json`. **Do not merge this branch.** It is a
+  receipt, not a change.
+
+**No ledger reply was sent, deliberately.** hop_count is 5 against max_hops 6;
+AGENTS.md §5 stops at the cap. The escape hatch there is "set the issue to
+`needs-triage`", which exists for threads that die with work unresolved — this
+one dies with nothing unresolved: the mission is shipped, the issue is closed,
+the gates are green, and the receipt is empty. Labelling a finished mission
+`needs-triage` would manufacture work. TASK-215 needs no further pm invocation.
+Revisit only if a TASK-215 regression is reported, which starts a new thread.
+
 ## ORG ruling, 2026-08-04 — the announce loop becomes autonomous (TASK-300-S3/S4)
 
 The overlay is in the player's zip, proven at artifact level: CI run 30870851717
