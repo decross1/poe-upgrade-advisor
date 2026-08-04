@@ -914,3 +914,52 @@ def test_l33_does_not_admit_anything_else():
     for glob in REVIEW_EVIDENCE_GLOBS:
         probe = glob.replace("*", "x")
         assert not any(fnmatch.fnmatch(probe, g) for g in PROTECTED), glob
+
+
+# --- L-35: a renamed test is not a weakened test --------------------------
+
+
+def test_rename_is_not_weakening_but_deletion_still_is():
+    """Observed 2026-08-04: frontend's TASK-211-S1 renamed a real-server e2e
+    case to describe the paste box — which pm's own AC-5 REQUIRED — and #13
+    circuit-broke it. Later the same shape hit pm and backend. A gate that a
+    packet's acceptance criteria force you to trip protects nothing."""
+    from agents.anti_loop import test_weakening
+
+    rename = (
+        '-    it("a picker hotkey press renders the verdict", async () => {\n'
+        '+    it("an item pasted into the box renders the verdict", async () => {\n'
+    )
+    assert test_weakening(rename) == []
+
+    deletion = '-    def test_the_thing_we_cared_about():\n'
+    assert test_weakening(deletion) != []
+
+    # Two removed, one added back: one net deletion, and it is reported.
+    partial = (
+        "-    def test_alpha():\n"
+        "-    def test_beta():\n"
+        "+    def test_gamma():\n"
+    )
+    assert len(test_weakening(partial)) == 1
+
+
+def test_disabling_in_place_still_hits_on_sight():
+    """The skip family is unchanged: disabling a test has no rename story and
+    is the form of weakening that hides best."""
+    from agents.anti_loop import test_weakening
+
+    for diff in (
+        "+@pytest.mark.skip\n",
+        "+    it.skip(\n",
+        "+    xit(\n",
+        "+    describe.skip(\n",
+    ):
+        assert test_weakening(diff), diff
+
+    # And a skip added alongside a legitimate rename is still caught.
+    assert test_weakening(
+        '-    it("old name", () => {\n'
+        '+    it("new name", () => {\n'
+        "+    it.skip(\n"
+    )

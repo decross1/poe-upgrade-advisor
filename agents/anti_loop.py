@@ -217,12 +217,65 @@ def prohibited_files(changed: list[str], packet: dict | None,
             or not any(fnmatch.fnmatch(f, g) for g in authorized)]
 
 
+#: Removal signatures: a test DEFINITION disappearing from the diff's minus
+#: side. Kept separate from the skip/xit signatures below because a removal is
+#: only weakening when nothing takes its place — see test_weakening.
+_REMOVAL_SIG = (
+    re.compile(r"^-\s*def test_"),
+    re.compile(r"^-\s*it\("),
+    re.compile(r"^-\s*test\("),
+)
+#: The mirror of the above on the added side, used only to tell a RENAME from
+#: a DELETION. Never a hit on its own.
+_ADDITION_SIG = (
+    re.compile(r"^\+\s*def test_"),
+    re.compile(r"^\+\s*it\("),
+    re.compile(r"^\+\s*test\("),
+)
+
+
 def test_weakening(diff_text: str) -> list[str]:
-    """Lines matching merge-robot TEST_SIG in the added side of a diff."""
-    hits = []
+    """Signatures of tests being REMOVED or DISABLED in a diff.
+
+    L-35 (2026-08-04). This matched every TEST_SIG line independently, so a
+    RENAMED test — removed under the old name, re-added under the new one —
+    read as weakening. It fired on frontend's TASK-211-S1 (renaming a
+    real-server e2e case to describe the paste box, which pm's own AC-5
+    REQUIRED), and later circuit-broke pm and backend on the same shape.
+    A gate that a packet's acceptance criteria force you to trip is not
+    protecting anything; it is a toll.
+
+    The distinction that matters is whether tests SURVIVE, not whether a
+    definition line moved. Removals now only count when they outnumber the
+    definitions added back, so:
+
+        rename         -1 +1  -> net 0  -> clean
+        delete         -1 +0  -> net 1  -> HIT, as before
+        delete two,
+        add one back   -2 +1  -> net 1  -> HIT, and honestly counted
+
+    Skip/xit/@pytest.mark.skip signatures are UNCHANGED and still hit on
+    sight: disabling a test in place has no legitimate rename story, and it
+    is the form of weakening that hides best.
+    """
+    lines = (diff_text or "").splitlines()
+    hits: list[str] = []
+
+    removed = [ln for ln in lines if any(p.search(ln) for p in _REMOVAL_SIG)]
+    added_back = sum(
+        1 for ln in lines if any(p.search(ln) for p in _ADDITION_SIG)
+    )
+    # Report the removals that are not accounted for by re-additions.
+    if len(removed) > added_back:
+        hits.extend(ln.strip()[:120] for ln in removed[added_back:])
+
+    # Everything in TEST_SIG that is NOT a bare removal — the skip/disable
+    # family — keeps its original always-hit behaviour.
     for rx in TEST_SIG:
         pat = re.compile(rx) if isinstance(rx, str) else rx
-        for line in (diff_text or "").splitlines():
+        if pat.pattern.startswith("^-"):
+            continue
+        for line in lines:
             if pat.search(line):
                 hits.append(line.strip()[:120])
     return hits
