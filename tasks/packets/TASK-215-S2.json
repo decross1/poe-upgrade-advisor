@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-215-S2",
+  "parent_task_id": "TASK-215",
+  "issue": 145,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Make packaging/launch.py the single thing a player starts, overlay included. PM product decision on issue #145: the overlay starts AUTOMATICALLY with run.bat; there is no second executable for a player to find. launch.py already owns the one process a player launches and is the only component that knows when the contract origin 127.0.0.1:47791 is actually listening, so it owns the overlay's lifecycle: after the public server binds, spawn the packaged overlay executable if it is present in the bundle, hand it the environment it needs to talk to THIS launcher, and terminate it on shutdown. A missing overlay is never fatal — it logs one honest line and the web page remains the whole app. This stage is deliberately INDEPENDENT of TASK-215-S1: it spawns whatever is at the agreed path and is fully testable with a fake executable on Linux, so both stages can run in parallel.",
+  "preconditions": [
+    {"check": "issue_state", "expect": "open"},
+    {"check": "issue_labels", "require": ["task"]},
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "packaging/launch.py",
+    "packaging/test_launch.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "scripts/**", "assumptions/**", "bot/**",
+    "tasks/**", "packaging/run.bat", "packaging/run.sh", "packaging/README.txt",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md", "CLAUDE.md", "README.md"
+  ],
+  "constraints": [
+    "The overlay path inside the bundle is fixed: <bundle root>/overlay/PoEUpgradeAdvisorOverlay.exe, resolved relative to launch.py's ROOT. Do not invent a search, a glob or a PATH lookup. A --overlay-path flag may override it for tests and dev.",
+    "The child MUST be given POE_ADVISOR_SERVER_URL=http://127.0.0.1:47791/api/v0 and POE_ADVISOR_WEB_URL=http://127.0.0.1:47791 (both derived from this launcher's own HOST/PUBLIC_PORT/BASE_PATH constants, not retyped). This is not cosmetic: overlay/src/serverEndpoint.ts defaults POE_ADVISOR_WEB_URL to the Vite dev server at :5173, which does not exist in a player's bundle, so without this every Tier-2 'open details' tap dead-ends in the browser.",
+    "Spawn only AFTER the public server is listening. An overlay that fires its first /diff at a closed port is worse than a late overlay.",
+    "Never fatal (I5 posture, honest failure): a missing file, a non-executable file, an OSError from spawn, or a child that exits immediately must each log exactly one plain-language line and leave the server serving. No traceback, no silent swallow.",
+    "Shutdown terminates the child — normal exit, KeyboardInterrupt, and the engine-unavailable exit path. No orphaned overlay process after the launcher stops (proven by test). Prefer terminate() then a bounded wait then kill().",
+    "--no-overlay disables the spawn entirely and must be honored on every path. run.bat passes its own arguments through, so this stays reachable for a player who needs it.",
+    "run.bat and run.sh are FROZEN in this stage: run.bat already invokes `packaging\\launch.py --open %*`, so the spawn needs no launcher-script change. If you believe it does, stop and route it to pm.",
+    "Tests must run on Linux with no Electron and no Windows: use a fake executable (a tiny script written into tmp_path) to prove spawn, environment, and termination. No network in tests.",
+    "Existing tests may be EXTENDED, never deleted or skipped.",
+    "Branch backend/TASK-215-S2-<slug>. A literal role/... branch is refused by completion proof #4."
+  ],
+  "forbidden_actions": [
+    "Editing packaging/run.bat, packaging/run.sh, packaging/README.txt or anything under overlay/ or scripts/",
+    "Making a missing or failing overlay a fatal error for the launcher",
+    "Binding or connecting to anything other than 127.0.0.1",
+    "Adding a settings/config file or prompting the player for anything (I1)"
+  ],
+  "required_checks": [
+    "python3 -m pytest packaging/test_launch.py -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "launch.py gains an overlay lifecycle: a resolver for <ROOT>/overlay/PoEUpgradeAdvisorOverlay.exe, a spawn that happens only after the public server is listening, and a teardown. A --no-overlay flag and an --overlay-path override exist and are documented in --help."},
+    {"id": "AC-2", "text": "Test: with a fake executable at the resolved path, the launcher spawns it exactly once and the child's environment contains POE_ADVISOR_SERVER_URL=http://127.0.0.1:47791/api/v0 and POE_ADVISOR_WEB_URL=http://127.0.0.1:47791, both derived from the launcher's own constants (changing PUBLIC_PORT in the test changes both)."},
+    {"id": "AC-3", "text": "Test: spawn happens after the public server accepts a connection — the fake child records that 127.0.0.1:47791 was already listening when it started."},
+    {"id": "AC-4", "text": "Test: no overlay file present -> zero spawns, exactly one logged line naming the situation in player language, and the server still serves index.html and proxies /api/v0. Same for a present-but-unspawnable file (OSError)."},
+    {"id": "AC-5", "text": "Test: --no-overlay never spawns, even with the fake executable in place."},
+    {"id": "AC-6", "text": "Test: on launcher shutdown (both the normal path and KeyboardInterrupt) the child is terminated and no process is left behind; the test asserts the child is dead after the launcher returns."},
+    {"id": "AC-7", "text": "Test: a child that exits immediately with a non-zero status logs one honest line and does not take the launcher down or trigger a respawn loop."},
+    {"id": "AC-8", "text": "The module docstring in launch.py states the product decision — the overlay starts with the launcher, the launcher owns its lifecycle, --no-overlay is the escape hatch — so the next reader does not rediscover it."},
+    {"id": "AC-9", "text": "Both required checks pass; no existing test deleted or skipped; packaging/run.bat, packaging/run.sh and packaging/README.txt are byte-identical to main."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 2,
+    "max_diff_lines": 460,
+    "max_tool_calls": 70,
+    "max_wall_clock_seconds": 2400,
+    "cost_ceiling_usd": 30.0,
+    "value_usd": 110.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "Revert the branch; launch.py returns to serving web + API only, which is exactly today's shipped behaviour."
+}

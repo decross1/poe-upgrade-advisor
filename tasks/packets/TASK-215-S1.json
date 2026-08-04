@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-215-S1",
+  "parent_task_id": "TASK-215",
+  "issue": 145,
+  "owner_role": "frontend",
+  "tier": "green",
+  "objective": "Give overlay/ a packaging step that produces a runnable Windows x86-64 Electron app for a machine with no npm, no Electron and no compiler. Today overlay/package.json has build/start/test/test:ui/typecheck and nothing that emits an installable artifact, which is the whole reason the overlay is proven end-to-end (TASK-210-S6, main 1846df2) and still in nobody's hands. Add a devDependency on @electron/packager (pinned), a packaging entrypoint overlay/package.mjs, and an `npm run package:win` script that first runs the existing build and then emits overlay/dist-win/PoEUpgradeAdvisorOverlay-win32-x64/PoEUpgradeAdvisorOverlay.exe. The artifact's directory and executable name are a CONTRACT: packaging/launch.py (TASK-215-S2) and scripts/package_mvp_windows.ps1 (TASK-215-S3) both hardcode them, so export them as constants from package.mjs and pin them in a test. Ship only what the app needs at runtime: esbuild already bundles src/ and web/src/ into dist/, so the packaged app is dist/ + package.json and nothing else.",
+  "preconditions": [
+    {"check": "issue_state", "expect": "open"},
+    {"check": "issue_labels", "require": ["task"]},
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "overlay/package.mjs",
+    "overlay/package.json",
+    "overlay/package-lock.json",
+    "overlay/README.md",
+    "overlay/test/packageWindows.test.ts"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "packaging/**", "scripts/**", "assumptions/**", "bot/**",
+    "tasks/**", "overlay/src/**", "overlay/build.mjs",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md", "CLAUDE.md", "README.md"
+  ],
+  "constraints": [
+    "The artifact NAME is a cross-stage contract. Export OUT_DIR ('dist-win'), APP_NAME ('PoEUpgradeAdvisorOverlay') and the resulting relative exe path from package.mjs, and assert them in overlay/test/packageWindows.test.ts. Two later stages hardcode 'overlay/PoEUpgradeAdvisorOverlay.exe' inside the bundle; renaming it silently breaks the player's launch.",
+    "Do NOT set an icon, a win32metadata block, or any executable version/description rewrite. Those invoke rcedit, which needs wine when packaging from Linux, and they buy nothing for a test build. Keep the packager options to platform/arch/dir/out/asar/overwrite/ignore.",
+    "`npm run package:win` DOWNLOADS the Electron win32-x64 binary (~100 MB) on first run. The required checks must therefore NOT run the packager: test the resolved option object and the exported constants, not the download. The real run is proven by pasted evidence (AC-5), not by CI.",
+    "Package only runtime files: an ignore rule that keeps dist/ and package.json and drops src/, test/, bench/, node_modules, tsconfig.json, vitest.config.ts, build.mjs and package.mjs. The renderer and main bundles are self-contained (overlay/build.mjs bundles react/react-dom and web/src), so no node_modules ship.",
+    "package:win must run the existing build first so a stale dist/ can never be packaged.",
+    "I1 holds: this stage adds no settings, preferences or configuration surface to the overlay bundle, and does not touch overlay/src/ at all.",
+    "The 1600-line diff budget exists ONLY to absorb package-lock.json churn from one new devDependency. Hand-written diff (package.mjs + package.json + README + test) must stay under ~400 lines; if the lockfile alone pushes the total past the budget, stop and route to pm rather than hand-editing the lockfile.",
+    "Existing tests may be EXTENDED, never deleted or skipped. No network in tests.",
+    "Branch frontend/TASK-215-S1-<slug>. A literal role/... branch is refused by completion proof #4."
+  ],
+  "forbidden_actions": [
+    "Editing anything under overlay/src/ or overlay/build.mjs",
+    "Adding an icon/rcedit/win32metadata step, a code-signing step, or an installer (NSIS/Squirrel) — a folder plus exe is the deliverable",
+    "Running the packager inside a required check",
+    "Adding a settings/preferences file or window to the overlay (I1)"
+  ],
+  "required_checks": [
+    "npm --prefix overlay run test",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "overlay/package.mjs exists, uses @electron/packager (pinned exact version in package.json and package-lock.json), and exports the constants OUT_DIR, APP_NAME and the relative packaged executable path; importing it does not start a package run."},
+    {"id": "AC-2", "text": "`npm run package:win` exists in overlay/package.json, runs the build first, and targets platform win32 / arch x64 with asar enabled and overwrite on, writing under overlay/dist-win/."},
+    {"id": "AC-3", "text": "overlay/test/packageWindows.test.ts pins the artifact contract: APP_NAME === 'PoEUpgradeAdvisorOverlay', the packaged path resolves to dist-win/PoEUpgradeAdvisorOverlay-win32-x64/PoEUpgradeAdvisorOverlay.exe, and the resolved packager options set no icon and no win32metadata (so no rcedit/wine dependency)."},
+    {"id": "AC-4", "text": "A test asserts the ignore rule excludes src/, test/, bench/, node_modules, build.mjs, package.mjs, tsconfig.json and vitest.config.ts, and includes dist/ and package.json."},
+    {"id": "AC-5", "text": "The PR body pastes evidence of ONE real `npm run package:win` run performed by the author: the top-level listing of dist-win/PoEUpgradeAdvisorOverlay-win32-x64/ showing PoEUpgradeAdvisorOverlay.exe, and the total artifact size. If the packager cannot run in this environment, the stage reports blocked with that output rather than claiming a passing artifact."},
+    {"id": "AC-6", "text": "overlay/dist-win/ is git-ignored (or otherwise proven untracked): `git status --porcelain` after a package run shows no artifact files."},
+    {"id": "AC-7", "text": "overlay/README.md documents the packaging step, the artifact contract (directory + exe name) and the note that packaging downloads the Electron win32-x64 binary once, and states plainly that packaging/launch.py is what starts this exe for a player."},
+    {"id": "AC-8", "text": "Both required checks pass; no test was deleted or skipped; overlay/src/ is byte-identical to main."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 6,
+    "max_diff_lines": 1600,
+    "max_tool_calls": 70,
+    "max_wall_clock_seconds": 2700,
+    "cost_ceiling_usd": 30.0,
+    "value_usd": 120.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "Revert the branch; overlay/ returns to build/start/test/typecheck only and no other component references the artifact yet."
+}

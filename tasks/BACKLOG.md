@@ -338,6 +338,12 @@ intent, no operator portal change).
 **The mission is DONE when v0 has been announced in #poe and 72 hours have
 passed with no qualifying feedback.**
 
+> **AMENDED 2026-08-04 (operator ruling, ledger `22b684fd`) — see "Silence
+> cannot close a mission whose capability was never shipped" below. The
+> 72-hour silence clock can close a RELEASE. It cannot close the MISSION
+> while any capability named in issue #97 is unshipped. Read the amendment
+> before applying the clock; the clause below governs FEEDBACK only.**
+
 - **Clock starts** at the timestamp of the successful v0 announcement (the
   `release_announce` row in `BOT_DB`; the same fact is recorded on #97).
 - **Qualifying feedback** is exactly one thing: an `intake`-labeled issue
@@ -424,3 +430,115 @@ quiet hours. Revisit if the operator rules the audience unreachable.
 under a protected-ish deployment surface the org does not own, to save the
 operator one environment variable, once. Revisit if a second release stalls the
 same way — then it is a pattern, not a one-time hand-off.
+
+## Silence cannot close a mission whose capability was never shipped — 2026-08-04 (issue #97, operator ruling `22b684fd`)
+
+The operator, on seeing the v0 announcement: *"well they still don't have the
+overlay, so the ethos and mission of the org isn't fulfilled, it should still
+work towards that goal."* The ruling is correct and the done rule above was
+wrong. This section amends it and packets the work.
+
+### The amendment (binding)
+
+> The 72-hour silence clock can close a **RELEASE**. It cannot close the
+> **MISSION** while any capability named in issue #97 is unshipped.
+> Mission-done additionally requires: **every named capability is installable
+> by a player from an artifact the org publishes.**
+
+Both conditions must hold. The feedback clause above is unchanged and still
+governs what counts as qualifying feedback, when the clock starts, and who runs
+it — it simply no longer suffices on its own.
+
+**Why the old rule failed, mechanically.** It let silence stand in for
+delivery. Players were told in `packaging/README.txt` that the hotkey overlay
+"ships in a later build", so they had no reason to file an intake ticket asking
+for it — the absence of feedback about the overlay was *caused by* the
+announcement, and the rule then read that silence as consent. A rule whose
+own artifact suppresses the signal it waits for cannot be a completion test.
+
+**Capabilities named in #97**, and where each one actually is:
+
+| Capability | Proven | In a player's hands |
+| --- | --- | --- |
+| Item comparison for this season, real engine | yes (`9d63b72`, `69a1f6a`) | yes — Windows zip |
+| Verdict on an item you paste yourself | yes (`b8620b5`) | yes — web page in the zip |
+| Tier-2 "which mods drove it" | yes (`c05ae0e`) | yes — same page |
+| **In-game overlay that pops up on Ctrl+C** | yes (`1846df2`) | **NO** — `grep overlay scripts/package_mvp_windows.ps1` returns nothing |
+
+So exactly one capability is unshipped, and the mission stays open until it is
+installable. **Checking the amendment is mechanical**, and that is deliberate:
+run `scripts/package_mvp_windows.ps1`, extract the zip, and assert every named
+capability is present in it. TASK-215-S3 makes that assertion permanent in
+`scripts/cleanroom_windows_check.ps1`, so the next person does not have to
+remember to grep.
+
+**Reversal condition.** This amendment is not a licence for scope drift: the
+list of named capabilities is closed at what issue #97 says, and a capability
+someone merely wishes existed does not hold the mission open. If the operator
+rules a named capability out of scope, it leaves the list by that ruling, not by
+silence.
+
+### TASK-215 — ship the overlay to players (issue #145, TTL 2026-08-18)
+
+**Product decision, mine to make and made: the overlay starts AUTOMATICALLY
+with `run.bat`. There is no second executable for a player to find.**
+`packaging/launch.py` is already the one process a player starts, it binds the
+contract origin `127.0.0.1:47791`, and it is the only component that knows when
+the server is actually listening — so it owns the overlay's lifecycle: spawn
+after bind, terminate on exit. I1 (zero config before first verdict) does not
+survive "now go find and launch a second program". `--no-overlay` is the escape
+hatch for dev/CI and for a player whose overlay misbehaves; the web page is
+still the whole app without it. Revisit if a tester reports the overlay stealing
+game focus or failing to start on a real machine — the fallback is a separate
+`overlay.bat` the README names.
+
+12. **TASK-215-S1** (frontend, green, issue #145). `overlay/` has
+    `build`/`start`/`test`/`typecheck` and no way to emit an app for a machine
+    without npm. Adds `@electron/packager` (pinned) + `overlay/package.mjs` +
+    `npm run package:win`, emitting
+    `overlay/dist-win/PoEUpgradeAdvisorOverlay-win32-x64/PoEUpgradeAdvisorOverlay.exe`.
+    That name is a **cross-stage contract** — S2 and S3 both hardcode it — so
+    it is exported as a constant and pinned by a test. No icon/rcedit/wine, no
+    installer, no signing: a folder plus an exe is the deliverable. The
+    packager downloads ~100 MB of Electron, so it never runs inside a required
+    check; the one real run is pasted as PR evidence.
+13. **TASK-215-S2** (backend, green, issue #145). `packaging/launch.py` gains
+    the overlay lifecycle above, plus `--no-overlay` and `--overlay-path`. It
+    must hand the child `POE_ADVISOR_WEB_URL=http://127.0.0.1:47791`:
+    `overlay/src/serverEndpoint.ts` defaults that to the Vite dev server at
+    `:5173`, which does not exist in a player's bundle, so without it every
+    Tier-2 "open details" tap dead-ends. Missing overlay is never fatal — one
+    honest line, keep serving (I5 posture). **Independent of S1 by design**: it
+    spawns a path, not S1's build, and is fully testable on Linux with a fake
+    executable. `run.bat` is frozen — it already passes `%*` to `launch.py`.
+14. **TASK-215-S3** (backend, green, issue #145). Stages the packaged app into
+    the Windows zip via a validated `-OverlayDir` (explicit `OVERLAY-STUB.txt`
+    when omitted, mirroring the engine-runtime stub so a stub build fails
+    honestly), asserts the executable in the extracted zip from
+    `scripts/cleanroom_windows_check.ps1`, extends the existing Linux-runnable
+    `packaging/test_launch.py` staging assertions, and rewrites
+    `packaging/README.txt` out of the future tense — no more "ships in a later
+    build". Runs after S1 and S2 are on `main`.
+
+Dispatch order: **S1 and S2 in parallel** (different roles, no shared file);
+**S3 once both are on `main`**.
+
+**Not packeted, routed to the orchestrator:** anything under `.github/**`. If a
+CI job should build or verify the overlay artifact, that is protected-path work
+— a `protected-change` label does not make a protected path packetable, because
+completion proof #12 fires at dispatch-time verification and does not read
+labels (see the routing note on TASK-213 above). Related: #134 (flaky
+`windows-package-cleanroom`), #126.
+
+**Next announcement.** The v0 headline is spent (`includes_v0` is permanently 1
+and correctly cannot repost). When S3 lands, the next release announcement is
+the overlay one and it should say plainly that the in-game overlay has landed
+for real and how to start it. It still needs the operator action recorded above
+— `RELEASE_SINCE_REF` set in the bot runtime — because the range start comes
+from `BOT_DB` or that variable and nothing else.
+
+**Flagged, not touched here:** the ruling above says "there is no
+`TASK-214-*.json` and none should be created", but `tasks/packets/TASK-214-S1.json`
+and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
+disagree; whoever routes next should reconcile them (the packets are the dead
+alias, per that ruling). No dispatch depends on it today.
