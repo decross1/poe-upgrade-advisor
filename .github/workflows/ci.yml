@@ -132,21 +132,35 @@ jobs:
           run-id: ${{ steps.rt.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: engine/.runtime
+      # TASK-215-S3 (orchestrator, .github is PROTECTED so no role can do this):
+      # build the overlay so the zip a player downloads actually contains it.
+      # Without these two steps the packager runs with no -OverlayDir, stages
+      # OVERLAY-STUB.txt, and CI proves nothing about the mission's headline
+      # capability while looking entirely green.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: build the Windows overlay app
+        shell: pwsh
+        run: |
+          npm ci --prefix overlay --no-audit --no-fund
+          npm --prefix overlay run package:win
       - name: package Windows zip
         shell: pwsh
         run: |
+          $overlay = "overlay/dist-win/PoEUpgradeAdvisorOverlay-win32-x64"
           if ("${{ steps.rt.outputs.found }}" -eq "true") {
-            ./scripts/package_mvp_windows.ps1 -RuntimeDir engine/.runtime
+            ./scripts/package_mvp_windows.ps1 -RuntimeDir engine/.runtime -OverlayDir $overlay
           } else {
-            ./scripts/package_mvp_windows.ps1
+            ./scripts/package_mvp_windows.ps1 -OverlayDir $overlay
           }
       - name: clean-room check (fresh extract, run.bat, POST /build golden code)
         shell: pwsh
         run: |
           if ("${{ steps.rt.outputs.found }}" -eq "true") {
-            ./scripts/cleanroom_windows_check.ps1
+            ./scripts/cleanroom_windows_check.ps1 -ExpectRealOverlay
           } else {
-            ./scripts/cleanroom_windows_check.ps1 -ExpectStubRuntime
+            ./scripts/cleanroom_windows_check.ps1 -ExpectStubRuntime -ExpectRealOverlay
           }
       - name: upload Windows zip
         uses: actions/upload-artifact@v4
