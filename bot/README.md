@@ -76,6 +76,13 @@ because a missed announcement is less disruptive than making players read a
 duplicate. Keep `BOT_DB` on durable storage or that guarantee cannot survive a
 restart.
 
+The first non-empty release announcement after the overlay shipped carries a
+one-shot player headline that corrects the earlier release note and explains
+how to start and control the bundled overlay. Its reservation is stored in the
+`release_announce.includes_overlay` column alongside `includes_v0`; startup
+idempotently adds that column to existing `BOT_DB` databases so prior rows are
+preserved. Empty ranges do not consume the headline.
+
 A non-bot message in the announcement channel gets a short nudge to use
 `/suggest`, the only intake path. The bot never reads message content and runs
 with default Discord intents; the privileged Message Content intent is neither
