@@ -252,6 +252,79 @@ def resolve_release_ref(repo: str, ref: str) -> str:
     ).stdout.strip()
 
 
+def release_sha_is_green(sha: str) -> bool:
+    """Fail closed unless every GitHub check run for ``sha`` is green."""
+    missing = [
+        name for name in ("GITHUB_REPO", "GITHUB_TOKEN") if not os.environ.get(name)
+    ]
+    if missing:
+        print(
+            "release announcement skipped: missing "
+            f"{', '.join(missing)} for CI status"
+        )
+        return False
+
+    repo = os.environ["GITHUB_REPO"]
+    headers = {
+        "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+        "Accept": "application/vnd.github+json",
+    }
+    try:
+        response = requests.get(
+            f"{GH_API}/repos/{repo}/commits/{sha}/check-runs",
+            headers=headers,
+            timeout=20,
+        )
+        response.raise_for_status()
+        checks = response.json()["check_runs"]
+        if not isinstance(checks, list):
+            raise TypeError("check_runs is not a list")
+    except requests.RequestException as error:
+        reason = str(error).splitlines()[0] or type(error).__name__
+        print(f"release announcement skipped: CI status request failed: {reason}")
+        return False
+    except (KeyError, TypeError, ValueError):
+        print("release announcement skipped: CI status response is unparseable")
+        return False
+
+    if not checks:
+        print("release announcement skipped: no CI checks found")
+        return False
+    accepted = {"success", "neutral", "skipped"}
+    for check in checks:
+        if not isinstance(check, dict):
+            print("release announcement skipped: CI check is unparseable")
+            return False
+        name = str(check.get("name") or "unnamed")
+        status = check.get("status")
+        conclusion = check.get("conclusion")
+        if status != "completed":
+            print(
+                f"release announcement skipped: CI check {name} is "
+                f"{status or 'unknown'}"
+            )
+            return False
+        if conclusion not in accepted:
+            print(
+                f"release announcement skipped: CI check {name} concluded "
+                f"{conclusion or 'unknown'}"
+            )
+            return False
+    return True
+
+
+def release_announce_poll_seconds() -> int:
+    raw = os.environ.get("RELEASE_ANNOUNCE_POLL_SECONDS", "300")
+    try:
+        return max(60, int(raw))
+    except ValueError:
+        print(
+            "release announcement poll interval is invalid; "
+            "using 300 seconds"
+        )
+        return 300
+
+
 def compose_release_announcement(rendered: str, include_v0: bool) -> str:
     """Keep the player-facing framing even when release notes need truncation."""
     fixed = [V0_HEADLINE] if include_v0 else []
@@ -326,6 +399,8 @@ class Bot(discord.Client):
             "SELECT 1 FROM release_announce WHERE range_end=?", (until,)
         ).fetchone():
             return False
+        if not await asyncio.to_thread(release_sha_is_green, until):
+            return False
 
         rendered = None
         if since != until:
@@ -365,10 +440,13 @@ class Bot(discord.Client):
 
     async def publish_release_announcement(self) -> None:
         await self.wait_until_ready()
-        try:
-            await self.announce_release_once()
-        except Exception as error:
-            print(f"release announcement error: {error}")
+        interval = release_announce_poll_seconds()
+        while not self.is_closed():
+            try:
+                await self.announce_release_once()
+            except Exception as error:
+                print(f"release announcement error: {error}")
+            await asyncio.sleep(interval)
 
     async def on_message(self, message: discord.Message) -> None:
         """Point announce-channel replies at explicit, structured intake."""
