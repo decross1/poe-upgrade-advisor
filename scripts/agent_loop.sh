@@ -25,8 +25,11 @@ POLL=${2:-900}
 MAX_PARALLEL=${MAX_PARALLEL:-3}
 # Per-role fan-out override (2026-08-04). Concurrency is what converts a
 # remaining budget into finished work per hour, and the three roles do NOT
-# have the same headroom: measured over 02:30Z, pm burned 15pp of claude's
-# WEEKLY allowance in 24 invocations while backend spent 5pp of codex in 13.
+# have the same headroom: measured to 02:40Z, pm burned 15pp of its WEEKLY
+# provider allowance across 24 invocations while backend spent 5pp across 13.
+# (No provider or model name appears in this file by design — the W1-2 grep in
+# tests/test_preflight.py forbids it, comments included, so the supervisor can
+# never quietly acquire a model call.)
 # One global number therefore either starves backend or drains pm. Resolved
 # after the per-poll source below so effort.env can retune it live.
 _role_parallel() {
