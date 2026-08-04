@@ -10,19 +10,24 @@
 # Until lane A's pinned Windows runtime artifact is wired into the zip, the
 # bundle ships an explicit stub runtime and the honest "engine cannot start"
 # failure (doctrine I5) is what this script asserts instead — pass
-# -ExpectStubRuntime. Both modes are hard assertions; nothing is skipped.
+# -ExpectStubRuntime. Overlay layout can likewise be pinned with
+# -ExpectRealOverlay or -ExpectStubOverlay. With neither switch, CI still
+# requires exactly one valid layout and reports which artifact it inspected.
+# Both modes are hard assertions; nothing is skipped.
 #
 # Golden inputs come from the repo on the HOST side only — the app under
 # test sees them as an ordinary HTTP request body, exactly like a tester
 # pasting their own PoB code. run.bat's --open may spawn a browser on the
 # runner; harmless, it is the real tester path.
 #
-# Usage: scripts/cleanroom_windows_check.ps1 [-Zip PATH] [-ExpectStubRuntime]
+# Usage: scripts/cleanroom_windows_check.ps1 [-Zip PATH] [-ExpectStubRuntime] [-ExpectRealOverlay|-ExpectStubOverlay]
 # Exit 0 = every check passed. Transcript goes to stdout.
 [CmdletBinding()]
 param(
     [string] $Zip,
     [switch] $ExpectStubRuntime,
+    [switch] $ExpectRealOverlay,
+    [switch] $ExpectStubOverlay,
     [string] $GoldenBuild = "engine/corpus/seed/ninja/12-elementalist-ci-cold-snap.json",
     [int] $Port = 47791,
     [int] $ReadyTimeoutSeconds = 300
@@ -33,6 +38,10 @@ $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
+
+if ($ExpectRealOverlay -and $ExpectStubOverlay) {
+    throw "Choose only one of -ExpectRealOverlay or -ExpectStubOverlay"
+}
 
 if ([string]::IsNullOrWhiteSpace($Zip)) {
     $newest = Get-ChildItem -LiteralPath (Join-Path $Root "dist") -Filter "*-windows-x64.zip" |
@@ -81,6 +90,7 @@ try {
     Write-Host ("zip size:         {0:N1} MB" -f ((Get-Item -LiteralPath $Zip).Length / 1MB))
     Write-Host "extract dir:      $Work (fresh)"
     Write-Host "mode:             $(if ($ExpectStubRuntime) { 'STUB runtime -> assert honest engine failure' } else { 'real runtime -> assert real build summary' })"
+    Write-Host "overlay expected: $(if ($ExpectRealOverlay) { 'real packaged app' } elseif ($ExpectStubOverlay) { 'explicit stub' } else { 'auto (exactly one valid layout)' })"
     Write-Host "date:             $(Get-Date -AsUTC -Format 'yyyy-MM-ddTHH:mm:ssZ')"
 
     # --- 1. Extract exactly like a tester -----------------------------------
@@ -95,6 +105,35 @@ try {
         -not (Test-Path -LiteralPath (Join-Path $App "run.sh"))) {
         Ok "no run.command / run.sh — Windows-only zip (issue #75 decision)"
     } else { Bad "unix entrypoints leaked into the Windows zip" }
+
+    # Assert the overlay in the extracted archive, not merely the packager's
+    # copy command. Real mode avoids launching Electron on this headless runner.
+    $overlayRoot = Join-Path $App "overlay"
+    $overlayExe = Join-Path $overlayRoot "PoEUpgradeAdvisorOverlay.exe"
+    $overlayStub = Join-Path $overlayRoot "OVERLAY-STUB.txt"
+    $hasOverlayExe = Test-Path -LiteralPath $overlayExe -PathType Leaf
+    $hasOverlayStub = Test-Path -LiteralPath $overlayStub -PathType Leaf
+    $overlayIsReal = $hasOverlayExe -and -not $hasOverlayStub
+    $overlayIsStub = $hasOverlayStub -and -not $hasOverlayExe
+    if ($ExpectRealOverlay) {
+        if ($overlayIsReal) {
+            Ok "overlay/PoEUpgradeAdvisorOverlay.exe present in extracted zip"
+        } else { Bad "expected real overlay; executable missing or OVERLAY-STUB.txt also present" }
+    }
+    elseif ($ExpectStubOverlay) {
+        if ($overlayIsStub) {
+            Ok "overlay is the explicit STUB and no executable is present"
+        } else { Bad "expected overlay stub; OVERLAY-STUB.txt missing or executable also present" }
+    }
+    elseif ($overlayIsReal) {
+        Ok "overlay/PoEUpgradeAdvisorOverlay.exe present in extracted zip"
+    }
+    elseif ($overlayIsStub) {
+        Ok "overlay is the explicit STUB and no executable is present"
+    }
+    else {
+        Bad "overlay layout invalid: require exactly one of PoEUpgradeAdvisorOverlay.exe or OVERLAY-STUB.txt"
+    }
 
     $runtimeRoot = Join-Path $App "engine/.runtime"
     if ($ExpectStubRuntime) {
@@ -135,7 +174,11 @@ try {
     # --- 3. Launch the entrypoint as a tester (fresh dir, run.bat) ----------
     $outLog = Join-Path $Work "server.out.log"
     $errLog = Join-Path $Work "server.err.log"
-    $Process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "run.bat" `
+    # A real Electron artifact is proved above but not launched on a headless
+    # runner. A stub is launched normally so a real-runtime run also proves
+    # packaging/launch.py's honest missing-overlay message.
+    $runCommand = $(if ($overlayIsReal) { "run.bat --no-overlay" } else { "run.bat" })
+    $Process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $runCommand `
         -WorkingDirectory $App -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput $outLog -RedirectStandardError $errLog
     Write-Host "== entrypoint launched (fresh extract dir, cmd.exe /c run.bat), pid $($Process.Id)"
@@ -186,6 +229,15 @@ try {
             Bad "entrypoint never listened on $Port"
             if (Test-Path -LiteralPath $outLog) { Write-Host ([System.IO.File]::ReadAllText($outLog)) }
             exit 1
+        }
+        if ($overlayIsStub) {
+            $startupLog = ""
+            if (Test-Path -LiteralPath $outLog) {
+                $startupLog = [System.IO.File]::ReadAllText($outLog)
+            }
+            if ($startupLog -match "Overlay is not included in this build") {
+                Ok "launcher honestly reports the overlay is not included"
+            } else { Bad "launcher missing the honest no-overlay log line" }
         }
 
         # --- 4. Exercise the full slice over HTTP (host = tester's browser) -

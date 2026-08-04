@@ -19,11 +19,17 @@
 # Packaging-machine prerequisites (NOT tester prerequisites): npm, git.
 # Testers need only Python 3.10+ (py launcher preferred, python3 fallback).
 #
-# Usage: scripts/package_mvp_windows.ps1 [-SkipWebBuild] [-RuntimeDir PATH]
+# OVERLAY: pass TASK-215-S1's packaged app directory via -OverlayDir. The
+# entire directory is staged at overlay/ so packaging/launch.py finds
+# overlay/PoEUpgradeAdvisorOverlay.exe. Without it, the zip contains an
+# explicit overlay stub and the launcher reports that the web app remains.
+#
+# Usage: scripts/package_mvp_windows.ps1 [-SkipWebBuild] [-RuntimeDir PATH] [-OverlayDir PATH]
 [CmdletBinding()]
 param(
     [switch] $SkipWebBuild,
-    [string] $RuntimeDir
+    [string] $RuntimeDir,
+    [string] $OverlayDir
 )
 
 Set-StrictMode -Version Latest
@@ -95,6 +101,24 @@ else {
     Write-Host "   (honest 'engine cannot start' failure until lane A's artifact is wired)"
 }
 
+# --- Overlay: packaged app artifact or explicit stub ------------------------
+$OverlaySource = $null
+$OverlayExecutable = $null
+$StubOverlay = $false
+if (-not [string]::IsNullOrWhiteSpace($OverlayDir)) {
+    $OverlaySource = [System.IO.Path]::GetFullPath($OverlayDir)
+    $OverlayExecutable = Join-Path $OverlaySource "PoEUpgradeAdvisorOverlay.exe"
+    if (-not (Test-Path -LiteralPath $OverlayExecutable -PathType Leaf)) {
+        throw "error: -OverlayDir is not a packaged Windows overlay: missing $OverlayExecutable"
+    }
+    Write-Host "== wiring packaged Windows overlay from $OverlaySource"
+}
+else {
+    $StubOverlay = $true
+    Write-Host "== no -OverlayDir given: overlay ships as an explicit STUB"
+    Write-Host "   (launcher honestly reports that the overlay is not included)"
+}
+
 $Name = "poe-upgrade-advisor-v0"
 $Stage = Join-Path $Root "dist/$Name"
 $Sha = (& git.exe rev-parse --short HEAD).Trim()
@@ -145,6 +169,32 @@ else {
     Copy-Item -LiteralPath $RuntimeBin -Destination $runtimeStage -Recurse
     Copy-Item -LiteralPath $RuntimeLib -Destination $runtimeStage -Recurse
     Copy-Item -LiteralPath $RuntimeManifest -Destination $runtimeStage
+}
+
+# Packaged Electron app, preserving the exact path packaging/launch.py uses,
+# or an explicit stub. Never stage a partial overlay.
+$overlayStage = Join-Path $Stage "overlay"
+if ($StubOverlay) {
+    New-Item -ItemType Directory -Path $overlayStage | Out-Null
+    $overlayStubText = @"
+PoE Upgrade Advisor v0 — OVERLAY STUB (TASK-215-S3 / issue #145)
+
+This directory is where TASK-215-S1's packaged Windows app belongs, with:
+  PoEUpgradeAdvisorOverlay.exe, resources/, and the rest of the app folder
+It is a stub because this zip was packaged without -OverlayDir. The launcher
+will honestly report "Overlay is not included in this build" and keep the web
+app available.
+
+Repackage with:
+  scripts/package_mvp_windows.ps1 -OverlayDir overlay/dist-win/PoEUpgradeAdvisorOverlay-win32-x64
+"@
+    [System.IO.File]::WriteAllText(
+        (Join-Path $overlayStage "OVERLAY-STUB.txt"),
+        $overlayStubText,
+        [System.Text.UTF8Encoding]::new($false))
+}
+else {
+    Copy-Item -LiteralPath $OverlaySource -Destination $overlayStage -Recurse
 }
 
 # Vendored PoB: headless calc needs src/ and runtime/lua only. TreeData GUI
@@ -205,4 +255,7 @@ Write-Host "== wrote $Zip ($size)"
 Write-Host "   clean-room check: extract elsewhere, run.bat, open http://127.0.0.1:47791/"
 if ($StubRuntime) {
     Write-Host "   NOTE: STUB runtime — engine honestly refuses to start until lane A's artifact is wired"
+}
+if ($StubOverlay) {
+    Write-Host "   NOTE: STUB overlay — launcher reports it is not included and keeps the web app available"
 }
