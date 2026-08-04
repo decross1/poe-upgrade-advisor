@@ -862,3 +862,160 @@ gate defect as #152/#158, now observed a second time and on a *green* outcome
 where it is easy to miss. Recorded on #158. `main` is not protected at the
 branch level, so the check set is advisory to the robot and nothing else stops
 it. Orchestrator work; `agents/merge_robot/` is PROTECTED.
+
+## The Aug 7 close-out — the check, the closer, and what "closed" means — 2026-08-04 (issue #97, ledger `a5bd7c7e`)
+
+Operator: *"look to close out the project if no discord feedback comes by aug
+7th."* This section is that instruction written down so it survives every
+session ending, including this one. It binds whoever holds the pm role next.
+
+**Where the done rule stands right now.** Two conditions, both required (see
+"The done rule" and its amendment above):
+
+- **Capability condition — SATISFIED.** Every capability named in #97 is
+  installable by a player from an artifact the org publishes. `v0.2.0` carries
+  the overlay, verified by extracting the zip rather than by reading a script;
+  #79 is closed on that evidence.
+- **Feedback condition — OPEN, and it is the only one.** v0 was announced
+  **2026-08-04T02:58:54Z**. The 72-hour window expires
+  **2026-08-07T02:58:54Z**.
+
+Silence alone does not close the mission — it closes it only because the
+capability condition is already satisfied on its own evidence. Nobody may
+shorten that reasoning to "no one complained."
+
+### 1. The check, as a command
+
+Run **both**. Either one non-empty means the mission does not close.
+
+```sh
+ANNOUNCED=2026-08-04T02:58:54Z
+gh issue list --label intake --state all --search "created:>$ANNOUNCED"
+gh issue list --state all --search "INTAKE in:title created:>$ANNOUNCED"
+```
+
+**Why two commands, when the done rule names one.** The `intake` label is not
+reliable evidence that a ticket is intake. #92 and #93 were filed by the intake
+bot — both carry `bot/bot.py`'s exact template, the `untrusted` fence, and a
+`discord_thread:` line — and **neither carries the label**, while #86, #40 and
+#38 do. `issue_payload()` requests the label on every filing, so the loss
+happens after the request and the code cannot be read as proof. A label-only
+check would have silently discarded the one piece of genuine player input this
+org has received. The title prefix is set in the same payload literal and has
+never been observed missing; requiring both to be empty costs one command and
+removes a failure mode that already fired once.
+
+**What is deliberately NOT in the check.** A bare channel reply restarts the
+clock once (done rule, unchanged), but that fact lives in Discord and in
+`BOT_DB`, not in GitHub, and pm cannot query it. So: if the operator has not
+reported a bare reply by expiry, silence counts. We do not invent a check we
+cannot run, and we do not hold the mission open on a signal nobody can see.
+
+**Non-empty result — the path back.** Triage to a `[DECISION]` comment within
+24h, packet it, build it, announce again; the new announcement restarts the
+clock at 72h from its own `posted_at`. This is unchanged and it is not
+optional: a mission that reopens has to actually ship something before it can
+close again.
+
+### 2. What "closed" concretely means
+
+**Exactly one issue closes: #97.** It closes with a comment beginning
+`[DECISION] MISSION COMPLETE` that contains, verbatim: both commands above,
+their pasted output, the announcement timestamp, the expiry timestamp, and one
+line per named capability with the artifact it ships in. A close-out comment
+that asserts the check passed without carrying its output is not evidence and
+does not count.
+
+**Nothing else closes.** "The mission is closed" is not "the backlog is
+closed", and an issue closed by a rule nobody wrote is a decision nobody made.
+The 19 other open issues keep their state and their meaning, classified here so
+the next reader is not guessing:
+
+| Issues | Class | Disposition at close-out |
+| --- | --- | --- |
+| #158, #24 | Merge-gate defect + its fix. **One question, not two** | Stay open. Operator-gated, see below |
+| #134, #126, #140, #137 | Real current defects (flaky check, CI dep drift, two `openapi.yaml` parse defects) | Stay open as maintenance backlog. Buildable any time the org runs; #126/#137/#140 are `protected-change` |
+| #92 | Genuine player input, accepted | Stays open. See §4 — it is **not** swept into the close |
+| #7, #17–#21, #27, #32, #34, #50, #67, #69 | Pre-mission backlog | Stay open, unbuilt. None is a capability named in #97, so none holds the mission open, and none is closed by it either |
+
+**The operator decision #158 and #24 are waiting on**, stated once so it is
+askable in one line: *give the merge robot its own GitHub account, and turn on
+branch protection for `main` requiring the current check set.* Until then the
+check set is advisory to the robot and nothing stops a merge on red — observed
+on #152, and again on PR #180 where it merged 75s before two checks finished
+and happened to be lucky. This does **not** hold the mission open (it is org
+infrastructure, not a #97 capability), but the close-out comment **must say it
+out loud**, because a close that reads as "everything was fine" is a false
+record.
+
+**The final Discord message: none, and that is a decision, not an omission.**
+The channel is the org's only inbound feedback path, and a "project closed"
+post is the one message that would suppress the signal the reopen rule depends
+on. Nothing changes for a player: `/download` still answers, `/suggest` still
+files intake tickets, and any ticket filed after the close reopens the mission
+under §1's non-empty path. *Reversal condition:* if the operator ever shuts the
+bot down, a message becomes **required first**, and it must say the app still
+works and where to get it — a silent shutdown after a public v0 announcement
+would be the one genuinely dishonest ending.
+
+**Do the loops keep running.** The bot keeps running — it is the reopen path,
+and it is what makes the previous paragraph true. The agent dispatch loop
+(`scripts/agent_loop.sh`) stops: with #97 closed there is no mission to spend
+invocations on, and the maintenance issues above are pull-work for a future
+run, not a reason to idle a fleet against an empty channel. If the bot stops
+too, the reopen rule is dead and the close is final — say so at that point
+rather than leaving a rule in this file that nothing can execute.
+
+### 3. Who runs it
+
+**pm, on its first invocation after 2026-08-07T02:58:54Z.** Not "the org", not
+"whoever notices". If the first pm invocation after that timestamp is holding
+some other message, it runs the close-out anyway and then does its message:
+the check is two commands and the ruling is already written here, so there is
+no version of "too busy" that is true. If the check comes back non-empty, that
+same invocation files the triage instead and says so on #97.
+
+Before running it, re-read this section. Do not reconstruct the rule from
+memory or from #97's title.
+
+### 4. #92 — decided now, before the close-out, and not by it
+
+**Disposition: ACCEPTED, unbuilt, and it stays open.**
+
+juntangy asked for illustrations in the UI showing the two items being
+compared. On 2026-08-03 it was DEFERred into Phase 3 / TASK-301 (Tier-2), on
+correct doctrine: the overlay card is capped by I2 and features enter at the
+deepest tier that serves them (I7). **That deferral has now expired without
+delivery.** TASK-301's Tier-2 view landed — `web/src/components/Tier2Drivers.tsx`
+— and it renders ranked *mods*, not the two *items*. The vehicle shipped and
+the passenger was not on it. That is worth stating plainly rather than letting
+an "it's in Phase 3" comment stand as though it were done.
+
+It is also not free, which is why it did not ride along: `Breakdown` in
+`contracts/openapi.yaml` does not carry the compared item pair at all, so
+showing them requires a contract change, and a contract change requires an RFC.
+That is the honest reason, and it is a better answer to a player than silence.
+
+**TASK-307 (frontend + pm, M — sized, not dispatched)**
+
+- Problem: Tier 2 explains *which mods* drove the verdict but never shows the
+  two items the verdict is about, so a player cannot check the engine's reading
+  of their own item against what they are holding.
+- Contract surface: **yes** — `Breakdown` must carry the equipped/candidate
+  item pair. RFC first; pm writes it. No renderer work starts before it lands.
+- Acceptance: (1) RFC + ADR for the `Breakdown` item-pair fields, contract
+  check green; (2) Tier-2 renders both items side by side, from contract data
+  only, no new network call; (3) doctrine check — Tier 2 only, the overlay card
+  is untouched and `check_invariants.py` I1/I2 stay green; (4) a fixture in
+  `web/mock/fixtures/breakdown/` covering the pair, and one covering its
+  absence (older payloads must still render).
+- TTL: none while the mission is closed. It is first in line if the mission
+  reopens.
+
+**#92 is not closed by the close-out.** Closing an accepted player request
+because the org stopped working would tell juntangy the request was rejected,
+which is false. It stays open, with this ruling on it, and the `[DECISION]`
+comment relays to the origin thread so the answer reaches the person who asked
+rather than only the repository. *Revisit if* the operator rules the item-pair
+view out of scope, or if a second player asks for it — that promotes it from
+first-in-line to worth reopening the mission for.
