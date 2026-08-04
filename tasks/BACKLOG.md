@@ -675,11 +675,11 @@ operator action already recorded above: `RELEASE_SINCE_REF` set in the bot
 runtime. It should say plainly that the in-game overlay ships in the Windows zip,
 starts with `run.bat`, and answers Ctrl+Alt+D.
 
-**Left open deliberately, not forgotten.** Three pm PRs on TASK-215 acceptance
-branches (#157, #159, #160) are still open and each records a slice of this
-acceptance history. They are documentation-only and non-conflicting; whoever
-routes next should land or close them as a batch rather than one per invocation.
-Also still open: #134 (flaky `windows-package-cleanroom` "port still bound after
+**~~Left open deliberately, not forgotten.~~ Resolved 2026-08-04.** The three pm
+PRs on TASK-215 acceptance branches (#157, #159, #160) are all CLOSED — verified
+via `gh pr view`, not assumed. Their content is not lost: the acceptance history
+they carried is the prose above, which is on `main`. No batch land is owed; the
+routing note that asked for one is retired. Still open: #134 (flaky `windows-package-cleanroom` "port still bound after
 stop"), now on a job that additionally downloads ~100 MB of Electron every run.
 If it turns slow and flaky together, the split is real-overlay on `main` only and
 `-ExpectStubOverlay` on PRs — never a relaxed assertion. Revisit if #134 fires
@@ -739,3 +739,38 @@ forever. S3's AC-8 puts that in `bot/README.md`.
 reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
 Note the interaction: while that defect stands, S3's green gate is the only
 thing keeping a red commit out of the announcement.
+
+## TASK-215-S3 — correction thread CLOSED, 2026-08-04
+
+Ledger `52fd02b5` (backend STATUS, hop 5), replying to the pm correction
+`181d1827`. That correction set exactly one completion condition — "S3 completes
+when #156 is green on `main`" — and left no action requested. The condition is
+met, and every claim in the receipt was re-verified here rather than taken on
+trust:
+
+- PR #156 is `MERGED` at 2026-08-04T02:12:55Z, merge commit
+  `294ab8b5ecf9a283da2cba81329296dc5cac779d`, and `294ab8b` is an ancestor of
+  current `origin/main`. Content on `main`, not just a PR marked merged (L: a PR
+  can read merged and not be on `main`, and the converse).
+- The **post-merge** run is the evidence, not the PR's own checks: CI run
+  30871115720, `headBranch main`, `headSha 294ab8b`, conclusion `success`, all
+  fourteen jobs `success` — including `windows-package-cleanroom` (the job that
+  failed on `22fb237` and produced the #158 red-land) and
+  `runtime-parity-cross-platform`.
+- Required local checks re-run on this tree:
+  `python3 -m pytest packaging/test_launch.py -q` → 23 passed;
+  `python3 scripts/check_invariants.py` → doctrine invariants: OK.
+- The no-diff claim holds: `backend/TASK-215-S3-pm-correction-status` @`36d37d3`
+  has an empty `git diff origin/main...` against its merge base `fc71fdb`. It is
+  a receipt, not a change. Nothing to land; it is stale-behind-`main` only
+  because `main` moved on to the TASK-300 packets. **Do not merge it** — merging
+  a stale no-diff branch would revert TASK-300-S3/S4.
+- Issue 145 stays CLOSED. No backend action outstanding.
+
+**No reply sent.** The thread is at hop 5 of 6 and the receipt requests nothing;
+a hop-6 acknowledgement would consume the cap to say "yes". The record is this
+commit. TASK-215 and all three of its stages are done; the only overlay work
+left anywhere is the *announcement*, which is TASK-300-S3/S4 above plus the
+`RELEASE_SINCE_REF` operator action — not a TASK-215 residue. *Revisit if* a
+later invocation finds an S1/S2/S3 artifact missing from a shipped zip; the
+standing evidence is CI run 30870851717's extracted-zip assertion.
