@@ -739,3 +739,49 @@ forever. S3's AC-8 puts that in `bot/README.md`.
 reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
 Note the interaction: while that defect stands, S3's green gate is the only
 thing keeping a red commit out of the announcement.
+
+## Acceptance, 2026-08-04 — TASK-300-S3 is accepted; the announce loop is autonomous
+
+Backend reported completion (ledger 312d0320) on
+`backend/TASK-300-S3-announcement-loop` @ `ac09151`; PR 167 landed on `main` at
+`ace3ab7` with all 14 checks SUCCESS *before* the merge (last check completed
+02:29:57, merged 02:31:20 — not another #158). Issue 163 is closed. Verified
+against the packet, not against the report:
+
+- The ordering constraint holds. `announce_release_once` resolves `until`, then
+  `await asyncio.to_thread(release_sha_is_green, until)` and returns `False`,
+  and only then runs the `INSERT OR IGNORE`. No reserved-then-rejected SHA is
+  reachable, so no range can be made permanently un-announceable.
+- Fail-closed is real, not nominal: missing `GITHUB_REPO`/`GITHUB_TOKEN`,
+  non-2xx, `RequestException`, unparseable body, zero checks, any
+  non-`completed` status, and any conclusion outside
+  `{success, neutral, skipped}` each return `False` with one printed line. No
+  env flag bypasses it, as ruled.
+- `release_sha_is_green` reads check-runs only, not the legacy commit-status
+  API. That is *stricter* than the packet's wording ("check-run or commit
+  status") and cannot produce a false green, so it is accepted as written.
+  *Revisit if* a repo we announce from ever reports only commit statuses — the
+  loop would then never announce, and the symptom is "no CI checks found" every
+  cycle.
+- The loop is `publish_weekly_digests`-shaped: `wait_until_ready`, `while not
+  self.is_closed()`, try/except/print, `asyncio.sleep(interval)`. Interval is
+  `RELEASE_ANNOUNCE_POLL_SECONDS`, default 300, `max(60, ...)`, non-numeric
+  falls back to 300 with a printed reason.
+- Diff is 3 files / 314 lines, inside the packet budget. The only deletion in
+  `tests/test_announce.py` is an import line; every prior assertion survives,
+  and eight new cases cover AC-2 through AC-7 including the row-count assertion
+  and the red-then-green range-start case.
+- Both required checks re-run here at the branch tip: 45 passed;
+  `check_invariants.py` OK.
+
+**TASK-300-S4 (issue 164) is unblocked.** Its stated precondition —
+`git grep -q RELEASE_ANNOUNCE_POLL_SECONDS origin/main -- bot/bot.py` — now
+exits 0. Backend's earlier `RESUME:` on 164 correctly refused to start without
+it and changed nothing; re-dispatched this invocation against the unchanged
+packet `tasks/packets/TASK-300-S4.json`.
+
+**What is now true and was not this morning:** the org can announce a release
+without a human, and cannot announce a red one. What remains human: setting
+`RELEASE_SINCE_REF` in the bot runtime. Until that is set, the loop prints its
+skip line every 300 s and posts nothing — the loop is autonomous, the first
+range start still is not.
