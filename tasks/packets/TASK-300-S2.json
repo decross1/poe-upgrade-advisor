@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "task_id": "TASK-300-S2",
   "parent_task_id": "TASK-300",
-  "issue": null,
+  "issue": 141,
   "owner_role": "backend",
   "tier": "green",
   "objective": "Wire the existing render-only release notes to the LIVE #poe announce channel, and give a player who replies to that announcement a path into the org. bot/release_notes.py (TASK-300-S1) already turns a commit range into one player-facing message; bot/bot.py already resolves ANNOUNCE_CHANNEL_ID for the weekly digest and already carries the whole intake path (/suggest -> scrub -> untrusted fence -> quarantine_check -> intake issue -> INTAKE_TICKET -> [DECISION] relay). Nothing about intake gets rebuilt here. Add (1) an at-most-once release announcement for a given commit range, carrying a v0 headline for the four shipped legs and a footer telling players exactly how to reach us, and (2) an on_message listener in the announce channel that answers a human reply with one short nudge toward /suggest WITHOUT ever reading message content. Also document the new configuration in bot/README.md.",
