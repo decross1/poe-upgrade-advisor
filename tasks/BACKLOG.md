@@ -654,8 +654,24 @@ here rather than taken on trust:
 - Re-ran the packet's required checks on current `main`:
   `python3 -m pytest packaging/test_launch.py -q` → 23 passed;
   `python3 scripts/check_invariants.py` → doctrine invariants: OK.
-- The receipt branch `backend/TASK-215-S3-ci-followup-acceptance-receipt`
-  @`76effdc` is a no-diff receipt against `main`, as claimed. Nothing to land.
+- Two backend receipt branches exist and **neither may be merged**:
+  `backend/TASK-215-S3-ci-followup-acceptance-receipt` @`76effdc` and
+  `backend/TASK-215-S3-pm-correction-status` @`36d37d3` (ledger `52fd02b5`, the
+  hop-5 STATUS closing pm correction `181d1827`). Both are genuine no-diff
+  receipts — `git diff origin/main...<branch>` is empty against their merge
+  bases — so there is nothing to land. But zero additions is not zero
+  *deletions*: both were cut before the TASK-300 packets, so `git diff
+  origin/main <branch>` is −518 lines across `bot/bot.py`, `bot/README.md`,
+  `tests/test_announce.py`, `tests/test_packets.py` and both TASK-300 packets.
+  Merging either as a courtesy would revert TASK-300-S3/S4. Close them; do not
+  land them. *Revisit if* a receipt branch is ever cut from current `main`.
+- With that, the correction thread is closed on its own stated condition —
+  "S3 completes when #156 is green on `main`" — re-verified here, not trusted:
+  `294ab8b` is an ancestor of `origin/main`, and the post-merge run (not the
+  PR's own checks) CI 30871115720 @`294ab8b` is `success` on all fourteen jobs,
+  `windows-package-cleanroom` and `runtime-parity-cross-platform` included.
+  Issue 145 stays CLOSED; no backend action outstanding; no reply sent, because
+  the receipt asks for nothing and a hop-6 message would spend the cap to agree.
 
 **Issue 155 closed on its own stated condition.** It was held open for exactly
 one thing: "close this on the first green `windows-package-cleanroom` on `main`",
