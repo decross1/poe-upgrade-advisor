@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""PoE Upgrade Advisor — MVP v0 launcher (TASK-208).
+"""PoE Upgrade Advisor — MVP v0 launcher (TASK-208, TASK-215-S2).
 
 One process, zero dev tooling: serves the prebuilt web bundle and the local
 diff API same-origin on the contract address (127.0.0.1:47791).
+
+The in-game overlay starts automatically with this launcher after the public
+server is listening. The launcher owns the overlay process for its whole
+lifetime and stops it during shutdown. ``--no-overlay`` is the escape hatch;
+the web app remains usable when the overlay is disabled or unavailable.
 
 Same-origin is a requirement, not a nicety: the generated web client calls
 ``127.0.0.1:47791/api/v0`` directly (contracts/openapi.yaml servers[0]) and
@@ -23,7 +28,9 @@ from __future__ import annotations
 import argparse
 import http.client
 import mimetypes
+import os
 import platform
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -40,6 +47,9 @@ PUBLIC_PORT = 47791  # contracts/openapi.yaml servers[0] — the web client hard
 API_PORT = 47991  # internal hop only; never opened in the browser
 BASE_PATH = "/api/v0"
 INDEX = "index.html"
+OVERLAY_PATH = ROOT / "overlay" / "PoEUpgradeAdvisorOverlay.exe"
+OVERLAY_STARTUP_GRACE_SECONDS = 0.1
+OVERLAY_SHUTDOWN_SECONDS = 5
 
 # mimetypes is platform-db dependent; pin the bundle's actual types.
 MIME_OVERRIDES = {
@@ -166,11 +176,80 @@ def serve(
     return public, api_server
 
 
+def overlay_environment(port: int) -> dict[str, str]:
+    """Return the child environment for this launcher's bound public port."""
+    origin = f"http://{HOST}:{port}"
+    environment = os.environ.copy()
+    environment["POE_ADVISOR_SERVER_URL"] = f"{origin}{BASE_PATH}"
+    environment["POE_ADVISOR_WEB_URL"] = origin
+    return environment
+
+
+def start_overlay(path: Path, port: int) -> subprocess.Popen[bytes] | None:
+    """Start the optional overlay without making its failure fatal."""
+    if not path.is_file():
+        print(
+            "Overlay is not included in this build; the web app is still available.",
+            flush=True,
+        )
+        return None
+    if not os.access(path, os.X_OK):
+        print(
+            "Overlay could not start because its app file is not executable; "
+            "the web app is still available.",
+            flush=True,
+        )
+        return None
+
+    try:
+        child = subprocess.Popen([str(path)], env=overlay_environment(port))
+    except OSError as exc:
+        print(
+            f"Overlay could not start ({exc}); the web app is still available.",
+            flush=True,
+        )
+        return None
+
+    try:
+        return_code = child.wait(timeout=OVERLAY_STARTUP_GRACE_SECONDS)
+    except subprocess.TimeoutExpired:
+        return child
+    print(
+        f"Overlay stopped during startup (exit code {return_code}); "
+        "the web app is still available.",
+        flush=True,
+    )
+    return None
+
+
+def stop_overlay(child: subprocess.Popen[bytes] | None) -> None:
+    """Stop the overlay promptly, escalating only when it will not exit."""
+    if child is None or child.poll() is not None:
+        return
+    child.terminate()
+    try:
+        child.wait(timeout=OVERLAY_SHUTDOWN_SECONDS)
+    except subprocess.TimeoutExpired:
+        child.kill()
+        child.wait(timeout=OVERLAY_SHUTDOWN_SECONDS)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--port", type=int, default=PUBLIC_PORT)
     parser.add_argument("--api-port", type=int, default=API_PORT)
     parser.add_argument("--web-dir", type=Path, default=ROOT / "web")
+    parser.add_argument(
+        "--overlay-path",
+        type=Path,
+        default=OVERLAY_PATH,
+        help=f"overlay executable (default: {OVERLAY_PATH})",
+    )
+    parser.add_argument(
+        "--no-overlay",
+        action="store_true",
+        help="serve the web app without starting the in-game overlay",
+    )
     parser.add_argument(
         "--open",
         action="store_true",
@@ -209,11 +288,15 @@ def main() -> None:
     print("Ctrl+C to stop.", flush=True)
     if args.open:
         threading.Timer(0.4, lambda: webbrowser.open(url)).start()
+    overlay = None
     try:
+        if not args.no_overlay:
+            overlay = start_overlay(args.overlay_path, public.server_address[1])
         public.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        stop_overlay(overlay)
         public.shutdown()
         api_server.shutdown()
 
