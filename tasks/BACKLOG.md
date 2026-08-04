@@ -739,3 +739,68 @@ forever. S3's AC-8 puts that in `bot/README.md`.
 reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
 Note the interaction: while that defect stands, S3's green gate is the only
 thing keeping a red commit out of the announcement.
+
+## ORG ruling, 2026-08-04 — /download, and the release it has to point at (TASK-304)
+
+Operator request: a Discord command that tells a player how to get the app and
+how to update it. `/suggest` is the only slash command today; this is the second.
+
+The premise it arrived with — "the Windows zip is only ever an Actions artifact,
+never a Release" — is half right, and the wrong half is the dangerous one. A
+public Release does exist: `v0.1.0`, 2026-07-26, not a draft, assets include
+`poe-upgrade-advisor-v0-7465386-windows-x64.zip`. It needs no GitHub account and
+it does not 401. It is stale in exactly the way that repeats the v0 failure:
+`git show 7465386:scripts/package_mvp_windows.ps1 | grep -c -i overlay` → `0`,
+against `34` on `main` today. Overlay bundling landed at `c824050`, nine days
+later. The announcement standing in the channel says the overlay is in the
+download and starts with `run.bat`. A `/download` pointed at `releases/latest`
+right now would industrialise that contradiction — the same failure shape as the
+v0 post that described an overlay nobody could install.
+
+**Option (a), split.** Publish real Releases; the command links to the latest.
+Option (b) — explain the artifact route honestly — was rejected: it is truthful
+and it is still a worse answer for a player, and truthfulness about a broken
+route is not the bar. The split is the point: the release stage does not go to
+a role, because `.github/**` is PROTECTED and a stage that cannot complete is
+worse than no stage.
+
+**TASK-304-S1 — issue 177 — orchestrator, no packet, `protected-change`.** Two
+parts. Cut a current release NOW from a green `main` run at or after `c824050`;
+that needs no file in `.github/` and unblocks S2 immediately. Then automate it
+in `.github/workflows/` so the next one is not a human errand. The binding
+constraint on the automation: the released asset must be built from **the same
+commit the bot announces**, because `release_announce.range_end` is what
+`/download` reports as the last announced build — cut the release from a nearby
+commit and the command names a build id no downloadable zip carries.
+
+*Concretely, and it expires:* run `30873001099` (`main` @ `856faae`, success,
+`c824050` is an ancestor) holds artifact
+`poe-upgrade-advisor-v0-856faae...-windows-x64`, **available until
+2026-08-11T02:53:47Z**. After that the cheap path is gone and S1 needs a fresh
+CI run first.
+
+**TASK-304-S2 — issue 178 — `tasks/packets/TASK-304-S2.json`, backend, green**
+(`bot/**` is not protected). Gated on S1 by a zero-token precondition, not by a
+protected path: AC-1 is `gh release view` plus
+`git merge-base --is-ancestor c824050 <build>`, and a failure is `needs_retry`,
+not softened copy. Explicitly forbidden: linking the artifact route, and
+"ask an operator".
+
+### The judgement call the operator delegated
+
+**Yes — report the currently announced build, not a static string.** It is the
+actual question a returning player has, and it is nearly free: `release_announce`
+already carries `range_end` and `posted_at` and the bot already holds the handle,
+so it is one `SELECT` on the existing connection with no GitHub API call in the
+command path. An empty table degrades honestly (I5): "no build announced yet",
+plus the releases URL — never a fabricated version. *Revisit if* the announced
+commit and the released asset ever diverge, which is S1's same-commit
+constraint failing, and the command should then be the thing that reports the
+divergence rather than papering over it.
+
+Copy bends to `packaging/README.txt`, which is out of scope for S2 — platform,
+entrypoint, `Ctrl+Alt+D`, `OVERLAY_HOTKEY`, `--no-overlay`. Where those two
+disagree, the player meets the disagreement on their first run.
+
+Not channel-gated and ephemeral: someone asking where the download is should get
+an answer wherever they ask, and only they need to see it.
