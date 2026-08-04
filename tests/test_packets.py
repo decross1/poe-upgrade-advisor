@@ -197,6 +197,17 @@ def test_every_example_packet_validates():
         # dispatched.
         "TASK-214-S1.json",
         "TASK-214-S2.json",
+        # 2026-08-04: ship the overlay to players (issue #145). The operator
+        # ruled the mission unfulfilled after the v0 announcement — the
+        # overlay is proven end-to-end but is in no artifact anyone can
+        # install, so v0 shipped a web app while #97 asked for an in-game
+        # overlay. S1 gives overlay/ a Windows packaging step, S2 makes
+        # launch.py start the overlay automatically (pm's product call: no
+        # second executable for a player to find), S3 puts it in the zip and
+        # stops packaging/README.txt saying "ships in a later build".
+        "TASK-215-S1.json",
+        "TASK-215-S2.json",
+        "TASK-215-S3.json",
         # 2026-08-04: the announce stage (#97, orchestrator ruling 99029738).
         # S1's renderer was render-only by construction and its wiring to the
         # live #poe channel was held back as operator-gated; the operator has

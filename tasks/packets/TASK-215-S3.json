@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-215-S3",
+  "parent_task_id": "TASK-215",
+  "issue": 145,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Put the overlay in the zip a player downloads, prove it is there, and stop the tester docs from lying. scripts/package_mvp_windows.ps1 stages server, assumptions, engine, web and packaging and no overlay; packaging/README.txt tells players the hotkey overlay 'ships in a later build' and describes the overlay in the future tense. This stage adds an -OverlayDir parameter that stages TASK-215-S1's packaged app to <stage>/overlay/ (the exact path packaging/launch.py resolves in TASK-215-S2), an explicit OVERLAY STUB when it is omitted — mirroring the existing engine-runtime stub so a stub build fails honestly instead of mysteriously — a clean-room assertion that the extracted zip really contains the executable, and a README rewrite in the present tense. Runs AFTER S1 and S2 are on main: it depends on S1's artifact name and S2's resolved path.",
+  "preconditions": [
+    {"check": "issue_state", "expect": "open"},
+    {"check": "issue_labels", "require": ["task"]},
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "scripts/package_mvp_windows.ps1",
+    "scripts/cleanroom_windows_check.ps1",
+    "packaging/README.txt",
+    "packaging/test_launch.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "assumptions/**", "bot/**", "tasks/**",
+    "packaging/launch.py", "packaging/run.bat", "packaging/run.sh",
+    "scripts/package_mvp.sh", "scripts/check_invariants.py",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md", "CLAUDE.md", "README.md"
+  ],
+  "constraints": [
+    "The staged layout is fixed by TASK-215-S2: <stage>/overlay/PoEUpgradeAdvisorOverlay.exe plus the rest of the packaged app folder alongside it. -OverlayDir points at TASK-215-S1's output directory (overlay/dist-win/PoEUpgradeAdvisorOverlay-win32-x64) and MUST be validated the way -RuntimeDir is: if the executable is not in it, throw with a message naming the missing path.",
+    "Without -OverlayDir, stage <stage>/overlay/OVERLAY-STUB.txt — same posture as the existing engine runtime stub. The launcher's honest 'no overlay in this build' line (TASK-215-S2, AC-4) is then what a player sees. Never stage a half-overlay and never silently omit the directory.",
+    "packaging/README.txt must stop describing the overlay in the future tense. Delete both 'later build' claims and rewrite the PRIVACY paragraph's 'The upcoming overlay will read...' into present tense. State: the overlay starts automatically with run.bat, the default hotkey is Ctrl+Alt+D (OVERLAY_HOTKEY overrides), showing it never steals game focus, 'open details' opens the browser, and run.bat --no-overlay runs the web page alone. In a stub build the README must not claim the overlay is present.",
+    "packaging/test_launch.py already asserts what the Windows package script stages (test_package_script_stages_all_launchers / test_package_script_stages_real_engine). Extend that Linux-runnable pattern: the required check must fail today and pass after this stage, by parsing the .ps1 for the overlay staging and the stub branch. That text-level assertion is the only mechanical gate available off Windows and it is required, not optional.",
+    "Do not weaken the clean-room script. Add overlay assertions in BOTH modes (real overlay staged -> executable present in the extracted zip; -ExpectStubRuntime style stub mode -> OVERLAY-STUB.txt present and no executable). Note issue #134 (flaky 'port still bound after stop'): do not attempt to fix it here and do not relax any existing assertion to route around it.",
+    "Do not launch the overlay from the clean-room script's assertions — the runner is headless and Electron would hang. Assert the artifact's presence and the launcher's log line, not a running window.",
+    "Existing tests may be EXTENDED, never deleted or skipped.",
+    "Branch backend/TASK-215-S3-<slug>. A literal role/... branch is refused by completion proof #4."
+  ],
+  "forbidden_actions": [
+    "Editing packaging/launch.py, packaging/run.bat, anything under overlay/, or anything under .github/",
+    "Removing or loosening any existing assertion in scripts/cleanroom_windows_check.ps1",
+    "Shipping an overlay directory that is neither a validated packaged app nor an explicit stub",
+    "Claiming in README.txt that the overlay ships when the zip was packaged without -OverlayDir"
+  ],
+  "required_checks": [
+    "python3 -m pytest packaging/test_launch.py -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "scripts/package_mvp_windows.ps1 accepts -OverlayDir, validates that it contains PoEUpgradeAdvisorOverlay.exe (throwing a message that names the missing path otherwise), and stages the whole packaged app folder to <stage>/overlay/ preserving PoEUpgradeAdvisorOverlay.exe at <stage>/overlay/PoEUpgradeAdvisorOverlay.exe."},
+    {"id": "AC-2", "text": "Without -OverlayDir the script stages <stage>/overlay/OVERLAY-STUB.txt explaining what belongs there, how to repackage with -OverlayDir, and that the launcher will report no overlay — and it prints a summary NOTE at the end, exactly as the runtime stub does."},
+    {"id": "AC-3", "text": "packaging/test_launch.py gains an assertion that the Windows package script stages the overlay directory in both modes (real and stub) at the exact path packaging/launch.py resolves; the test fails against main's script and passes after this change."},
+    {"id": "AC-4", "text": "scripts/cleanroom_windows_check.ps1 asserts, on the EXTRACTED zip, that overlay/PoEUpgradeAdvisorOverlay.exe exists in a real build and that OVERLAY-STUB.txt (and no executable) exists in a stub build. No existing assertion is removed or loosened."},
+    {"id": "AC-5", "text": "packaging/README.txt contains no 'later build' claim and no future-tense overlay description; grep for 'later build' and 'upcoming overlay' over packaging/README.txt returns nothing (asserted by a test)."},
+    {"id": "AC-6", "text": "packaging/README.txt tells a player, in the RUN and FIRST VERDICT sections: the overlay starts automatically with run.bat, the default hotkey is Ctrl+Alt+D and OVERLAY_HOTKEY overrides it, the card never steals game focus, 'open details' opens the browser page, and run.bat --no-overlay runs the web page alone."},
+    {"id": "AC-7", "text": "The PRIVACY/SAFETY section states the shipped posture in present tense and unchanged in substance: clipboard text the game produces on Ctrl+C and Client.txt only, no memory reads, no injection, no input automation, one action per keypress, localhost only (S1/S2/S3 of the doctrine)."},
+    {"id": "AC-8", "text": "Both required checks pass; no test deleted or skipped; packaging/launch.py, packaging/run.bat and everything under overlay/ are byte-identical to main."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 4,
+    "max_diff_lines": 480,
+    "max_tool_calls": 70,
+    "max_wall_clock_seconds": 2400,
+    "cost_ceiling_usd": 30.0,
+    "value_usd": 110.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "Revert the branch; the zip returns to its current overlay-free contents and the README to its current (dishonest) future tense — so this rollback is only correct alongside reverting the mission claim."
+}
