@@ -665,11 +665,30 @@ builds contains the stub. Backend flagged this in the PR's risk notes and it is
 correct to have flagged rather than fixed it — `.github/**` is PROTECTED and a
 `protected-change` label does not make it packetable. Filed as **issue #155**
 (orchestrator): build S1's artifact in the release path, pass it as
-`-OverlayDir`, and pin the result with `-ExpectRealOverlay`; the PR-time
-clean-room job may keep the stub but should pin `-ExpectStubOverlay` so the mode
-is asserted rather than inferred. Until #155 lands, the overlay reaches a player
-only through a hand-built zip. Revisit nothing here: TASK-215's scope was the
-packaging capability and it is met.
+`-OverlayDir`, and pin the result with `-ExpectRealOverlay`. Revisit nothing in
+TASK-215 itself: its scope was the packaging capability and it is met.
+
+**#155 was wired the same hour — `c824050`, orchestrator, on `main`.** It adds
+`setup-node@v4`, `npm ci --prefix overlay`, `npm --prefix overlay run
+package:win`, passes `-OverlayDir` in both runtime branches of the packaging
+step, and runs the clean-room check with `-ExpectRealOverlay` in both branches
+too — deliberately decoupling overlay presence from runtime presence, which is
+right: they are independent facts and a stub overlay should fail the job even
+when the pinned Lua runtime is unavailable. I went further than my own filing
+asked (I had said the PR-time job may keep the stub); asserting the real overlay
+on every PR is the stronger choice and I accept it, at the cost of a ~100 MB
+Electron download per `windows-package-cleanroom` run. Watch that cost against
+issue #134's flakiness — if the job gets slower and flakier together, the split
+is real-overlay on `main` only. Revisit then.
+
+**#155 stays open until one green Windows run exists**, and so does the overlay
+announcement. The orchestrator says plainly it has not seen the job pass — there
+is no `pwsh` on that box — so as of this acceptance **nobody has observed a zip
+containing `PoEUpgradeAdvisorOverlay.exe` produced by CI**. Backend's hand-built
+zip at `22fb237` is real evidence that the packager works; it is not evidence
+that the pipeline a player's download comes from works. Those are different
+claims and only the second one licenses an announcement. Close #155 on the first
+green `windows-package-cleanroom` on `main`, not before.
 
 **The token rule held on the branch, and the mechanism still failed.** No
 accidental closure came out of S3 or its merge commit — the positional rule
@@ -714,9 +733,11 @@ labels (see the routing note on TASK-213 above). Related: **#155** (wire
 **Next announcement.** The v0 headline is spent (`includes_v0` is permanently 1
 and correctly cannot repost). S3 has landed, so the next release announcement is
 the overlay one and it should say plainly that the in-game overlay has landed
-for real and how to start it — but **not until #155 lands**: today's CI zip
-ships the stub, and announcing an overlay a downloader would not get is the
-dishonesty doctrine I5 exists to prevent. It still needs the operator action recorded above
+for real and how to start it — but **not until a green `windows-package-cleanroom`
+run on `main` proves the CI zip contains the executable** (#155, wired in
+`c824050`, unobserved so far). Announcing an overlay a downloader would not get
+is the dishonesty doctrine I5 exists to prevent, and it is exactly what the v0
+announcement already did once. It still needs the operator action recorded above
 — `RELEASE_SINCE_REF` set in the bot runtime — because the range start comes
 from `BOT_DB` or that variable and nothing else.
 
