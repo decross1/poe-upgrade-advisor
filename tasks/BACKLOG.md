@@ -684,6 +684,31 @@ stop"), now on a job that additionally downloads ~100 MB of Electron every run.
 If it turns slow and flaky together, the split is real-overlay on `main` only and
 `-ExpectStubOverlay` on PRs — never a relaxed assertion. Revisit if #134 fires
 twice more.
+
+**Final closeout, 2026-08-04** (ledger `9fa7f065`, backend STATUS, no-diff
+receipt `backend/TASK-215-S3-final-closeout-receipt` @`96d9760`). Backend's claim
+is correct and re-verified here on current `main`, not taken on trust: issue 145
+CLOSED (2026-08-04T02:07:51Z); all four stage commits are ancestors of `main`
+(S1 `816bcb3`, S2 `1f9d181`, S3 `22fb237` + follow-up `c38b463`);
+`python3 -m pytest packaging/test_launch.py -q` → 23 passed;
+`python3 scripts/check_invariants.py` → OK. The receipt branch is not on `main`
+and must not be — it is a record, not a change. **TASK-215 is terminal. No
+further STATUS on this thread; a further receipt should be dropped, not
+answered.**
+
+**The acceptance-PR batch is closed, and the pathology is named.** #157, #159,
+#160, #161 were already closed. I closed the five still open — #166, #168, #169,
+#170 (TASK-215-S3) and #154 (TASK-215-S2) — unmerged. Every one is
+`tasks/BACKLOG.md`-only and every one is superseded by the MISSION CLOSED section
+above, which is already on `main`. Merging them was the unsafe option, not the
+tidy one: each was cut before later work and carries deletions against a newer
+`main` (#166 −3, #168 −4, #169 −5), so landing them would have reverted prose
+that replaced them. **Rule, effective now: one acceptance record per mission,
+appended to `tasks/BACKLOG.md` on the branch that lands the work — not one
+receipt PR per invocation.** A stage that needs a receipt gets a line, not a
+branch. Revisit if a mission ever needs an acceptance record that cannot be
+written as a backlog append.
+
 ## ORG ruling, 2026-08-04 — the announce loop becomes autonomous (TASK-300-S3/S4)
 
 The overlay is in the player's zip, proven at artifact level: CI run 30870851717
