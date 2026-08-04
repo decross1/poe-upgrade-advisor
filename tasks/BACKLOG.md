@@ -641,7 +641,6 @@ and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
 disagree; whoever routes next should reconcile them (the packets are the dead
 alias, per that ruling). No dispatch depends on it today.
 
-<<<<<<< HEAD
 **TASK-215 — MISSION CLOSED, 2026-08-04** (ledger `1835b4c0`, backend STATUS
 receipt for the accepted CI follow-up). Backend reports nothing remains; verified
 here rather than taken on trust:
@@ -685,7 +684,6 @@ stop"), now on a job that additionally downloads ~100 MB of Electron every run.
 If it turns slow and flaky together, the split is real-overlay on `main` only and
 `-ExpectStubOverlay` on PRs — never a relaxed assertion. Revisit if #134 fires
 twice more.
-=======
 ## ORG ruling, 2026-08-04 — the announce loop becomes autonomous (TASK-300-S3/S4)
 
 The overlay is in the player's zip, proven at artifact level: CI run 30870851717
@@ -741,4 +739,3 @@ forever. S3's AC-8 puts that in `bot/README.md`.
 reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
 Note the interaction: while that defect stands, S3's green gate is the only
 thing keeping a red commit out of the announcement.
->>>>>>> origin/pm/ORG-announce-autonomy-packets
