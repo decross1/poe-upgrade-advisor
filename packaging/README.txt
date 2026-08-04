@@ -8,8 +8,6 @@ WHAT THIS IS
   calculations — the real Path of Building engine is bundled inside
   (engine/), not canned answers. Everything runs on your own machine
   (127.0.0.1); nothing you do in the tool leaves your computer.
-  (The in-game hotkey overlay ships in a later build; this v0 page
-  stands in for it.)
 
 REQUIREMENTS
   - Windows x86-64: this is the shipping platform (decision 2026-07-26,
@@ -32,25 +30,31 @@ RUN
   Windows: double-click "run.bat"  (THE entrypoint)
   Linux:   ./run.sh                 (dev/CI tarball only)
 
-  Your browser opens http://127.0.0.1:47791/ — that's the whole app.
+  run.bat starts the in-game overlay automatically and opens the web app
+  at http://127.0.0.1:47791/. The default overlay hotkey is Ctrl+Alt+D;
+  set OVERLAY_HOTKEY before launching to override it. Use
+  "run.bat --no-overlay" to run the web page alone.
+
+  Early/stub packages contain overlay/OVERLAY-STUB.txt instead of the app.
+  In those packages the launcher reports that no overlay is included and
+  keeps the web app available; it never pretends the overlay is present.
   Stop it with Ctrl+C in the terminal window.
 
   If the browser doesn't open by itself, visit that address manually.
 
 FIRST VERDICT (zero config)
   1. Paste your Path of Building code into the import box.
-  2. Pick an item (hotkey overlay lands in a later build; the v0 page
-     stands in for it).
+  2. In Path of Exile, hover an item and press Ctrl+C, then press the
+     overlay hotkey. Showing the verdict card never steals game focus.
   3. Read the verdict card. Tap any assumption chip to flip it and
-     recompute — that's the point of the tool; try to break it.
+     recompute. "open details" opens the browser page for the full view.
 
 REPORTING A WRONG VERDICT
   /suggest in #poe with your PoB code and the item's Ctrl+C text.
   Your report becomes a permanent test fixture before the fix merges.
 
 PRIVACY / SAFETY
-  v0 reads nothing from the game — you paste into a localhost page.
-  The upcoming overlay will read only clipboard text the game itself
-  produces on Ctrl+C and the Client.txt log. No memory reads, no
-  injection, no input automation, one action per keypress.
-  Binds localhost only.
+  The overlay reads only clipboard text the game itself produces on Ctrl+C
+  and the Client.txt log. It performs no memory reads, injection, or input
+  automation, and takes one action per explicit keypress. The app binds
+  localhost only.

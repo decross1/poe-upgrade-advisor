@@ -96,6 +96,27 @@ try {
         Ok "no run.command / run.sh — Windows-only zip (issue #75 decision)"
     } else { Bad "unix entrypoints leaked into the Windows zip" }
 
+    $overlayRoot = Join-Path $App "overlay"
+    $overlayExe = Join-Path $overlayRoot "PoEUpgradeAdvisorOverlay.exe"
+    $overlayStub = Join-Path $overlayRoot "OVERLAY-STUB.txt"
+    if ($ExpectStubRuntime) {
+        if ((Test-Path -LiteralPath $overlayStub -PathType Leaf) -and
+            -not (Test-Path -LiteralPath $overlayExe)) {
+            Ok "overlay is the explicit STUB and no executable is staged"
+        } else { Bad "expected OVERLAY-STUB.txt and no PoEUpgradeAdvisorOverlay.exe" }
+
+        $bundledLauncher = Get-Content -LiteralPath (Join-Path $App "packaging/launch.py") -Raw
+        if ($bundledLauncher -match [regex]::Escape("Overlay is not included in this build; the web app is still available.")) {
+            Ok "bundled launcher contains the honest no-overlay log line"
+        } else { Bad "bundled launcher's honest no-overlay log line is missing" }
+    }
+    else {
+        if ((Test-Path -LiteralPath $overlayExe -PathType Leaf) -and
+            -not (Test-Path -LiteralPath $overlayStub)) {
+            Ok "packaged overlay executable ships at overlay/PoEUpgradeAdvisorOverlay.exe"
+        } else { Bad "expected PoEUpgradeAdvisorOverlay.exe and no OVERLAY-STUB.txt" }
+    }
+
     $runtimeRoot = Join-Path $App "engine/.runtime"
     if ($ExpectStubRuntime) {
         if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "bin/luajit.exe")) -and
@@ -135,10 +156,12 @@ try {
     # --- 3. Launch the entrypoint as a tester (fresh dir, run.bat) ----------
     $outLog = Join-Path $Work "server.out.log"
     $errLog = Join-Path $Work "server.err.log"
-    $Process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "run.bat" `
+    # The clean-room runner is headless: prove the packaged overlay above,
+    # but do not launch Electron here because its window would hang the job.
+    $Process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "run.bat", "--no-overlay" `
         -WorkingDirectory $App -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput $outLog -RedirectStandardError $errLog
-    Write-Host "== entrypoint launched (fresh extract dir, cmd.exe /c run.bat), pid $($Process.Id)"
+    Write-Host "== entrypoint launched (fresh extract dir, cmd.exe /c run.bat --no-overlay), pid $($Process.Id)"
 
     if ($ExpectStubRuntime) {
         # The launcher must stop on its own with the honest failure (I5).

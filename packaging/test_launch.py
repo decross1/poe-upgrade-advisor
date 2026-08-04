@@ -424,6 +424,41 @@ def test_package_script_stages_real_engine():
     assert "contracts/fixtures" not in script
 
 
+def test_windows_package_script_stages_overlay_or_explicit_stub():
+    """The Windows zip matches launch.py's fixed overlay artifact contract."""
+    script = (ROOT / "scripts" / "package_mvp_windows.ps1").read_text(
+        encoding="utf-8"
+    )
+    launcher = (ROOT / "packaging" / "launch.py").read_text(encoding="utf-8")
+
+    assert '[string] $OverlayDir' in script
+    assert '$OverlayExe = Join-Path $OverlaySource "PoEUpgradeAdvisorOverlay.exe"' in script
+    assert 'missing $OverlayExe' in script
+    assert '$overlayStage = Join-Path $Stage "overlay"' in script
+    assert "Get-ChildItem -LiteralPath $OverlaySource -Force" in script
+    assert "Copy-Item -Destination $overlayStage -Recurse -Force" in script
+    assert '(Join-Path $overlayStage "OVERLAY-STUB.txt")' in script
+    assert 'if ($StubOverlay)' in script
+    assert 'ROOT / "overlay" / "PoEUpgradeAdvisorOverlay.exe"' in launcher
+
+
+def test_packaged_readme_documents_current_overlay_behavior():
+    readme = (ROOT / "packaging" / "README.txt").read_text(encoding="utf-8")
+
+    assert "later build" not in readme
+    assert "upcoming overlay" not in readme
+    for statement in (
+        "run.bat starts the in-game overlay automatically",
+        "Ctrl+Alt+D",
+        "OVERLAY_HOTKEY",
+        "never steals game focus",
+        '"open details" opens the browser page',
+        "run.bat --no-overlay",
+        "OVERLAY-STUB.txt",
+    ):
+        assert statement in readme
+
+
 def test_launch_exits_honestly_when_engine_unavailable(tmp_path, monkeypatch, capsys):
     """Unsupported platform => honest dead stop, no traceback, no fallback."""
     web = tmp_path / "web"
