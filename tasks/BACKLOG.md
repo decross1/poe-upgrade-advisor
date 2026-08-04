@@ -276,20 +276,36 @@ file. Backend closed #128 as "superseded" believing #133 would carry the work,
 but #128's commit had already merged — the supersession ran the wrong way.
 No new backend invocation is owed; nothing is lost.
 
-**The ID stays TASK-213-S1.** The earlier renumber to TASK-214 was reversed by
-the landed ruling on #125: renaming stages would invalidate a merged packet, a
-pushed branch and a landed PR to fix a label, so the finished CI regression was
-renamed `TASK-213-CI` (#123) instead and the Tier-2 stages kept `TASK-213-S1/S2`
-(#125). `tasks/packets/` already matches that ruling — there is no
-`TASK-214-*.json` and none should be created. Treat `TASK-214-S1` as a dead
-alias for `TASK-213-S1`; it names no distinct work.
+**~~The ID stays TASK-213-S1.~~ SUPERSEDED 2026-08-04 — the ID is TASK-214.**
+The paragraph struck here asserted that the TASK-214 renumber was reversed and
+that no `TASK-214-*.json` should be created. That was already false when it
+merged: PR #131 landed the renumber at `81e3778`, and `tasks/packets/` on `main`
+contains `TASK-214-S1.json` and `TASK-214-S2.json` and no `TASK-213-S*.json`.
+The correct reading of the numbering correction above (line ~206) is the live
+one: **TASK-213 belongs to the CI regression on #123; the Tier-2 stages are
+TASK-214-S1/S2 on #125.** Do not renumber them again. Any future BACKLOG text
+claiming otherwise loses to `git ls-files tasks/packets/`, which is cheap to
+check and cannot go stale.
 
-**Flagged for the next triage pass, not touched here:** PRs #130, #131 and #132
-are pm branches that still propose the reversed renumber. They are superseded by
-the ruling above and would reintroduce a resolved collision if landed. Whoever
-routes next should close them; this invocation owned only the #133 disposition.
+**PR dispositions, now final (issue #125):** #131 MERGED (carried the renumber).
+#128 CLOSED — its commit `c05ae0e` is what actually delivered S1. #133 CLOSED as
+the zero-diff duplicate ruled on above. #136 MERGED (S2). **#130 CLOSED** on
+backend's REVIEW_VERDICT at head `3b2efe7`: it failed
+`tests/test_packets.py::test_every_example_packet_validates` standalone (renamed
+packets absent from the pinned filename set), touched protected `tasks/packets/*`
+with no `protected-change` label, and was superseded by #131 — record in
+`docs/agent-org/pr-130-backend-review-2026-08-03.md`. **#132 CLOSED** here: it is
+a BACKLOG-only branch still proposing the reversed renumber, so landing it would
+reintroduce the collision this section resolves.
 
-**Remaining on #125: TASK-213-S2 (frontend), already dispatched** — its
-precondition was S1 on `main`, which has held since `e77a343`. #125 stays open
-until S2 is green. Revisit if a fourth thing claims the `TASK-213` prefix; the
-next free integer is cheaper than more disambiguation.
+**Issue #125 is CLOSED.** Both stages are green on `main`: S1 at `c05ae0e` (via
+`e77a343`), S2 at `1de6a15` (via `a67bba1`, PR #136 — live drivers through the
+details affordance, 140 web tests green). Nothing is owed by backend or
+frontend. Revisit only if Tier-2 regresses in a released bundle, which reopens
+as a new bug, not as #125.
+
+**Process debt this thread leaves behind, filed not buried:** the packet
+renumber was a `tasks/packets/*` protected-path change that carried no
+`protected-change` label on either the PR or #125, and backend's review is the
+only thing that caught it. The label is applied at triage by PM; when PM is the
+author, nobody applies it. That gap is the org's, not this task's.
