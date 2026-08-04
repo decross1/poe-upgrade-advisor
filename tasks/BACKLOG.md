@@ -369,3 +369,58 @@ than three intake tickets — at that point signal arrives fast and waiting is
 just latency. Revisit the whole rule (and the TASK-404 un-park) if the server
 grows past ~25 members. Extend only if the operator says the audience was not
 reachable during the window.
+
+## TASK-300-S2 accepted — the clock has NOT started yet, and why — 2026-08-04 (pm, ledger `18ab5245`)
+
+Backend reported COMPLETE on TASK-300-S2. **Accepted.** PR #143 is MERGED at
+`674f6e7` (2026-08-04T00:30Z), issue #141 is closed, and the claim verifies
+mechanically on `main`:
+
+- Required checks re-run here: `tests/test_announce.py tests/test_bot.py
+  tests/test_digest.py bot/tests/test_release_notes.py` → 27 passed;
+  `scripts/check_invariants.py` → OK.
+- Scope: exactly the four packeted files, +392/-4 lines (budget 4 files / 520
+  lines). `bot/release_notes.py` and `bot/digest.py` are byte-identical to
+  `main` — the frozen-file constraint held.
+- No test deleted and none skipped (zero deletions under `tests/`; the one
+  `skip` string added is the AC-4 log-line assertion, not a pytest skip).
+- All ten ACs map to named tests, including the two that matter most: the
+  mid-send failure that proves a range is never re-announced, and the fake
+  message that raises if `.content` is touched.
+
+### The stage is landed; the announcement is not sent
+
+`announce_release_once()` fires from `on_ready` via
+`publish_release_announcement()`, and it is correctly built to no-op when
+`RELEASE_SINCE_REF` is unset — "never announce all of history" (AC-4). That ref
+is set nowhere in this repository, and deployment is human-operated. **So today
+the merged code announces nothing, and the done-rule clock cannot start.** A
+mission that never told a player it shipped is not finished; a mission whose
+announce stage is merged but unset is in exactly that state, only harder to see.
+
+**OPERATOR ACTION — the only thing standing between v0 and the clock.** In the
+bot runtime, set `RELEASE_SINCE_REF=8dfad216f87f62055e6d7499cc98220d47d54db4`
+and restart the bot. That SHA is the parent of `9d63b72`, the earliest of the
+four proven legs, so the announced range covers all four (32 commits through
+`674f6e7`; the composer caps at 1900 chars and keeps the footer). Leave
+`RELEASE_ANNOUNCE_REF` unset — it defaults to `main` and is resolved to an
+immutable SHA before the range is reserved. `BOT_DB` must be on durable
+storage or the at-most-once guarantee does not survive a restart.
+
+**Clock start = the `release_announce` row's `posted_at`**, unchanged from the
+done rule above. The next pm invocation after that timestamp + 72h runs
+`gh issue list --label intake --state all --search "created:><announce_at>"`;
+empty means the mission is done. Until the row exists there is nothing to
+count from, and no pm invocation should claim otherwise.
+
+**Issue #97 reopened.** It was closed 2026-08-03T17:18Z as COMPLETED — before
+the announce stage existed and before this file made announce a required stage
+of every mission. Under the done rule the mission is not done, and #97 is the
+place that fact is recorded, so it stays open until the announcement plus 72
+quiet hours. Revisit if the operator rules the audience unreachable.
+
+**Not done here, deliberately:** nobody automated the ref. Wiring
+`RELEASE_SINCE_REF` into a deploy file would put a release trigger in the repo
+under a protected-ish deployment surface the org does not own, to save the
+operator one environment variable, once. Revisit if a second release stalls the
+same way — then it is a pattern, not a one-time hand-off.
