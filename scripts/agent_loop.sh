@@ -23,6 +23,17 @@ set -u
 ROLE=${1:?usage: agent_loop.sh <pm|backend|frontend> [poll_seconds]}
 POLL=${2:-900}
 MAX_PARALLEL=${MAX_PARALLEL:-3}
+# Per-role fan-out override (2026-08-04). Concurrency is what converts a
+# remaining budget into finished work per hour, and the three roles do NOT
+# have the same headroom: measured over 02:30Z, pm burned 15pp of claude's
+# WEEKLY allowance in 24 invocations while backend spent 5pp of codex in 13.
+# One global number therefore either starves backend or drains pm. Resolved
+# after the per-poll source below so effort.env can retune it live.
+_role_parallel() {
+  local key="MAX_PARALLEL_$(printf '%s' "$ROLE" | tr '[:lower:]' '[:upper:]')"
+  local v; eval "v=\${$key:-}"
+  printf '%s' "${v:-$MAX_PARALLEL}"
+}
 INVOKE_TIMEOUT=${INVOKE_TIMEOUT:-900}
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -110,6 +121,7 @@ n=0
 echo "[$(date -Is)] loop v3 start role=$ROLE poll=${POLL}s max_parallel=$MAX_PARALLEL" | tee -a "$LOG"
 while true; do
   [ -f "$MAILROOM/effort.env" ] && { set -a; . "$MAILROOM/effort.env"; set +a; }  # live effort/timeout tuning
+  ROLE_PARALLEL=$(_role_parallel)
   if [ -f "$MAILROOM/HALT" ]; then
     echo "[$(date -Is)] HALT set — idle" >>"$LOG"
     sleep "$POLL"; continue
@@ -124,7 +136,7 @@ while true; do
     done
     for id in $ids; do
       running=$(ls "$MAILROOM/locks/running/" 2>/dev/null | grep -c "^$ROLE-" || true)
-      [ "$running" -ge "$MAX_PARALLEL" ] && { echo "[$(date -Is)] at cap ($running/$MAX_PARALLEL)" >>"$LOG"; break; }
+      [ "$running" -ge "$ROLE_PARALLEL" ] && { echo "[$(date -Is)] at cap ($running/$ROLE_PARALLEL)" >>"$LOG"; break; }
       nohup bash -c 'fan_worker "$1"' _ "$id" >/dev/null 2>&1 &
     done
   else
