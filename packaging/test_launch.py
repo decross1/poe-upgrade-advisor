@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -110,6 +112,13 @@ def _post(url: str, payload: dict) -> tuple[int, dict | None]:
         return exc.code, json.loads(raw) if raw else None
 
 
+def _fake_overlay(tmp_path: Path, body: str) -> Path:
+    executable = tmp_path / "PoEUpgradeAdvisorOverlay.exe"
+    executable.write_text(f"#!/bin/sh\n{body}\n", encoding="utf-8")
+    executable.chmod(0o755)
+    return executable
+
+
 def test_serves_index_at_root(stack):
     status, content_type, body = _get(f"{stack}/")
     assert status == 200
@@ -159,6 +168,178 @@ def test_api_404_propagates_through_proxy(stack):
     # No build imported on a fresh app: GET /build is a bare 404 (RULING-20).
     status, _, _ = _get(f"{stack}/api/v0/build")
     assert status == 404
+
+
+def test_overlay_environment_uses_launcher_constants(monkeypatch):
+    monkeypatch.setattr(launch, "HOST", "127.0.0.1")
+    monkeypatch.setattr(launch, "PUBLIC_PORT", 48882)
+    monkeypatch.setattr(launch, "BASE_PATH", "/changed/api")
+
+    environment = launch.overlay_environment(launch.PUBLIC_PORT)
+
+    assert environment["POE_ADVISOR_SERVER_URL"] == (
+        "http://127.0.0.1:48882/changed/api"
+    )
+    assert environment["POE_ADVISOR_WEB_URL"] == "http://127.0.0.1:48882"
+
+
+def test_overlay_spawns_once_after_public_socket_listens_and_stops(tmp_path):
+    marker = tmp_path / "overlay.txt"
+    executable = _fake_overlay(
+        tmp_path,
+        """python3 - "$POE_ADVISOR_WEB_URL" "$POE_ADVISOR_SERVER_URL" <<'PY'
+import os, socket, sys
+from urllib.parse import urlsplit
+web, server = sys.argv[1:]
+parsed = urlsplit(web)
+with socket.create_connection((parsed.hostname, parsed.port), timeout=2):
+    pass
+with open(os.environ["OVERLAY_MARKER"], "w", encoding="utf-8") as stream:
+    stream.write(web + "\\n" + server)
+PY
+while :; do sleep 1; done""",
+    )
+    public = launch.ThreadingHTTPServer((launch.HOST, 0), launch.BaseHTTPRequestHandler)
+    port = public.server_address[1]
+    old_marker = os.environ.get("OVERLAY_MARKER")
+    os.environ["OVERLAY_MARKER"] = str(marker)
+    try:
+        child = launch.start_overlay(executable, port)
+        assert child is not None
+        deadline = time.monotonic() + 3
+        while not marker.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert marker.read_text(encoding="utf-8").splitlines() == [
+            f"http://127.0.0.1:{port}",
+            f"http://127.0.0.1:{port}{launch.BASE_PATH}",
+        ]
+
+        launch.stop_overlay(child)
+        assert child.poll() is not None
+    finally:
+        public.server_close()
+        if old_marker is None:
+            os.environ.pop("OVERLAY_MARKER", None)
+        else:
+            os.environ["OVERLAY_MARKER"] = old_marker
+
+
+def test_missing_overlay_logs_once_and_web_and_api_keep_serving(stack, tmp_path, capsys):
+    assert launch.start_overlay(tmp_path / "missing.exe", launch.PUBLIC_PORT) is None
+    assert capsys.readouterr().out.splitlines() == [
+        "Overlay is not included in this build; the web app is still available."
+    ]
+    assert _get(f"{stack}/")[0] == 200
+    assert _post(f"{stack}/api/v0/build", {"pob_code": "smoke"})[0] == 200
+
+
+@pytest.mark.parametrize("mode", ["not-executable", "spawn-error"])
+def test_unspawnable_overlay_logs_once_and_is_not_fatal(
+    tmp_path, monkeypatch, capsys, mode
+):
+    executable = tmp_path / "PoEUpgradeAdvisorOverlay.exe"
+    executable.write_text("not an executable", encoding="utf-8")
+    if mode == "spawn-error":
+        executable.chmod(0o755)
+
+        def fail_spawn(*_args, **_kwargs):
+            raise OSError("blocked by this system")
+
+        monkeypatch.setattr(launch.subprocess, "Popen", fail_spawn)
+
+    assert launch.start_overlay(executable, launch.PUBLIC_PORT) is None
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) == 1
+    assert "Overlay could not start" in lines[0]
+    assert "web app is still available" in lines[0]
+
+
+def test_overlay_immediate_failure_logs_once_without_respawn(tmp_path, capsys):
+    executable = _fake_overlay(tmp_path, "exit 23")
+
+    assert launch.start_overlay(executable, launch.PUBLIC_PORT) is None
+
+    assert capsys.readouterr().out.splitlines() == [
+        "Overlay stopped during startup (exit code 23); the web app is still available."
+    ]
+
+
+@pytest.mark.parametrize("interrupt", [False, True])
+def test_main_stops_overlay_on_normal_and_keyboard_interrupt(
+    tmp_path, monkeypatch, interrupt
+):
+    web = tmp_path / "web"
+    web.mkdir()
+    (web / "index.html").write_text("<h1>mvp</h1>", encoding="utf-8")
+    executable = _fake_overlay(tmp_path, "while :; do sleep 1; done")
+
+    class FakeServer:
+        server_address = (launch.HOST, launch.PUBLIC_PORT)
+
+        def serve_forever(self):
+            if interrupt:
+                raise KeyboardInterrupt
+
+        def shutdown(self):
+            pass
+
+    children = []
+    real_start = launch.start_overlay
+
+    def record_start(path, port):
+        child = real_start(path, port)
+        children.append(child)
+        return child
+
+    monkeypatch.setattr(launch, "serve", lambda *_args, **_kwargs: (FakeServer(), FakeServer()))
+    monkeypatch.setattr(launch, "start_overlay", record_start)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["launch.py", "--web-dir", str(web), "--overlay-path", str(executable)],
+    )
+
+    launch.main()
+
+    assert len(children) == 1
+    assert children[0].poll() is not None
+
+
+def test_main_no_overlay_never_spawns(tmp_path, monkeypatch):
+    web = tmp_path / "web"
+    web.mkdir()
+    (web / "index.html").write_text("<h1>mvp</h1>", encoding="utf-8")
+    executable = _fake_overlay(tmp_path, "exit 99")
+
+    class FakeServer:
+        server_address = (launch.HOST, launch.PUBLIC_PORT)
+
+        def serve_forever(self):
+            pass
+
+        def shutdown(self):
+            pass
+
+    monkeypatch.setattr(launch, "serve", lambda *_args, **_kwargs: (FakeServer(), FakeServer()))
+    monkeypatch.setattr(
+        launch,
+        "start_overlay",
+        lambda *_args: pytest.fail("--no-overlay must suppress spawn"),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "launch.py",
+            "--web-dir",
+            str(web),
+            "--overlay-path",
+            str(executable),
+            "--no-overlay",
+        ],
+    )
+
+    launch.main()
 
 
 # --- Windows launcher (run.bat) static contract ---------------------------
