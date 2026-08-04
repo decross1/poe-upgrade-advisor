@@ -197,6 +197,16 @@ def test_every_example_packet_validates():
         # dispatched.
         "TASK-214-S1.json",
         "TASK-214-S2.json",
+        # 2026-08-04: the announce stage (#97, orchestrator ruling 99029738).
+        # S1's renderer was render-only by construction and its wiring to the
+        # live #poe channel was held back as operator-gated; the operator has
+        # now authorized it, and shipping + user feedback are part of the SDLC,
+        # so "announced" is a required stage of the mission rather than a
+        # follow-on. S2 posts at most once per release range and answers a
+        # human reply with one nudge toward /suggest without ever reading
+        # message content. Its check names tests/test_announce.py, which the
+        # packet itself creates — see _check_targets_unbuilt_scope below.
+        "TASK-300-S2.json",
     }
 
 

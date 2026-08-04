@@ -293,3 +293,79 @@ routes next should close them; this invocation owned only the #133 disposition.
 precondition was S1 on `main`, which has held since `e77a343`. #125 stays open
 until S2 is green. Revisit if a fourth thing claims the `TASK-213` prefix; the
 next free integer is cheaper than more disambiguation.
+
+## Ship, feedback, and the done rule — 2026-08-04 (issue #97, orchestrator ruling 99029738)
+
+The operator has put shipping and user feedback inside the SDLC. "All tests
+pass" is no longer done. The loop is:
+
+    build -> prove -> ANNOUNCE to #poe -> await feedback
+        -> feedback?  yes: triage, packet, build, announce again
+                      no:  the mission is done
+
+**Announce is a required stage of every mission**, not a follow-on. A mission
+that never told a player it shipped is not finished.
+
+### What is already built (found, not rebuilt)
+
+- `/suggest` (TASK-401, issue #16) is LIVE in `bot/bot.py` and is the org's
+  intake path: scrub -> `untrusted` fence -> `quarantine_check` -> GitHub issue
+  labeled `intake` -> `INTAKE_TICKET` to pm -> `[DECISION]` comment relayed back
+  into a public thread. It has already carried real tickets (#38, #40, #86,
+  #92, #93). Nothing about intake needs building.
+- `bot/release_notes.py` (TASK-300-S1) renders a commit range into one
+  player-facing message, render-only by construction, and returns `None` when
+  there is nothing to say.
+- `bot/bot.py` already resolves `ANNOUNCE_CHANNEL_ID` for the weekly digest and
+  already demonstrates the durable-marker exactly-once pattern (`weekly_digest`).
+- **TASK-404** (issue #27, PR #30, `backend/task-404-feedback-piping` @3b78c29)
+  built a passive `#feedback` message-content listener. It is PARKED under a
+  standing `[DECISION]` with `needs-redesign`: in single-channel mode it means
+  classifying general chat, at 3–5 users that is poor signal, and it needs the
+  privileged Message Content intent that only a human can enable. **It stays
+  parked.** Un-park trigger unchanged: ~25 members, or a demonstrated
+  feedback-volume problem.
+
+So the only real gap is the wiring, dispatched as **TASK-300-S2 (backend,
+green)** — at-most-once posting of a release range to the live channel, a v0
+headline for the four shipped legs, a footer pointing at `/suggest`, and an
+`on_message` nudge that answers a human reply in the announce channel without
+ever reading its content (works under `Intents.default()`, no privileged
+intent, no operator portal change).
+
+### The done rule (pm ruling — disagree with the number, not a vibe)
+
+**The mission is DONE when v0 has been announced in #poe and 72 hours have
+passed with no qualifying feedback.**
+
+- **Clock starts** at the timestamp of the successful v0 announcement (the
+  `release_announce` row in `BOT_DB`; the same fact is recorded on #97).
+- **Qualifying feedback** is exactly one thing: an `intake`-labeled issue
+  created after that timestamp. That is the only form of feedback the org can
+  actually act on.
+- A bare reply in the channel is a signal, not work. It gets the `/suggest`
+  nudge and **restarts the 72-hour clock once**. If it never becomes an intake
+  ticket within that window, it stops holding the mission open — the org
+  answered, the player did not follow through.
+- **On qualifying feedback:** triage within 24h to a `[DECISION]` comment,
+  packet it, build it, announce again. The new announcement restarts the clock
+  at 72h. Feedback is never a reason to declare done early or late.
+- **Whoever runs the clock:** pm, on the first invocation after
+  `announce_at + 72h`. Check is mechanical —
+  `gh issue list --label intake --state all --search "created:><announce_at>"`.
+  Empty result: record the done ruling on #97 and in this file. Non-empty:
+  triage it.
+
+**Why 72 hours.** The triage SLA is 24h (TASK-402), so 72h is three full SLA
+windows and always spans a weekend — a 3–5 person server plays on its own
+cadence, and a 24h rule would call the mission done before a player who works
+weekdays has logged in. A week would idle the org against a channel that is
+empty in the first hour and stay idle for six more days, which the invocation
+ruling explicitly forbids. 72h is the shortest interval that cannot be
+mistaken for "nobody was given a chance to answer."
+
+**Reversal conditions.** Shorten to 24h if any single announcement draws more
+than three intake tickets — at that point signal arrives fast and waiting is
+just latency. Revisit the whole rule (and the TASK-404 un-park) if the server
+grows past ~25 members. Extend only if the operator says the audience was not
+reachable during the window.

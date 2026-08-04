@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-300-S2",
+  "parent_task_id": "TASK-300",
+  "issue": null,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Wire the existing render-only release notes to the LIVE #poe announce channel, and give a player who replies to that announcement a path into the org. bot/release_notes.py (TASK-300-S1) already turns a commit range into one player-facing message; bot/bot.py already resolves ANNOUNCE_CHANNEL_ID for the weekly digest and already carries the whole intake path (/suggest -> scrub -> untrusted fence -> quarantine_check -> intake issue -> INTAKE_TICKET -> [DECISION] relay). Nothing about intake gets rebuilt here. Add (1) an at-most-once release announcement for a given commit range, carrying a v0 headline for the four shipped legs and a footer telling players exactly how to reach us, and (2) an on_message listener in the announce channel that answers a human reply with one short nudge toward /suggest WITHOUT ever reading message content. Also document the new configuration in bot/README.md.",
+  "preconditions": [
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "bot/bot.py",
+    "bot/README.md",
+    "tests/test_announce.py",
+    "tests/test_bot.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "packaging/**", "scripts/**", "assumptions/**",
+    "tasks/**", "bot/release_notes.py", "bot/digest.py",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md",
+    "docs/adr/**", "docs/specs/**", "docs/agent-org/**",
+    "README.md", "ARCHITECTURE.md", "CLAUDE.md"
+  ],
+  "constraints": [
+    "bot/release_notes.py is FROZEN in this stage. Call collect_release()/render_release() exactly as they exist; compose the v0 headline and the feedback footer in bot.py, where the channel-facing code lives. If you believe render_release must change, stop and route it to pm.",
+    "This posts to a real channel watched by real people. At-most-once for a given release range is the requirement, and it beats at-least-once: reserve the range row in BOT_DB BEFORE the send and mark it posted after, so a crash mid-send never re-announces the same range.",
+    "An empty range says nothing. render_release() already returns None; when it does and the v0 headline has already gone out, record the marker and post NOTHING.",
+    "Never announce all of history. When BOT_DB has no prior range, the start of the range comes from RELEASE_SINCE_REF; if that variable is unset, log one line and no-op.",
+    "The outgoing message contains only commit subjects and issue/PR refs. Pass the composed message through the existing scrub() before sending, and put no environment values, tokens, channel ids, ledger message ids, idempotency keys, packet paths or role names in it.",
+    "The reply listener must work under discord.Intents.default(). Never read message.content, never request the privileged Message Content intent, and never file an issue from a raw reply — the nudge points the player at /suggest, which is the only intake path.",
+    "TASK-404 (issue #27, PR #30) stays PARKED under its needs-redesign [DECISION]. Do not resurrect bot/feedback.py, FEEDBACK_CHANNEL_ID, or the passive content listener.",
+    "Existing tests may be EXTENDED, never deleted or skipped. No network and no real discord connection in tests.",
+    "Branch backend/TASK-300-S2-<slug>. A literal role/... branch is refused by completion proof #4."
+  ],
+  "forbidden_actions": [
+    "Editing bot/release_notes.py or bot/digest.py",
+    "Requesting or documenting the privileged Message Content intent",
+    "Filing GitHub issues directly from announce-channel replies"
+  ],
+  "required_checks": [
+    "python3 -m pytest tests/test_announce.py tests/test_bot.py tests/test_digest.py bot/tests/test_release_notes.py -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "Bot gains announce_release_once() which resolves the range (since = last recorded range end in BOT_DB, else RELEASE_SINCE_REF; until = resolved sha of RELEASE_ANNOUNCE_REF, default main), calls collect_release()/render_release(), and posts at most one message of at most 1900 characters to ANNOUNCE_CHANNEL_ID."},
+    {"id": "AC-2", "text": "At-most-once is proven by test: a new release_announce table in BOT_DB keys on the range end sha, the row is reserved before the send and marked posted after, and a second call for the same range sends nothing. A test that raises mid-send proves the range is never re-announced afterwards."},
+    {"id": "AC-3", "text": "Honest no-op proven by test: since == until, and a range where render_release() returns None, both send zero messages; the marker is still recorded so the range is not retried forever."},
+    {"id": "AC-4", "text": "With no prior range recorded and RELEASE_SINCE_REF unset, announce_release_once() sends nothing and logs one line — never the whole history (test)."},
+    {"id": "AC-5", "text": "The first announcement carries a v0 headline naming the four shipped legs in player language — the engine parses a real in-game Ctrl+C item and returns a verdict, the web app gives a verdict on an item you paste yourself, the in-game overlay renders the verdict card, and Tier-2 'open details' now shows which mods actually drove the delta — and a footer telling players to use /suggest in this channel for anything wrong or missing. Subsequent announcements carry the footer but not the headline (test)."},
+    {"id": "AC-6", "text": "A test asserts the composed outgoing message contains no value of DISCORD_TOKEN/GITHUB_TOKEN/BOT_DB/ANNOUNCE_CHANNEL_ID, no ledger message id or idempotency key, and no tasks/packets path, and that it was passed through scrub()."},
+    {"id": "AC-7", "text": "on_message answers a non-bot human message in the announce channel with one short nudge toward /suggest; message.content is never read (proven by a test whose fake message raises if .content is touched); the bot's own messages and messages in any other channel produce nothing."},
+    {"id": "AC-8", "text": "The nudge is rate limited to at most one per user per 6 hours from a bounded in-memory record (documented ceiling), proven by test; a restart may re-nudge at most once and that is documented, not hidden."},
+    {"id": "AC-9", "text": "bot/README.md documents RELEASE_SINCE_REF, RELEASE_ANNOUNCE_REF, RELEASE_REPO_PATH (or however the git checkout path is resolved), the release_announce table, the at-most-once choice and why it beats at-least-once here, and the nudge's rate ceiling and its no-privileged-intent posture."},
+    {"id": "AC-10", "text": "Both required checks pass; no test was deleted or skipped; bot/release_notes.py and bot/digest.py are byte-identical to main."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 4,
+    "max_diff_lines": 520,
+    "max_tool_calls": 70,
+    "max_wall_clock_seconds": 2400,
+    "cost_ceiling_usd": 40.0,
+    "value_usd": 30.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] }
+}
