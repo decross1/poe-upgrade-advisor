@@ -804,3 +804,61 @@ disagree, the player meets the disagreement on their first run.
 
 Not channel-gated and ephemeral: someone asking where the download is should get
 an answer wherever they ask, and only they need to see it.
+
+## Acceptance, 2026-08-04 — TASK-304-S2 is accepted; a player can get the app without an operator
+
+Backend reported completion (ledger 69fc5efc) on
+`backend/TASK-304-S2-download` @ `28147df`; PR 180 landed on `main` at `11bf58b`
+and issue 178 is closed. Verified against the packet, not against the report:
+
+- **AC-1, the gate that mattered, genuinely passed.** `releases/latest` is now
+  `v0.2.0` (published 03:28:30Z, not a draft) carrying
+  `poe-upgrade-advisor-v0-856faae-windows-x64.zip`, and
+  `git merge-base --is-ancestor c824050 856faae` exits 0. The command links a
+  zip that actually contains the overlay it describes. S1's part one delivered.
+- The copy matches `packaging/README.txt` fact for fact — Windows x86-64 only,
+  Linux dev/CI, macOS not shipping, Python 3.10+, `run.bat` as THE entrypoint
+  starting the overlay automatically, `Ctrl+Alt+D`, `OVERLAY_HOTKEY`,
+  `run.bat --no-overlay`, and the tens-of-seconds one-time cache on first
+  launch. Nothing in the reply contradicts the file a player reads on unzip.
+- AC-6 is one `SELECT range_end, posted_at ... ORDER BY rowid DESC LIMIT 1` on
+  the existing `bot.db` handle, short id via `[:7]`. The test patches
+  `requests.get/post/patch` and asserts none is called, so "no network in the
+  command path" is enforced mechanically rather than asserted in prose.
+- AC-7 covers both empty and `posted_at IS NULL`, and asserts the unposted row's
+  short id (`deadbee`) does **not** leak into the reply. No fabricated version.
+- Diff is 3 files / 126 insertions and **zero deletions** — inside the packet's
+  3-file, 300-line budget. `bot/release_notes.py`, `bot/digest.py`,
+  `tests/test_announce.py`, `tests/test_digest.py` and `bot/tests/` are
+  byte-identical to `main`; `/suggest`, the announce loop, `relay_decisions`,
+  `publish_weekly_digests`, `on_message` and `open_database` are untouched.
+  No test deleted, skipped or weakened.
+- Both required checks re-run here at the branch tip: 49 passed;
+  `check_invariants.py` OK. All 14 PR checks ended SUCCESS.
+
+### The reversal condition I named is already arming
+
+The ORG ruling above said *revisit if the announced commit and the released
+asset ever diverge*. They are diverging now. `releases/latest` is built from
+`856faae`; `main` is four commits past it. The announce loop announces `main`
+commits, so the next announcement makes `/download` report a build id that no
+downloadable zip carries — the player is told "most recently announced build:
+`11bf58b`" and finds `856faae` on the releases page. The copy stays honest
+(AC-5's filename comparison is against the releases page, not the announced id),
+but the announced-build line degrades from useful to confusing.
+
+This is not a defect in S2 and does not reopen it. It is **TASK-304-S1 part two**
+— the automation that cuts a release from the same commit the bot announces —
+and issue 177 stays open for exactly that reason. Noted on 177. Until it lands,
+every release is a human errand, and the useful artifact behind the cheap path
+still expires **2026-08-11T02:53:47Z**.
+
+### Defect #158 recurred on this PR, harmlessly
+
+PR 180 merged at 03:45:35Z with `engine-integration` (finished 03:46:50Z) and
+`runtime-parity-cross-platform` (03:46:58Z) still running. Both ended SUCCESS,
+so nothing bad shipped — but the robot did not wait for them, which is the same
+gate defect as #152/#158, now observed a second time and on a *green* outcome
+where it is easy to miss. Recorded on #158. `main` is not protected at the
+branch level, so the check set is advisory to the robot and nothing else stops
+it. Orchestrator work; `agents/merge_robot/` is PROTECTED.
