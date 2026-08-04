@@ -276,20 +276,57 @@ file. Backend closed #128 as "superseded" believing #133 would carry the work,
 but #128's commit had already merged — the supersession ran the wrong way.
 No new backend invocation is owed; nothing is lost.
 
-**The ID stays TASK-213-S1.** The earlier renumber to TASK-214 was reversed by
-the landed ruling on #125: renaming stages would invalidate a merged packet, a
-pushed branch and a landed PR to fix a label, so the finished CI regression was
-renamed `TASK-213-CI` (#123) instead and the Tier-2 stages kept `TASK-213-S1/S2`
-(#125). `tasks/packets/` already matches that ruling — there is no
-`TASK-214-*.json` and none should be created. Treat `TASK-214-S1` as a dead
-alias for `TASK-213-S1`; it names no distinct work.
+~~**The ID stays TASK-213-S1.**~~ **WRONG — superseded by the next section.**
+This paragraph asserted the renumber had been reversed and that no
+`TASK-214-*.json` exists. Both claims were false against the tree when written:
+PR #131 (`7d294a4`) had already merged the renumber, so `tasks/packets/` holds
+`TASK-214-S1.json`/`TASK-214-S2.json` and no `TASK-213-S*.json`. Read the
+2026-08-04 section below instead; it is the one that matches `main`.
 
 **Flagged for the next triage pass, not touched here:** PRs #130, #131 and #132
-are pm branches that still propose the reversed renumber. They are superseded by
-the ruling above and would reintroduce a resolved collision if landed. Whoever
-routes next should close them; this invocation owned only the #133 disposition.
+are pm branches proposing renumbers. (#130 closed, #131 merged, #132 disposed of
+in the next section.) This invocation owned only the #133 disposition.
 
-**Remaining on #125: TASK-213-S2 (frontend), already dispatched** — its
-precondition was S1 on `main`, which has held since `e77a343`. #125 stays open
-until S2 is green. Revisit if a fourth thing claims the `TASK-213` prefix; the
-next free integer is cheaper than more disambiguation.
+**Remaining on #125: the frontend S2 stage, already dispatched** — its
+precondition was S1 on `main`, which has held since `e77a343`.
+
+## Tier-2 is DONE and the ID is TASK-214 — final — 2026-08-04 (issue #125)
+
+Routing message `15784a09` asked pm to renumber the Tier-2 stages off the
+`TASK-213` collision and then dispatch S1 to backend. **Both asks are already
+satisfied on `main`; nothing was dispatched and nothing more is owed.** The
+message was authored before three things landed. Recorded here so the next
+amnesiac invocation stops re-deriving it:
+
+1. **The renumber landed. The ID is TASK-214, on issue #125.** PR #131
+   (`7d294a4`) merged it: `tasks/packets/TASK-214-S1.json` and
+   `TASK-214-S2.json` exist, no `TASK-213-S*.json` does, and #125 is titled
+   `TASK-214`. `TASK-213` keeps issue #123 (the CI regression, fixed at
+   `ead5b5a`). This is the disposition; do not renumber either one again.
+2. **Both stages are complete.** S1 (backend, `GET /breakdown/{diff_id}`)
+   landed as `c05ae0e` via merge `e77a343`; duplicate PR #133 was closed
+   zero-diff. S2 (frontend, real-server proof) merged as PR #136 / `1de6a15`
+   — 140 vitest tests green, live drivers traceable to the pasted item's own
+   mod lines, unknown `diff_id` 404s. **Issue #125 is closed.**
+3. **PR #132 is closed unmerged.** It proposed reversing the renumber back to
+   `TASK-213-S1/S2`, which would rename a merged packet and re-open a resolved
+   collision to fix a label. It is the last artifact of the collision.
+
+Facts 1 and 2 of message `15784a09` (the CI regression is fixed, and PROTECTED
+paths are unpacketable because completion proof #12 fires at dispatch-time and
+ignores the `protected-change` label) were already recorded under item 10 above
+and are unchanged.
+
+Revisit if a fourth thing claims either the `TASK-213` or `TASK-214` prefix —
+the standing rule at the head of the previous section (grep `tasks/BACKLOG.md`
+and `tasks/packets/` before numbering a parent) is what prevents it, and taking
+the next free integer is always cheaper than more disambiguation.
+
+**Carried forward from S2's report, filed not swallowed:** `contracts/openapi.yaml`
+has two unquoted `e.g. ...` descriptions containing commas, at the `Breakdown`
+`stat` property (line 246) and the `Assumption` `label` property. YAML parses
+each as a flow mapping, so `stat`'s schema gains a spurious `ehp: null` key and
+`label`'s gains `"flasks up"`-ish garbage; S2's test de-quirks it before
+compiling with Ajv. Harmless for today's codegen, wrong in the ratified
+contract. Filed as **issue #137** — `contracts/` is PROTECTED, so per fact 2 it
+routes to the orchestrator and must never be put in a packet's `files_in_scope`.
