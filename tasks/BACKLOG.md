@@ -640,3 +640,68 @@ from `BOT_DB` or that variable and nothing else.
 and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
 disagree; whoever routes next should reconcile them (the packets are the dead
 alias, per that ruling). No dispatch depends on it today.
+
+## The overlay capability is shipped — 2026-08-04 (issue 145 stage S3, ledger `ab1142d7`)
+
+**TASK-215-S3 — ACCEPTED and CLOSED** (backend STATUS, no-diff receipt branch
+`backend/TASK-215-S3-acceptance-receipt` @`6fb0687`). Verified rather than taken
+on report: `git diff` between that commit and its base `c824050` is empty, so
+the receipt claims nothing about the tree that the tree does not already say,
+and issue 145 is CLOSED. The stage itself landed as `22fb237`/`e4afc3f` (PR
+152); the red required check that PR 159 correctly objected to was a clean-room
+log-timing false failure and was fixed by PR 156, merged at `294ab8b`. No open
+objection to S3 survives.
+
+**Issue 155 is CLOSED — the CI/release wiring landed.** The gap that stage split
+out was that `.github/workflows/ci.yml` invoked the packager with no
+`-OverlayDir`, so every zip CI produced carried `OVERLAY-STUB.txt` and no
+overlay. The orchestrator closed it in `c824050`: the job now runs
+`npm ci --prefix overlay` and `npm --prefix overlay run package:win`, passes the
+packaged app as `-OverlayDir`, and asserts `-ExpectRealOverlay` in **both**
+runtime branches, so a stub overlay now fails the job even when the pinned Lua
+runtime is unavailable. All four of the issue's checkboxes are met and none of
+them was met by relaxing an assertion — the stub path was not kept, it was
+replaced with the real one.
+
+**The evidence is artifact-level, which is the whole point.** Run
+`30870851717` on `c824050` (`main`): `windows-package-cleanroom` **success**,
+alongside thirteen other green jobs. `-ExpectRealOverlay` asserts
+`overlay/PoEUpgradeAdvisorOverlay.exe` is present in the **extracted archive**
+and `OVERLAY-STUB.txt` is not
+(`scripts/cleanroom_windows_check.ps1:116-122`) — it does not check that the
+packager printed a copy line. The orchestrator wrote "I have not seen it pass";
+it has now passed on `main`, and that observation is this section's reason to
+exist.
+
+### The capability table, corrected
+
+| Capability | Proven | In a player's hands |
+| --- | --- | --- |
+| Item comparison for this season, real engine | yes (`9d63b72`, `69a1f6a`) | yes — Windows zip |
+| Verdict on an item you paste yourself | yes (`b8620b5`) | yes — web page in the zip |
+| Tier-2 "which mods drove it" | yes (`c05ae0e`) | yes — same page |
+| **In-game overlay that pops up on Ctrl+C** | yes (`1846df2`) | **yes** — `c824050`, asserted by run `30870851717` |
+
+Every capability named in the mission issue is now installable by a player from
+an artifact the org publishes, and that fact is pinned by a required check
+rather than by this paragraph.
+
+### The mission is not done yet, and this is why
+
+The amendment above is explicit that **both** conditions must hold. The
+capability condition is now satisfied; the feedback condition is not, and it
+cannot start until the overlay release announcement ships. That announcement
+still needs the operator action already recorded — `RELEASE_SINCE_REF` set in
+the bot runtime — because the range start comes from `BOT_DB` or that variable
+and nothing else. The 72-hour silence clock starts at the announcement, not at
+`c824050`.
+
+So: the mission issue stays **OPEN**, and the single remaining item on it is the
+overlay release announcement plus its clock. Closing it on capability alone
+would repeat exactly the error the operator ruled against — treating "we built
+it" as "they have it" — one step later in the pipeline.
+
+**Reversal condition.** If the first `windows-package-cleanroom` run on a
+release tag stages a stub despite `-ExpectRealOverlay`, this section is wrong
+about delivery and the capability row flips back; reopen issue 155 rather than
+loosening the switch.
