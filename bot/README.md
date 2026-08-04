@@ -63,6 +63,12 @@ In the MVP's single-channel mode, `/suggest`, welcome and announcement posts all
 live in `#poe`; each suggestion's PM decision is relayed into a public thread
 under that channel.
 
+`/download` is available in every channel and replies only to the player who
+asks. It links to the latest public release, explains installation and updates,
+and shows the most recently announced build when one exists. That status uses
+one read from the existing `release_announce` table in `BOT_DB`; the command
+does not call GitHub or require a GitHub account.
+
 Release ranges are recorded in the `release_announce` table in `BOT_DB`, keyed
 by their resolved end SHA. The bot polls periodically and reserves a range only
 after GitHub reports at least one check for that SHA and every check is

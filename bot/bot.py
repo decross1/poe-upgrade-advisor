@@ -566,6 +566,43 @@ bot = Bot()
 
 
 @bot.tree.command(
+    name="download", description="Get or update PoE Upgrade Advisor"
+)
+async def download(interaction: discord.Interaction) -> None:
+    announced = bot.db.execute(
+        "SELECT range_end, posted_at FROM release_announce "
+        "WHERE posted_at IS NOT NULL ORDER BY rowid DESC LIMIT 1"
+    ).fetchone()
+    if announced:
+        announcement = (
+            f"Most recently announced build: `{str(announced[0])[:7]}` "
+            f"at `{announced[1]}`."
+        )
+    else:
+        announcement = "No build has been announced yet."
+
+    message = scrub(
+        "**Download PoE Upgrade Advisor**\n"
+        "Latest release: https://github.com/decross1/poe-upgrade-advisor/"
+        "releases/latest\n\n"
+        "The app ships for Windows x86-64 only; Linux is dev/CI-only and "
+        "macOS is not shipping. It requires Python 3.10+. "
+        "After extracting the zip, `run.bat` is the entrypoint and starts the "
+        "overlay automatically. Press **Ctrl+Alt+D** to show it; set "
+        "`OVERLAY_HOTKEY` before launch to override the hotkey. Use "
+        "`run.bat --no-overlay` to run the web page alone.\n\n"
+        "**Updating:** Download the newest zip, extract it to a NEW folder, "
+        "and run `run.bat` there. First launch takes tens of seconds while the "
+        "one-time dependency and data cache are prepared.\n\n"
+        "**Is my copy current?** The build id is in the downloaded filename: "
+        "`poe-upgrade-advisor-v0-<build>-windows-x64.zip`. Compare it with the "
+        "newest asset on the releases page.\n"
+        f"{announcement}"
+    )
+    await interaction.response.send_message(message, ephemeral=True)
+
+
+@bot.tree.command(
     name="suggest", description="Suggest a feature or report a wrong verdict/assumption"
 )
 @app_commands.describe(

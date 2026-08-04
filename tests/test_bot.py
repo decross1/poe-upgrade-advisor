@@ -180,6 +180,89 @@ def test_suggest_channel_gate_makes_no_github_call(tmp_path, monkeypatch):
     file_issue_mock.assert_not_called()
 
 
+def test_download_is_ephemeral_ungated_complete_and_offline(tmp_path, monkeypatch):
+    monkeypatch.setenv("SUGGEST_CHANNEL_ID", "999")
+    module = load_bot_module(tmp_path, monkeypatch)
+    module.bot.db.execute(
+        "INSERT INTO release_announce "
+        "(range_end, range_start, reserved_at, posted_at) VALUES (?,?,?,?)",
+        (
+            "856faae123456789",
+            "c824050",
+            "2026-08-04 03:00:00",
+            "2026-08-04 04:00:00",
+        ),
+    )
+    module.bot.db.commit()
+    interaction = SimpleNamespace(
+        channel_id=123,
+        response=SimpleNamespace(send_message=AsyncMock()),
+    )
+
+    with (
+        patch.object(module, "scrub", wraps=module.scrub) as scrub_mock,
+        patch.object(module.requests, "get") as request_get,
+        patch.object(module.requests, "post") as request_post,
+        patch.object(module.requests, "patch") as request_patch,
+    ):
+        asyncio.run(module.download.callback(interaction))
+
+    interaction.response.send_message.assert_awaited_once()
+    text = interaction.response.send_message.await_args.args[0]
+    assert interaction.response.send_message.await_args.kwargs == {"ephemeral": True}
+    assert "https://github.com/decross1/poe-upgrade-advisor/releases/latest" in text
+    for fact in (
+        "Windows x86-64 only",
+        "Linux is dev/CI-only",
+        "macOS is not shipping",
+        "Python 3.10+",
+        "run.bat",
+        "starts the overlay automatically",
+        "Ctrl+Alt+D",
+        "OVERLAY_HOTKEY",
+        "run.bat --no-overlay",
+        "extract it to a NEW folder",
+        "one-time dependency and data cache",
+        "poe-upgrade-advisor-v0-<build>-windows-x64.zip",
+        "856faae",
+        "2026-08-04 04:00:00",
+    ):
+        assert fact in text
+    assert len(text) <= 2000
+    for internal in ("TASK-", "tasks/packets/", "2c4d0411", "backend"):
+        assert internal not in text
+    scrub_mock.assert_called_once()
+    request_get.assert_not_called()
+    request_post.assert_not_called()
+    request_patch.assert_not_called()
+
+
+def test_download_handles_empty_and_unposted_announcements(tmp_path, monkeypatch):
+    module = load_bot_module(tmp_path, monkeypatch)
+
+    for range_end in (None, "deadbeef12345678"):
+        if range_end:
+            module.bot.db.execute(
+                "INSERT INTO release_announce "
+                "(range_end, range_start, reserved_at, posted_at) "
+                "VALUES (?,?,?,NULL)",
+                (range_end, "c824050", "2026-08-04 03:00:00"),
+            )
+            module.bot.db.commit()
+        interaction = SimpleNamespace(
+            channel_id=123,
+            response=SimpleNamespace(send_message=AsyncMock()),
+        )
+
+        asyncio.run(module.download.callback(interaction))
+
+        text = interaction.response.send_message.await_args.args[0]
+        assert "No build has been announced yet." in text
+        assert "https://github.com/decross1/poe-upgrade-advisor/releases/latest" in text
+        assert "deadbee" not in text
+        interaction.response.send_message.assert_awaited_once()
+
+
 def test_weekly_digest_is_marked_only_once(tmp_path, monkeypatch):
     monkeypatch.setenv("GITHUB_REPO", "owner/repo")
     monkeypatch.setenv("ANNOUNCE_CHANNEL_ID", "123")
