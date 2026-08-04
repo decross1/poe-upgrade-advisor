@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-304-S2",
+  "parent_task_id": "TASK-304",
+  "issue": 178,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "A player in the channel can ask the bot how to get the app, how to update it, and whether the copy they already have is current — without an operator and without a GitHub account. Today the only slash command is /suggest, and the only public download is Release v0.1.0 from 2026-07-26, whose Windows zip was packaged at 7465386 — a commit whose scripts/package_mvp_windows.ps1 contains the string 'overlay' zero times. Overlay bundling landed at c824050 on 2026-08-04, nine days later. The announcement standing in the channel right now says the overlay is in the download and starts with run.bat; a command pointing at releases/latest today hands the player a zip with no overlay in it and industrialises that contradiction. So this stage is gated on TASK-304-S1 (issue 177, orchestrator-owned, .github/** is PROTECTED) publishing a release built at or after c824050. Beyond the how-to, the command answers the question a returning player actually has — 'am I on the current build?' — by reading the most recently announced range_end and posted_at from the release_announce table the bot already owns, so the answer needs no GitHub API call in the command path.",
+  "preconditions": [
+    {"check": "issue_state", "expect": "open"},
+    {"check": "issue_labels", "require": ["task", "test-change-authorized"]},
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "bot/bot.py",
+    "bot/README.md",
+    "tests/test_bot.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "assumptions/**", "packaging/**", "scripts/**",
+    "tasks/**", "bot/release_notes.py", "bot/digest.py",
+    "tests/test_announce.py", "tests/test_digest.py", "bot/tests/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md", "CLAUDE.md", "README.md"
+  ],
+  "constraints": [
+    "PRECONDITION, CHECKED FIRST AND AT ZERO TOKEN COST: `gh release view --json assets -q '.assets[].name'` must show a `*-windows-x64.zip` whose build id S satisfies `git merge-base --is-ancestor c824050 S`. If it does not, STOP and report needs_retry with that check's output. Do NOT soften the copy to match a stale release, do NOT link the Actions-artifact route (it 401s without a logged-in GitHub account and the artifacts expire), and do NOT ship an 'ask an operator' answer. Waiting for S1 is the correct outcome here; shipping a truthful-sounding link to a zip with no overlay in it is not.",
+    "Register /download on bot.tree next to /suggest, as a second app_commands.command in bot/bot.py. It replies ephemerally (only the asker sees it) and is NOT gated to SUGGEST_CHANNEL_ID — a player asking where the download is should get an answer wherever they ask.",
+    "Copy must match packaging/README.txt fact for fact. Where the two disagree the player hits the disagreement on their first run, and packaging/README.txt is out of scope here, so the command bends to it: Windows x86-64 only (the Linux tarball is dev/CI, macOS is dropped), Python 3.10+, run.bat is THE entrypoint, the overlay starts automatically with run.bat, Ctrl+Alt+D, OVERLAY_HOTKEY overrides it, run.bat --no-overlay runs the web page alone, and first launch takes tens of seconds because of a one-time dependency and data-cache step.",
+    "The 'am I current?' answer must be mechanical, not a vibe: the zip filename carries its build id (poe-upgrade-advisor-v0-<build>-windows-x64.zip), and the player compares the one they downloaded against the newest asset on the releases page.",
+    "Read the announced build from the EXISTING bot.db handle inside the command callback — `SELECT range_end, posted_at FROM release_announce WHERE posted_at IS NOT NULL ORDER BY rowid DESC LIMIT 1`. No new sqlite connection, no GitHub API call, no network in the command path. Report the short id (first 7 chars) and posted_at.",
+    "An empty or posted_at-NULL release_announce is the normal state of a fresh database, not an error: say plainly that no build has been announced yet and give the releases URL. No fabricated version, no traceback, no silent empty field.",
+    "The reply goes through scrub and carries no task id, packet path, ledger id or role name, and stays under Discord's 2000-character message limit — assert the limit in a test rather than eyeballing it.",
+    "Do not touch /suggest, the S3 announce loop or its green gate, relay_decisions, publish_weekly_digests, on_message, open_database's schema/migration, bot/release_notes.py or bot/digest.py.",
+    "Existing tests in tests/test_bot.py may be EXTENDED; no existing test is deleted, skipped or weakened. tests/test_announce.py, tests/test_digest.py and bot/tests/ stay byte-identical to main.",
+    "Branch backend/TASK-304-S2-<slug>. A literal role/... branch is refused by completion proof #4.",
+    "Issue 178 is a STAGE issue and closing it is correct: write 'Fixes #178' exactly once in the PR body. Never write a bare '#97' in any commit message or PR body — the ORG mission issue must stay open; refer to it as 'issue 97'. Check before pushing: `gh pr view <n> --json body -q .body | grep -c '#97'` must be 0."
+  ],
+  "forbidden_actions": [
+    "Shipping the command against a release whose Windows zip predates c824050",
+    "Linking the Actions-artifact download route, or telling a player to ask an operator",
+    "Calling the GitHub API, or opening a second sqlite connection, from the command callback",
+    "Fabricating a version when release_announce has no posted row",
+    "Contradicting packaging/README.txt on platform, entrypoint, hotkey or --no-overlay",
+    "Modifying /suggest, the announce loop or its green gate, relay_decisions, publish_weekly_digests, on_message, or anything under .github/"
+  ],
+  "required_checks": [
+    "python3 -m pytest tests/test_bot.py tests/test_announce.py tests/test_digest.py bot/tests/test_release_notes.py -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "Before any other work, the latest GitHub Release carries a *-windows-x64.zip whose build id S satisfies `git merge-base --is-ancestor c824050 S`; if it does not, the stage stops and reports needs_retry with the check output, having modified nothing."},
+    {"id": "AC-2", "text": "/download is registered on bot.tree alongside /suggest, replies ephemerally, and is not gated to SUGGEST_CHANNEL_ID; a test invokes its callback with a channel id other than SUGGEST_CHANNEL_ID and asserts a real answer is returned ephemerally."},
+    {"id": "AC-3", "text": "The reply states the releases URL, Windows x86-64 only, Python 3.10+, run.bat as THE entrypoint that starts the overlay automatically, Ctrl+Alt+D, OVERLAY_HOTKEY as the override, and run.bat --no-overlay for the web page alone; a test asserts each of those seven facts appears in the sent text."},
+    {"id": "AC-4", "text": "The reply explains updating: download the newest zip, extract to a NEW folder, run run.bat there, and expect the one-time dependency/cache step again on first launch; a test asserts the new-folder instruction and the first-launch note are present, and no statement contradicts packaging/README.txt."},
+    {"id": "AC-5", "text": "The reply tells the player how to check whether their copy is current by the build id in the zip filename (poe-upgrade-advisor-v0-<build>-windows-x64.zip) compared against the newest asset on the releases page; a test asserts the filename pattern appears."},
+    {"id": "AC-6", "text": "The reply reports the most recently announced build as one line carrying the 7-character range_end and its posted_at, read from the existing bot.db handle with a single SELECT and no network call; a test seeds release_announce with a posted row and asserts both values appear, and asserts the callback makes no GitHub API call."},
+    {"id": "AC-7", "text": "With release_announce empty (or every row posted_at NULL) the reply says no build has been announced yet and still gives the releases URL; a test covers both cases and asserts no exception and no fabricated version string."},
+    {"id": "AC-8", "text": "The reply passes scrub, contains no task id, packet path, ledger id or role name, and is at most 2000 characters; a test asserts the length bound and the absence of internal tokens."},
+    {"id": "AC-9", "text": "bot/README.md documents /download, its single release_announce read, and that it is not channel-gated."},
+    {"id": "AC-10", "text": "Both required checks pass; no existing test is deleted, skipped or weakened; /suggest, the announce loop and its green gate, relay_decisions, publish_weekly_digests, on_message and open_database are unmodified, and bot/release_notes.py, bot/digest.py, tests/test_announce.py and tests/test_digest.py are byte-identical to main."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 3,
+    "max_diff_lines": 300,
+    "max_tool_calls": 60,
+    "max_wall_clock_seconds": 2100,
+    "cost_ceiling_usd": 20.0,
+    "value_usd": 90.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "Revert the branch. The command is additive and reads one row; nothing it does is durable, so a revert is complete. If it has already answered a player with a wrong build id, the fix is forward — the reply is ephemeral and no correction post is owed."
+}

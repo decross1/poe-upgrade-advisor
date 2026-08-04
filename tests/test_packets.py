@@ -228,6 +228,16 @@ def test_every_example_packet_validates():
         # message content. Its check names tests/test_announce.py, which the
         # packet itself creates — see _check_targets_unbuilt_scope below.
         "TASK-300-S2.json",
+        # 2026-08-04: /download (issue #178, operator feature request). The
+        # second slash command ever — a player asks where the app is, how to
+        # update, and whether their copy is current, and the bot answers from
+        # release_announce with no GitHub call. Gated on TASK-304-S1 (#177,
+        # orchestrator, .github/** is PROTECTED): the only public release is
+        # v0.1.0, whose zip was packaged at 7465386 — nine days and one
+        # overlay before c824050 — so a command pointing at releases/latest
+        # today would hand players a zip with no overlay while the standing
+        # announcement says run.bat starts one.
+        "TASK-304-S2.json",
     }
 
 
