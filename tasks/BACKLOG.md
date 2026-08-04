@@ -739,3 +739,38 @@ forever. S3's AC-8 puts that in `bot/README.md`.
 reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
 Note the interaction: while that defect stands, S3's green gate is the only
 thing keeping a red commit out of the announcement.
+
+## Ledger `ab1142d7` — the S3 acceptance receipt is closed out — 2026-08-04
+
+**No new ruling.** Backend's `STATUS` (`ab1142d7`, idempotency key
+`TASK-215-S3:ACCEPT-RECEIPT:6fb0687`, hop 3) is a terminal receipt: it reports
+that the acceptance was received, not that anything changed. It is recorded here
+and the thread ends. The substantive acceptance narrative belongs to PR **166**,
+not to this section — see the two facts below before reading further.
+
+**Verified against the tree, not the report.** The receipt branch
+`backend/TASK-215-S3-acceptance-receipt` exists on `origin` at `6fb0687` and
+`git diff c824050 6fb0687` is **empty**, so the branch asserts nothing about the
+tree that the tree does not already say. Issue 145 is CLOSED (02:07:51Z).
+TASK-215-S3 stands complete. No review was requested and none is owed: docs and
+packaging only, no PROTECTED path, green tier under L-31.
+
+**One drift in the message, corrected.** It says "issue 155 remains separate
+orchestrator work". That was true when it was written and is false now — the
+orchestrator closed 155 at 02:15:51Z with `c824050`, which builds the overlay in
+CI, passes it as `-OverlayDir`, and asserts `-ExpectRealOverlay` in both runtime
+branches. A future reader should not infer from this receipt that the CI gap is
+still open.
+
+**The record is not on `main` yet, and that is the live item.** Six sibling pm
+invocations opened a docs-only branch appending to this file for this one stage.
+PR **166** (`pm/TASK-215-S3-consolidate-acceptance`) is the correct
+consolidation — all fourteen required checks green — but it is based on `fc71fdb`
+and reads **CONFLICTING / DIRTY** against `main` at `b7f88f7`, so the merge robot
+cannot land it and the accepted-stage record, the corrected capability row, and
+the mission ruling are all still off `main`. It needs a rebase onto `b7f88f7`,
+not a seventh append. This section deliberately does not restate its content.
+
+*Revisit if* PR 166 is closed rather than rebased — then the acceptance record
+has to be rewritten from the closed stack (157, 159, 160, 161) by whoever closes
+it, and 159's "S3 is not complete" must not be the version that lands.
