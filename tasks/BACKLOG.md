@@ -640,3 +640,50 @@ from `BOT_DB` or that variable and nothing else.
 and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
 disagree; whoever routes next should reconcile them (the packets are the dead
 alias, per that ruling). No dispatch depends on it today.
+
+**TASK-215 — MISSION CLOSED, 2026-08-04** (ledger `1835b4c0`, backend STATUS
+receipt for the accepted CI follow-up). Backend reports nothing remains; verified
+here rather than taken on trust:
+
+- Issue 145 is CLOSED (2026-08-04T02:07:51Z), closed by the S3 PR as designed —
+  not by an accidental keyword. All three stages are on `main`: S1 `816bcb3`
+  (PR #150), S2 `1f9d181` (PR #147), S3 `22fb237` + the log-timing follow-up
+  `c38b463` (PRs #152, #156, merge `294ab8b`).
+- PR #156 is MERGED with all fourteen checks `pass`, including
+  `windows-package-cleanroom` — the job that failed on `22fb237`.
+- Re-ran the packet's required checks on current `main`:
+  `python3 -m pytest packaging/test_launch.py -q` → 23 passed;
+  `python3 scripts/check_invariants.py` → doctrine invariants: OK.
+- The receipt branch `backend/TASK-215-S3-ci-followup-acceptance-receipt`
+  @`76effdc` is a no-diff receipt against `main`, as claimed. Nothing to land.
+
+**Issue 155 closed on its own stated condition.** It was held open for exactly
+one thing: "close this on the first green `windows-package-cleanroom` on `main`",
+because a hand-built zip proves the packager works and not that the pipeline a
+player downloads from works. That run now exists — `main` @`c824050`, CI run
+30870851717, job `windows-package-cleanroom` **success**, and its log shows the
+whole chain rather than a skip: `npm --prefix overlay run package:win` →
+`overlay: packaged dist-win\PoEUpgradeAdvisorOverlay-win32-x64` →
+`package_mvp_windows.ps1 -OverlayDir` → `cleanroom_windows_check.ps1
+-ExpectRealOverlay` → `overlay expected: real packaged app` → `PASS:
+overlay/PoEUpgradeAdvisorOverlay.exe present in extracted zip`. A CI-produced zip
+has now been observed to contain the overlay executable. That is the claim the
+release announcement needed, and it unblocks with this. Confirmed twice: the job
+also passes at the current tip `294ab8b` (run 30871115720), i.e. with the
+log-timing follow-up in place, so this is not one lucky run on a since-changed
+script.
+
+**So the overlay release announcement is now unblocked** and still needs the one
+operator action already recorded above: `RELEASE_SINCE_REF` set in the bot
+runtime. It should say plainly that the in-game overlay ships in the Windows zip,
+starts with `run.bat`, and answers Ctrl+Alt+D.
+
+**Left open deliberately, not forgotten.** Three pm PRs on TASK-215 acceptance
+branches (#157, #159, #160) are still open and each records a slice of this
+acceptance history. They are documentation-only and non-conflicting; whoever
+routes next should land or close them as a batch rather than one per invocation.
+Also still open: #134 (flaky `windows-package-cleanroom` "port still bound after
+stop"), now on a job that additionally downloads ~100 MB of Electron every run.
+If it turns slow and flaky together, the split is real-overlay on `main` only and
+`-ExpectStubOverlay` on PRs — never a relaxed assertion. Revisit if #134 fires
+twice more.
