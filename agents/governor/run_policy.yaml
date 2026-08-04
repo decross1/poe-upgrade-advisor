@@ -19,18 +19,36 @@
 # numbers from measured shakedown telemetry before unattended operation.
 
 per_day_max:
-  # 2026-08-03 [O]perator ruling: double pm's daily cap for this session.
-  # Measured basis, not a guess: pm reached 27 invocations by 07:07Z with only
-  # 7 successes, and the overrun mattered far more than pm's own throughput —
-  # pm is the org's ROUTER, so its cap is the binding constraint on the WHOLE
-  # org. When it hit, four mission messages (TASK-210-S2/S3/S4, TASK-009) sat
-  # retained on "daily cap" for eight hours while a healthy, funded frontend
-  # role idled with an empty queue. 24 was always [E] — a placeholder from a
-  # three-day run under different roles. 48 is [O]perator-set for today and
-  # still bounded; revisit from shakedown telemetry rather than keeping it.
-  pm: 48
-  backend: 36
-  frontend: 36
+  # 2026-08-04 [O]perator ruling, superseding the 24 -> 48 doubling below:
+  # "don't put artificial caps on things like the number of invocations —
+  # just increase this number if we have not hit the session limits."
+  #
+  # The point of the run is to measure what THIS subscription level actually
+  # delivers on a discrete objective. A self-imposed daily cap corrupts that
+  # measurement: it makes the org look slower than the subscription is, and
+  # every hour it idles below the provider ceiling is a lost data point, not
+  # a saved resource. The PROVIDER's own refusal is the exhaustion signal
+  # (L-14), and it is the only one that measures anything real.
+  #
+  # Evidence this cap was pure loss: pm hit 48 at ~20:30Z with claude at 62%
+  # of weekly remaining, then idled ~7.5h. Earlier the same day it hit 24 and
+  # cost the org an eight-hour stall while a funded frontend sat empty. Both
+  # stalls were self-inflicted; neither provider ever refused.
+  #
+  # These numbers are deliberately far above any plausible day so the cap
+  # stops binding, WITHOUT removing the key — budget_governor does
+  # p["per_day_max"][role] with no guard, so deleting a role KeyErrors every
+  # governor call. Runaway protection does not live here anyway: it is the
+  # per-message attempt cap, the circuit breaker, the anti-loop controller,
+  # and the provider-limit gate.
+  pm: 500
+  backend: 500
+  # frontend runs on kimi, the ONE metered budget, and L-29 means its spend is
+  # currently unmeasurable (every cash_usd row is null). Raised well clear of
+  # binding, but kept lower than the subscription roles as a crude backstop
+  # until spend is actually observable. The Kimi console remains the real
+  # ceiling.
+  frontend: 300
 daily_reset_hour_utc: 4
 
 roles:
