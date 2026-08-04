@@ -527,8 +527,8 @@ game focus or failing to start on a real machine — the fallback is a separate
     build". Runs after S1 and S2 are on `main`.
 
 Dispatch order: **S1 and S2 in parallel** (different roles, no shared file);
-**S3 once both are on `main`**. S2 is done; **S1 has not started** (no
-`frontend/TASK-215-S1-*` branch on `origin`), and S3 is queued behind it.
+**S3 once both are on `main`**. S2 is done. **S1 is accepted** (PR #150,
+`frontend/TASK-215-S1-package-win` @816bcb3) and S3 is queued behind it landing.
 
 **Ruling, 2026-08-04 — a stage PR does not close its parent issue.** PR #147
 (S2) used a closing keyword on #145, so merging it closed the parent TASK-215
@@ -559,6 +559,67 @@ first: the PM is the role that writes about closures for a living, and is
 therefore the role most likely to trigger one by describing it. Revisit if the
 repo ever gains a merge-time check that rejects the pattern mechanically — that
 would live under `.github/**`, so it is orchestrator work, not packetable.
+
+**Second amendment, 2026-08-04 — stop writing the token; the verb list is not
+the bug.** The amendment above failed twice more, immediately and in its own
+text. (1) The commit that wrote it, `45cc773`, contains the sentence "Merging
+that PR (#148) at 01:30Z closed #145 again" — a past-tense closing verb next to
+the parent number, which is exactly the pattern it was banning, so the parent
+issue closed a third time the moment that PR merged. (2) The merge commit that
+landed it, `20008ab`, contains the phrase "never Fixes #145" while quoting the
+first rule, so it would have closed the parent a fourth time. Reopened again
+here (fourth reopen), before accepting S1.
+
+Two things are now established by evidence rather than argument. First, a rule
+phrased as "avoid these verbs" cannot be obeyed by prose that must *describe* a
+closure — the describing sentence keeps producing the pattern, and the PM is
+the role that writes those sentences. Second, the rule must bind text the PM
+does not author: `20008ab` is a **merge commit**, composed at land time, not by
+the branch author, and it reached `main` carrying the token.
+
+**Standing rule, replacing the verb list.** On any branch bound for `main`, the
+bare token `#<parent issue number>` appears in a commit message or PR body
+**exactly once**, on a line that is exactly `Refs #<parent>`. Everywhere else —
+prose, quotations, rationale, merge-commit summaries, this kind of postmortem —
+refer to the issue by number without the hash ("issue 145", "the parent
+mission"). No verb list to remember, no judgment call about quotation vs
+instruction, and it is checkable in one command before pushing:
+
+```
+git log --format=%B origin/main..HEAD | grep -c '#145'   # must equal the number of stage commits, all Refs lines
+gh pr view <n> --json body -q .body | grep -c '#145'     # must equal 1
+```
+
+Only the final stage of a packet set may deviate, and only in its PR body, to
+close the parent on purpose. Revisit if the repo gains a merge-time check that
+rejects the pattern mechanically — that lives under `.github/**`, so it is
+orchestrator work, not packetable (see the routing note below).
+
+**TASK-215-S1 — ACCEPTED, 2026-08-04** (ledger `673ed04c`, frontend STATUS).
+PR #150, `frontend/TASK-215-S1-package-win` @816bcb3. Verified against the
+packet's eight acceptance criteria: `overlay/package.mjs` exports the
+cross-stage artifact contract (`OUT_DIR` = `dist-win`, `APP_NAME` =
+`PoEUpgradeAdvisorOverlay`, `PACKAGED_EXE_PATH`) and is import-side-effect-free,
+running the packager only on direct execution (AC-1); `package:win` builds then
+packages win32/x64 with asar and overwrite (AC-2); `overlay/test/packageWindows.test.ts`
+pins the contract and asserts no `icon` and no `win32metadata`, so no
+rcedit/wine (AC-3) and pins the runtime-only ignore rule (AC-4); the PR body
+carries one real packaging run — exe listing plus 351 MB total (AC-5);
+`overlay/.gitignore` excludes `dist-win/` (AC-6); README documents the step,
+the contract and the one-time ~100 MB Electron download (AC-7); `overlay/src/`
+and `overlay/build.mjs` are byte-identical to `main` and no test was deleted or
+skipped (AC-8). Diff is additive, six files, zero PROTECTED paths. Green tier,
+no review requested — correct under L-31. `overlay/.gitignore` is outside the
+packet's `files_in_scope` list but is required by AC-6 and forbidden by no
+out-of-scope glob; accepted as written rather than round-tripped.
+
+**S3 dispatches when PR #150 is on `main`**, not before: the packet says it
+runs after S1 and S2 land, and its clean-room assertion needs S1's artifact
+contract present. #150 is green on twelve required checks with
+`engine-integration` still running; the merge robot lands it on CI green with
+no counterpart approval. Backend's dispatch message says explicitly to verify
+`overlay/package.mjs` is on `main` first and to report `needs_retry` if it is
+not — a stage that starts early would hardcode names it cannot see.
 
 **Not packeted, routed to the orchestrator:** anything under `.github/**`. If a
 CI job should build or verify the overlay artifact, that is protected-path work
