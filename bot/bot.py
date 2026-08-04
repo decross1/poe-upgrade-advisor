@@ -8,6 +8,8 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
+from collections import OrderedDict
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -17,19 +19,44 @@ import requests
 
 try:
     from bot.digest import collect_digest, digest_due, render_digest, week_marker
+    from bot.release_notes import collect_release, render_release
 except ModuleNotFoundError:  # Direct execution: python bot/bot.py
     from digest import collect_digest, digest_due, render_digest, week_marker
+    from release_notes import collect_release, render_release
 
 GH_API = "https://api.github.com"
 SECRET_PATTERNS = (
     re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
     re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
 )
+INTERNAL_RELEASE_PATTERNS = (
+    re.compile(r"\btasks/packets/[^\s`]+", re.IGNORECASE),
+    re.compile(
+        r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+        r"[0-9a-f]{4}-[0-9a-f]{12}\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(?:TASK|ORG)-[A-Za-z0-9-]+:[A-Z_]+:[^\s]+"),
+)
 PIPELINE_TERMS = (
     "system prompt", "ignore previous", "jailbreak", "repo secret",
     "merge robot", "postmaster", "governor", "credential", "api key",
     "workflow", ".yaml",
 )
+MAX_ANNOUNCEMENT_LENGTH = 1900
+NUDGE_COOLDOWN_SECONDS = 6 * 60 * 60
+NUDGE_CACHE_MAX = 1024
+V0_HEADLINE = (
+    "**PoE Upgrade Advisor v0 is live**\n"
+    "• The engine parses a real in-game Ctrl+C item and returns a verdict.\n"
+    "• The web app gives you a verdict on an item you paste yourself.\n"
+    "• The in-game overlay renders the verdict card.\n"
+    '• "Open details" now shows which mods actually drove the delta.'
+)
+SUGGEST_FOOTER = (
+    "Something wrong or missing? Use `/suggest` in this channel and tell us."
+)
+SUGGEST_NUDGE = "Please use `/suggest` so your feedback reaches the team."
 
 
 def scrub(text: str) -> str:
@@ -203,8 +230,47 @@ def open_database(path: str | None = None) -> sqlite3.Connection:
         "CREATE TABLE IF NOT EXISTS weekly_digest ("
         "week TEXT PRIMARY KEY, posted_at TEXT NOT NULL)"
     )
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS release_announce ("
+        "range_end TEXT PRIMARY KEY, range_start TEXT NOT NULL, "
+        "reserved_at TEXT NOT NULL, posted_at TEXT, "
+        "includes_v0 INTEGER NOT NULL DEFAULT 0)"
+    )
     connection.commit()
     return connection
+
+
+def resolve_release_ref(repo: str, ref: str) -> str:
+    """Resolve the release range end to an immutable commit SHA."""
+    return subprocess.run(
+        ["git", "-C", repo, "rev-parse", "--verify", f"{ref}^{{commit}}"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    ).stdout.strip()
+
+
+def compose_release_announcement(rendered: str, include_v0: bool) -> str:
+    """Keep the player-facing framing even when release notes need truncation."""
+    fixed = [V0_HEADLINE] if include_v0 else []
+    fixed.append(SUGGEST_FOOTER)
+    separators = 2 * len(fixed)
+    available = MAX_ANNOUNCEMENT_LENGTH - sum(map(len, fixed)) - separators
+    if len(rendered) > available:
+        rendered = rendered[: available - 1].rstrip() + "…"
+    parts = ([V0_HEADLINE] if include_v0 else []) + [rendered, SUGGEST_FOOTER]
+    message = scrub("\n\n".join(parts))
+    for pattern in INTERNAL_RELEASE_PATTERNS:
+        message = pattern.sub("[internal]", message)
+    message = re.sub(
+        r"\b(?:backend|frontend|pm|agent)\b", "team", message, flags=re.IGNORECASE
+    )
+    for name in ("DISCORD_TOKEN", "GITHUB_TOKEN", "BOT_DB", "ANNOUNCE_CHANNEL_ID"):
+        value = os.environ.get(name)
+        if value:
+            message = message.replace(value, "[scrubbed]")
+    return message
 
 
 def decision_comments(
@@ -229,11 +295,97 @@ class Bot(discord.Client):
         super().__init__(intents=discord.Intents.default())
         self.tree = app_commands.CommandTree(self)
         self.db = database or open_database()
+        self._announce_nudges: OrderedDict[int, float] = OrderedDict()
 
     async def setup_hook(self) -> None:
         await self.tree.sync()
         asyncio.create_task(self.relay_decisions())
         asyncio.create_task(self.publish_weekly_digests())
+        asyncio.create_task(self.publish_release_announcement())
+
+    async def announce_release_once(self) -> bool:
+        """Reserve and, when non-empty, post one immutable release range."""
+        prior = self.db.execute(
+            "SELECT range_end FROM release_announce ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        since = prior[0] if prior else os.environ.get("RELEASE_SINCE_REF")
+        if not since:
+            print("release announcement skipped: RELEASE_SINCE_REF is unset")
+            return False
+
+        repo = os.environ.get(
+            "RELEASE_REPO_PATH", str(Path(__file__).resolve().parents[1])
+        )
+        until = await asyncio.to_thread(
+            resolve_release_ref,
+            repo,
+            os.environ.get("RELEASE_ANNOUNCE_REF", "main"),
+        )
+        if self.db.execute(
+            "SELECT 1 FROM release_announce WHERE range_end=?", (until,)
+        ).fetchone():
+            return False
+
+        rendered = None
+        if since != until:
+            release = await asyncio.to_thread(collect_release, repo, since, until)
+            rendered = render_release(release)
+
+        cursor = self.db.execute(
+            "INSERT OR IGNORE INTO release_announce "
+            "(range_end, range_start, reserved_at, includes_v0) "
+            "SELECT ?, ?, datetime('now'), "
+            "CASE WHEN ? AND NOT EXISTS "
+            "(SELECT 1 FROM release_announce WHERE includes_v0=1) "
+            "THEN 1 ELSE 0 END",
+            (until, since, bool(rendered)),
+        )
+        self.db.commit()
+        if cursor.rowcount != 1 or not rendered:
+            return False
+
+        include_v0 = bool(
+            self.db.execute(
+                "SELECT includes_v0 FROM release_announce WHERE range_end=?",
+                (until,),
+            ).fetchone()[0]
+        )
+        channel = self.get_channel(int(os.environ["ANNOUNCE_CHANNEL_ID"]))
+        if channel is None:
+            raise RuntimeError("announcement channel is unavailable")
+        await channel.send(compose_release_announcement(rendered, include_v0))
+        self.db.execute(
+            "UPDATE release_announce SET posted_at=datetime('now') "
+            "WHERE range_end=?",
+            (until,),
+        )
+        self.db.commit()
+        return True
+
+    async def publish_release_announcement(self) -> None:
+        await self.wait_until_ready()
+        try:
+            await self.announce_release_once()
+        except Exception as error:
+            print(f"release announcement error: {error}")
+
+    async def on_message(self, message: discord.Message) -> None:
+        """Point announce-channel replies at explicit, structured intake."""
+        channel_id = os.environ.get("ANNOUNCE_CHANNEL_ID")
+        if not channel_id or message.channel.id != int(channel_id):
+            return
+        if message.author.bot:
+            return
+        user_id = int(message.author.id)
+        now = time.monotonic()
+        last = self._announce_nudges.get(user_id)
+        if last is not None and now - last < NUDGE_COOLDOWN_SECONDS:
+            return
+        self._announce_nudges[user_id] = now
+        self._announce_nudges.move_to_end(user_id)
+        while len(self._announce_nudges) > NUDGE_CACHE_MAX:
+            self._announce_nudges.popitem(last=False)
+        await message.reply(SUGGEST_NUDGE, mention_author=False)
 
     async def relay_once(self) -> None:
         rows = list(

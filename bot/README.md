@@ -22,10 +22,18 @@ it normalizes, scrubs, fences, quarantines (see SECURITY posture in bot.py).
 - `SUGGEST_CHANNEL_ID`: ID of the single `#poe` channel where `/suggest` is
   accepted. Set it to the same channel ID as `ANNOUNCE_CHANNEL_ID` in the MVP
   runtime.
-- `ANNOUNCE_CHANNEL_ID`: ID where the Sunday 18:00 UTC digest is posted.
-  The bot collects the prior seven days of shipped work and decisions using
-  `git` and `gh`, renders one player-facing message of at most 1900 characters,
-  and records a durable ISO-week marker in `BOT_DB`. Empty weeks post nothing.
+- `ANNOUNCE_CHANNEL_ID`: ID where release announcements and the Sunday 18:00
+  UTC digest are posted. Release announcements are at most 1900 characters.
+- `RELEASE_SINCE_REF`: required starting git ref when no release range has yet
+  been recorded. If it is unset, startup logs a skip and never announces the
+  repository's whole history.
+- `RELEASE_ANNOUNCE_REF`: git ref to announce through; defaults to `main` and is
+  resolved to an immutable commit SHA before the range is reserved.
+- `RELEASE_REPO_PATH`: optional path to the git checkout used for release-note
+  collection; defaults to the repository containing `bot/bot.py`.
+- The weekly digest collects the prior seven days of shipped work and decisions
+  using `git` and `gh`, then records a durable ISO-week marker in `BOT_DB`.
+  Empty weeks post nothing.
 - `GITHUB_REPO` and the runtime's authenticated `gh` CLI must allow read access
   to pull requests, issues, and comments for digest collection.
 - `DECISION_AUTHOR_LOGIN`: exact GitHub login allowed to relay `[DECISION]`
@@ -52,6 +60,21 @@ creates no mapping or Discord thread.
 In the MVP's single-channel mode, `/suggest`, welcome and announcement posts all
 live in `#poe`; each suggestion's PM decision is relayed into a public thread
 under that channel.
+
+Release ranges are recorded in the `release_announce` table in `BOT_DB`, keyed
+by their resolved end SHA. A row is reserved before Discord is called and is
+marked posted only after the send returns. This deliberately chooses
+at-most-once delivery: after an ambiguous send failure the range is not retried,
+because a missed announcement is less disruptive than making players read a
+duplicate. Keep `BOT_DB` on durable storage or that guarantee cannot survive a
+restart.
+
+A non-bot message in the announcement channel gets a short nudge to use
+`/suggest`, the only intake path. The bot never reads message content and runs
+with default Discord intents; the privileged Message Content intent is neither
+needed nor enabled. Nudges are limited to once per user per six hours in a
+bounded 1,024-user in-memory record. A restart clears that record, so it may
+produce at most one early re-nudge per user.
 
 Deployment and the one-time Discord application/token/channel creation remain
 human-operated. Never print tokens in setup logs or issue comments.

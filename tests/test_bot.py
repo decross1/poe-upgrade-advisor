@@ -200,3 +200,50 @@ def test_weekly_digest_is_marked_only_once(tmp_path, monkeypatch):
     assert list(module.bot.db.execute("SELECT week FROM weekly_digest")) == [
         ("2026-W30",)
     ]
+
+
+class ContentGuardMessage:
+    def __init__(self, channel_id, user_id, *, bot=False):
+        self.channel = SimpleNamespace(id=channel_id)
+        self.author = SimpleNamespace(id=user_id, bot=bot)
+        self.reply = AsyncMock()
+
+    @property
+    def content(self):
+        raise AssertionError("announce nudge must never read message.content")
+
+
+def test_announce_reply_nudge_never_reads_content_and_rate_limits(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("ANNOUNCE_CHANNEL_ID", "123")
+    module = load_bot_module(tmp_path, monkeypatch)
+    message = ContentGuardMessage(123, 7)
+
+    clock = SimpleNamespace(monotonic=Mock(side_effect=[0.0, 1.0, 21600.0]))
+    with patch.object(module, "time", clock):
+        asyncio.run(module.bot.on_message(message))
+        asyncio.run(module.bot.on_message(message))
+        asyncio.run(module.bot.on_message(message))
+
+    assert message.reply.await_count == 2
+    assert message.reply.await_args_list[0].args == (module.SUGGEST_NUDGE,)
+    assert message.reply.await_args_list[0].kwargs == {"mention_author": False}
+    assert "/suggest" in module.SUGGEST_NUDGE
+
+
+def test_announce_nudge_ignores_bots_and_other_channels_and_is_bounded(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("ANNOUNCE_CHANNEL_ID", "123")
+    module = load_bot_module(tmp_path, monkeypatch)
+    monkeypatch.setattr(module, "NUDGE_CACHE_MAX", 2)
+    ignored = [ContentGuardMessage(999, 1), ContentGuardMessage(123, 2, bot=True)]
+    accepted = [ContentGuardMessage(123, user_id) for user_id in (10, 11, 12)]
+
+    for message in ignored + accepted:
+        asyncio.run(module.bot.on_message(message))
+
+    assert all(message.reply.await_count == 0 for message in ignored)
+    assert all(message.reply.await_count == 1 for message in accepted)
+    assert list(module.bot._announce_nudges) == [11, 12]
