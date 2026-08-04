@@ -441,6 +441,13 @@ def test_windows_package_script_stages_overlay_or_explicit_stub():
     assert 'if ($StubOverlay)' in script
     assert 'ROOT / "overlay" / "PoEUpgradeAdvisorOverlay.exe"' in launcher
 
+    cleanroom = (ROOT / "scripts" / "cleanroom_windows_check.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert "$hasOverlayExe -and -not $hasOverlayStub" in cleanroom
+    assert "$hasOverlayStub -and -not $hasOverlayExe" in cleanroom
+    assert '"run.bat", "--no-overlay"' in cleanroom
+
 
 def test_packaged_readme_documents_current_overlay_behavior():
     readme = (ROOT / "packaging" / "README.txt").read_text(encoding="utf-8")

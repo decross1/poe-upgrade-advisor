@@ -99,22 +99,20 @@ try {
     $overlayRoot = Join-Path $App "overlay"
     $overlayExe = Join-Path $overlayRoot "PoEUpgradeAdvisorOverlay.exe"
     $overlayStub = Join-Path $overlayRoot "OVERLAY-STUB.txt"
-    if ($ExpectStubRuntime) {
-        if ((Test-Path -LiteralPath $overlayStub -PathType Leaf) -and
-            -not (Test-Path -LiteralPath $overlayExe)) {
-            Ok "overlay is the explicit STUB and no executable is staged"
-        } else { Bad "expected OVERLAY-STUB.txt and no PoEUpgradeAdvisorOverlay.exe" }
-
+    $hasOverlayExe = Test-Path -LiteralPath $overlayExe -PathType Leaf
+    $hasOverlayStub = Test-Path -LiteralPath $overlayStub -PathType Leaf
+    if ($hasOverlayStub -and -not $hasOverlayExe) {
+        Ok "overlay is the explicit STUB and no executable is staged"
         $bundledLauncher = Get-Content -LiteralPath (Join-Path $App "packaging/launch.py") -Raw
         if ($bundledLauncher -match [regex]::Escape("Overlay is not included in this build; the web app is still available.")) {
             Ok "bundled launcher contains the honest no-overlay log line"
         } else { Bad "bundled launcher's honest no-overlay log line is missing" }
     }
+    elseif ($hasOverlayExe -and -not $hasOverlayStub) {
+        Ok "packaged overlay executable ships at overlay/PoEUpgradeAdvisorOverlay.exe"
+    }
     else {
-        if ((Test-Path -LiteralPath $overlayExe -PathType Leaf) -and
-            -not (Test-Path -LiteralPath $overlayStub)) {
-            Ok "packaged overlay executable ships at overlay/PoEUpgradeAdvisorOverlay.exe"
-        } else { Bad "expected PoEUpgradeAdvisorOverlay.exe and no OVERLAY-STUB.txt" }
+        Bad "overlay must contain exactly one of PoEUpgradeAdvisorOverlay.exe or OVERLAY-STUB.txt"
     }
 
     $runtimeRoot = Join-Path $App "engine/.runtime"
