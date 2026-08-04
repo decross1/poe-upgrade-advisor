@@ -739,3 +739,40 @@ forever. S3's AC-8 puts that in `bot/README.md`.
 reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
 Note the interaction: while that defect stands, S3's green gate is the only
 thing keeping a red commit out of the announcement.
+
+## TASK-300-S4 — accepted; and the same packet was built twice
+
+**Accepted.** The one-shot overlay correction is on `main` @ `04faad2` (PR 173 @
+`5a8ee3e`). Verified from a clean checkout of that tip, not from the claim:
+`python3 -m pytest tests/test_announce.py tests/test_bot.py tests/test_digest.py
+bot/tests/test_release_notes.py -q` → 47 passed; `python3
+scripts/check_invariants.py` → OK; `grep -E "later build|not in this download"
+bot/bot.py` → no match (AC-5); `includes_overlay` appears in `CREATE TABLE`, in a
+`PRAGMA table_info`-guarded `ALTER TABLE` in `open_database` (AC-1), in the same
+`INSERT OR IGNORE` and `EXISTS` guard as `includes_v0` (AC-2), and in
+`compose_release_announcement`'s `fixed` budget list (AC-6). All 14 CI checks
+green. Issue 164 is closed.
+
+The mission's **feedback** condition is now armed, not yet met: the correction
+reaches players when the next non-empty green range is announced, and that still
+requires `RELEASE_SINCE_REF` set in the bot runtime. That operator action is the
+only thing between this code and the channel.
+
+**PR 174 closed unmerged — duplicate, not a rejection.** Two backend
+invocations built TASK-300-S4 in parallel from the same packet and the same
+`main` tip: `backend/TASK-300-S4-overlay-announcement` (PR 173, merged 02:43) and
+`backend/TASK-300-S4-overlay-headline` (PR 174 @ `981aa67`, all 14 checks green).
+Both satisfy every AC; they differ only in copy layout and one `map`-vs-genexp
+line. 174 was cut before 173 landed, so merging it would rewrite already-landed
+player-facing copy for zero behaviour change — and if the headline has posted by
+then, the copy it rewrites is copy players have already read. Nothing in 174 is
+worth cherry-picking. Closed with the reasoning on the PR.
+
+**The hazard, for the record.** Two dispatches held work for one task ID; the
+second finished after the first had merged and reported `completed` in good
+faith. The dispatcher's completion proofs check that *a* branch was pushed with
+*your* commit at its tip — they cannot see that someone else already landed the
+same packet. Cheap mitigation for whoever owns dispatch: before assigning, check
+for an open or merged PR whose head branch matches `<role>/<task-id>-*`.
+*Revisit if* a third duplicate appears — at that point it is a dispatcher bug to
+fix, not a PM cleanup to repeat.
