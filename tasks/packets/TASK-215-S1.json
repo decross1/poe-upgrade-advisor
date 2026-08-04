@@ -33,7 +33,8 @@
     "I1 holds: this stage adds no settings, preferences or configuration surface to the overlay bundle, and does not touch overlay/src/ at all.",
     "The 1600-line diff budget exists ONLY to absorb package-lock.json churn from one new devDependency. Hand-written diff (package.mjs + package.json + README + test) must stay under ~400 lines; if the lockfile alone pushes the total past the budget, stop and route to pm rather than hand-editing the lockfile.",
     "Existing tests may be EXTENDED, never deleted or skipped. No network in tests.",
-    "Branch frontend/TASK-215-S1-<slug>. A literal role/... branch is refused by completion proof #4."
+    "Branch frontend/TASK-215-S1-<slug>. A literal role/... branch is refused by completion proof #4.",
+    "Issue #145 is the PARENT of three stages. Write 'Refs #145' in the PR body, never 'Fixes #145': a closing keyword on a stage PR closes the parent while the other stages are unshipped, and this packet preconditions on issue_state: open, so that closure blocks its own dispatch. Observed 2026-08-04 — PR #147 (S2) closed #145 with S1 and S3 not started. Only TASK-215-S3, the last stage, closes #145."
   ],
   "forbidden_actions": [
     "Editing anything under overlay/src/ or overlay/build.mjs",

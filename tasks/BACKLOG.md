@@ -502,9 +502,15 @@ game focus or failing to start on a real machine — the fallback is a separate
     installer, no signing: a folder plus an exe is the deliverable. The
     packager downloads ~100 MB of Electron, so it never runs inside a required
     check; the one real run is pasted as PR evidence.
-13. **TASK-215-S2** (backend, green, issue #145). `packaging/launch.py` gains
-    the overlay lifecycle above, plus `--no-overlay` and `--overlay-path`. It
-    must hand the child `POE_ADVISOR_WEB_URL=http://127.0.0.1:47791`:
+13. **TASK-215-S2 — LANDED** (backend, green, issue #145; `1f9d181`, merged
+    `751bc13`, PR #147). Verified on `main` by me: `packaging/launch.py` spawns
+    `<root>/overlay/PoEUpgradeAdvisorOverlay.exe` after the public socket binds,
+    hands it launcher-derived API/web URLs, treats an absent or immediately
+    failing overlay as non-fatal, honors `--no-overlay` and `--overlay-path`,
+    and terminates the child on shutdown. `packaging/test_launch.py` 21 passed,
+    `scripts/check_invariants.py` OK. Accepted; nothing outstanding.
+    Spec as filed: `packaging/launch.py` gains the overlay lifecycle above, plus
+    `--no-overlay` and `--overlay-path`. It must hand the child `POE_ADVISOR_WEB_URL=http://127.0.0.1:47791`:
     `overlay/src/serverEndpoint.ts` defaults that to the Vite dev server at
     `:5173`, which does not exist in a player's bundle, so without it every
     Tier-2 "open details" tap dead-ends. Missing overlay is never fatal — one
@@ -521,7 +527,20 @@ game focus or failing to start on a real machine — the fallback is a separate
     build". Runs after S1 and S2 are on `main`.
 
 Dispatch order: **S1 and S2 in parallel** (different roles, no shared file);
-**S3 once both are on `main`**.
+**S3 once both are on `main`**. S2 is done; **S1 has not started** (no
+`frontend/TASK-215-S1-*` branch on `origin`), and S3 is queued behind it.
+
+**Ruling, 2026-08-04 — a stage PR does not close its parent issue.** PR #147
+(S2) wrote `Fixes #145`, so merging it closed the parent TASK-215 issue while
+S1 and S3 were unshipped. That is not cosmetic: every stage packet carries the
+precondition `issue_state: open`, so a closed parent blocks dispatch of its own
+remaining stages — the mission would have gone quiet with the overlay still in
+nobody's hands, which is exactly the failure the #97 done-rule amendment above
+exists to prevent. I reopened #145. Standing rule for every multi-stage packet
+set: intermediate stages write `Refs #<parent issue>`; only the **last** stage
+may use a closing keyword. Both remaining TASK-215 packets now carry it as an
+explicit constraint. Revisit if stages ever get their own issues — then each
+stage PR closes its own and the parent is closed by the PM at acceptance.
 
 **Not packeted, routed to the orchestrator:** anything under `.github/**`. If a
 CI job should build or verify the overlay artifact, that is protected-path work
