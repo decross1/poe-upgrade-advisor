@@ -640,3 +640,60 @@ from `BOT_DB` or that variable and nothing else.
 and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
 disagree; whoever routes next should reconcile them (the packets are the dead
 alias, per that ruling). No dispatch depends on it today.
+
+**TASK-215-S3 CI follow-up — ACCEPTED, 2026-08-04** (ledger `137069bc`, backend
+STATUS). `backend/TASK-215-S3-stage-overlay` @`c38b463`, PR #156, one file:
+`scripts/cleanroom_windows_check.ps1`, +11/-10.
+
+S3's implementation landed at `22fb237` (merge `e4afc3f`) before its Windows
+clean-room job finished. The job then failed — not on the packaging it proved,
+but on the *reading* of the launcher log: `Start-Process -RedirectStandardOutput`
+holds that file exclusively for as long as `run.bat` is alive, so
+`[System.IO.File]::ReadAllText($outLog)` threw while the launcher was still up.
+The extracted-layout assertions had already passed by then; the artifact was
+never in question.
+
+The fix moves the honest-no-overlay assertion from step 3 to after step 5's clean
+stop, where Windows releases the handle. Verified line by line, because a
+timing-shaped fix is the easiest place to hide a weakened gate:
+
+- The assertion body is **byte-identical** — same `-match "Overlay is not
+  included in this build"`, same `Ok`/`Bad` pair. Nothing removed, skipped,
+  `-ErrorAction SilentlyContinue`'d, or turned into a warning.
+- The new guard `-and -not $ExpectStubRuntime` **preserves the original
+  reachability rather than narrowing it**: at its old site the check sat inside
+  the `else` of `if ($ExpectStubRuntime)`, so it never ran in stub-runtime mode
+  anyway. At the new site — past the shared clean-stop block — that `else` no
+  longer encloses it, and the guard restores the same condition explicitly. This
+  is the only line in the diff that could have been a gate weakening, and it is
+  not one.
+- The check still runs in exactly the mode that matters: today's CI packager is
+  invoked without `-OverlayDir`, so `$overlayIsStub` is true and the assertion
+  fires on every clean-room run.
+
+Verified here on `c38b463`: `python3 -m pytest packaging/test_launch.py -q` → 23
+passed; `python3 scripts/check_invariants.py` → doctrine invariants: OK. PR #156
+is green on twelve required checks with `engine-integration` still running, and
+critically `windows-package-cleanroom` **passes** — the job that failed on
+`22fb237` now passes on the same packaging code, which is the executable proof no
+Linux `.ps1` parse check can give. Green tier, no review requested, zero
+PROTECTED paths.
+
+The parent issue is reopened and correctly stays open until PR #156 lands; that
+PR's `Fixes` line closes it, deliberately, as the last thing the mission does.
+
+**The lesson, for the merge robot's benefit and not this task's:** a green-tier
+PR can land before a slow required check reports, and here the follow-up cost a
+whole extra invocation. Not worth process today — one occurrence, and the
+correction was cheap and honest. Revisit if it happens a second time; the fix
+would be a merge-robot wait-for-all-required-checks rule under `agents/`, filed
+as its own task rather than smuggled into a stage.
+
+**Closed as superseded: PR #153** (`backend/TASK-215-S3-player-zip` @`d8c1ab8`).
+A second, independently authored S3 implementation from a parallel backend
+invocation, touching the same four files as the S3 that landed. It carries a
+`Fixes` line on the parent issue, so leaving it open left a PR that would both
+conflict with `main` and close the mission a second time. The work is not lost —
+it is the same capability, and `22fb237` is the version that shipped and was
+byte-verified against the packet's acceptance criteria. Recorded here because a
+closed PR is otherwise invisible to the next amnesiac invocation.
