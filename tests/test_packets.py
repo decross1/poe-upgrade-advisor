@@ -208,6 +208,16 @@ def test_every_example_packet_validates():
         "TASK-215-S1.json",
         "TASK-215-S2.json",
         "TASK-215-S3.json",
+        # 2026-08-04: close the feedback loop the operator asked for. S3 makes
+        # release announcements fire without a human — bot/bot.py called
+        # publish_release_announcement() once from setup_hook, so no release
+        # could ever reach players without an operator restarting the bot —
+        # and requires a green CI run on the range so the org never announces
+        # a red release. S4 tells players the overlay actually shipped and
+        # corrects the standing v0 post, which says it "is not in this
+        # download yet": true when it posted, false since c824050.
+        "TASK-300-S3.json",
+        "TASK-300-S4.json",
         # 2026-08-04: the announce stage (#97, orchestrator ruling 99029738).
         # S1's renderer was render-only by construction and its wiring to the
         # live #poe channel was held back as operator-gated; the operator has
