@@ -230,16 +230,6 @@ try {
             if (Test-Path -LiteralPath $outLog) { Write-Host ([System.IO.File]::ReadAllText($outLog)) }
             exit 1
         }
-        if ($overlayIsStub) {
-            $startupLog = ""
-            if (Test-Path -LiteralPath $outLog) {
-                $startupLog = [System.IO.File]::ReadAllText($outLog)
-            }
-            if ($startupLog -match "Overlay is not included in this build") {
-                Ok "launcher honestly reports the overlay is not included"
-            } else { Bad "launcher missing the honest no-overlay log line" }
-        }
-
         # --- 4. Exercise the full slice over HTTP (host = tester's browser) -
         $client = New-Object System.Net.Http.HttpClient
         $client.Timeout = [TimeSpan]::FromSeconds(60)
@@ -307,6 +297,17 @@ try {
     if ($null -ne $Process -and -not $Process.HasExited) {
         & taskkill.exe /PID $Process.Id /T /F | Out-Null
         $Process.WaitForExit()
+    }
+    if ($overlayIsStub -and -not $ExpectStubRuntime) {
+        # Start-Process holds the redirected file exclusively on Windows;
+        # inspect it only after the process exits and releases the handle.
+        $startupLog = ""
+        if (Test-Path -LiteralPath $outLog) {
+            $startupLog = [System.IO.File]::ReadAllText($outLog)
+        }
+        if ($startupLog -match "Overlay is not included in this build") {
+            Ok "launcher honestly reports the overlay is not included"
+        } else { Bad "launcher missing the honest no-overlay log line" }
     }
     if ($ExpectStubRuntime -or -not (Test-PortListening $Port)) {
         Ok "server stopped, port $Port released"
