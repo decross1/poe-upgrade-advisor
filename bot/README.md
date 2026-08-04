@@ -25,10 +25,12 @@ it normalizes, scrubs, fences, quarantines (see SECURITY posture in bot.py).
 - `ANNOUNCE_CHANNEL_ID`: ID where release announcements and the Sunday 18:00
   UTC digest are posted. Release announcements are at most 1900 characters.
 - `RELEASE_SINCE_REF`: required starting git ref when no release range has yet
-  been recorded. If it is unset, startup logs a skip and never announces the
-  repository's whole history.
+  been recorded. Operators must set it in the bot runtime. If it is unset, each
+  cycle logs a skip and never announces the repository's whole history.
 - `RELEASE_ANNOUNCE_REF`: git ref to announce through; defaults to `main` and is
   resolved to an immutable commit SHA before the range is reserved.
+- `RELEASE_ANNOUNCE_POLL_SECONDS`: release-check interval; defaults to 300
+  seconds and values below 60 are raised to 60.
 - `RELEASE_REPO_PATH`: optional path to the git checkout used for release-note
   collection; defaults to the repository containing `bot/bot.py`.
 - The weekly digest collects the prior seven days of shipped work and decisions
@@ -62,8 +64,13 @@ live in `#poe`; each suggestion's PM decision is relayed into a public thread
 under that channel.
 
 Release ranges are recorded in the `release_announce` table in `BOT_DB`, keyed
-by their resolved end SHA. A row is reserved before Discord is called and is
-marked posted only after the send returns. This deliberately chooses
+by their resolved end SHA. The bot polls periodically and reserves a range only
+after GitHub reports at least one check for that SHA and every check is
+completed with a successful, neutral, or skipped conclusion. Missing GitHub
+configuration, no checks, pending or failed checks, API errors, and malformed
+responses all fail closed: the cycle posts and reserves nothing, so a later
+green tip still includes the unannounced range. A row is reserved before
+Discord is called and is marked posted only after the send returns. This chooses
 at-most-once delivery: after an ambiguous send failure the range is not retried,
 because a missed announcement is less disruptive than making players read a
 duplicate. Keep `BOT_DB` on durable storage or that guarantee cannot survive a
