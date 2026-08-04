@@ -640,3 +640,59 @@ from `BOT_DB` or that variable and nothing else.
 and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
 disagree; whoever routes next should reconcile them (the packets are the dead
 alias, per that ruling). No dispatch depends on it today.
+
+## ORG ruling, 2026-08-04 — the announce loop becomes autonomous (TASK-300-S3/S4)
+
+The overlay is in the player's zip, proven at artifact level: CI run 30870851717
+on `main` @ c824050 (`windows-package-cleanroom`) asserted
+`PASS: overlay/PoEUpgradeAdvisorOverlay.exe present in extracted zip` against a
+fresh extraction on a real Windows machine. TASK-215 is complete and the
+mission's **capability** condition is satisfied. The **feedback** condition is
+not: players have not been told, and the message standing in the channel says
+the overlay "is not in this download yet".
+
+Two packets, sequenced, both `backend`, both green tier (`bot/**` is not a
+protected path), both written this invocation:
+
+**TASK-300-S3 — issue 163 — `tasks/packets/TASK-300-S3.json`.** `bot/bot.py:305`
+fires `publish_release_announcement()` once from `setup_hook`, so an
+announcement requires an operator restart. It becomes a periodic loop shaped
+like `publish_weekly_digests`, which already polls in the same file. Safe by
+construction: `release_announce` dedups on `range_end` and `INSERT OR IGNORE`
+reserves before sending, so an empty cycle does nothing.
+
+**TASK-300-S4 — issue 164 — `tasks/packets/TASK-300-S4.json`.** A one-shot
+`OVERLAY_HEADLINE` on the next non-empty announcement: the overlay is in the
+download, starts with `run.bat`, Ctrl+Alt+D, `OVERLAY_HOTKEY` overrides,
+`run.bat --no-overlay` skips it — and it corrects the earlier post explicitly.
+`includes_overlay` mirrors `includes_v0`, including a real `ALTER TABLE`
+migration for the live `bot_state.sqlite3`, which already holds rows.
+
+### The two judgement calls the operator delegated
+
+**Interval: 300 s**, `RELEASE_ANNOUNCE_POLL_SECONDS`, floored at 60. Matches
+`relay_decisions`. A cycle costs one `git rev-parse` plus one API call.
+*Revisit if* a release visibly waits for its post.
+
+**Announce only a green range end.** The resolved `until` SHA must be green in
+CI before the range is reserved, and unknown status is not green — unset config,
+non-2xx, timeouts, in-progress checks and zero checks all mean "do not
+announce". Late beats wrong, and #158 proves a red commit can reach `main`. No
+env flag disables the gate: if green detection ever becomes the blocker, that is
+a PM decision, not a toggle an operator flips under pressure. *Revisit if* a
+green release sits unannounced because check discovery is wrong.
+
+The ordering constraint carries the risk: the green check runs **before** the
+`INSERT OR IGNORE`. A reserved-then-rejected SHA is permanently un-announceable,
+because `range_end` is the dedup key. Both packets pin it with a row-count
+assertion.
+
+**Still an operator action, unchanged:** `RELEASE_SINCE_REF` must be set in the
+bot runtime, because the first range start comes from `BOT_DB` or that variable
+and nothing else. An autonomous loop with no starting ref prints its skip line
+forever. S3's AC-8 puts that in `bot/README.md`.
+
+**Not packeted:** #158 (merge robot landed a PR 41 s after a required check
+reported FAILURE) — `agents/merge_robot/` is PROTECTED, orchestrator work.
+Note the interaction: while that defect stands, S3's green gate is the only
+thing keeping a red commit out of the announcement.

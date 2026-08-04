@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-300-S3",
+  "parent_task_id": "TASK-300",
+  "issue": 163,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Make release announcements fire without a human, and never announce a red release. bot/bot.py line 305 calls publish_release_announcement() exactly once from setup_hook, so an announcement can only happen when an operator restarts the bot — the release half of the mission's feedback loop is manual. Turn that one-shot into a periodic loop with the same shape as publish_weekly_digests (which already polls in this file), and gate it: the resolved range-end SHA must be green in CI before the range is reserved. The at-most-once machinery makes repetition safe already — release_announce dedups on range_end and INSERT OR IGNORE reserves before sending — so a cycle that finds nothing new does nothing. Two PM rulings are binding here and are not the executor's to revisit: poll every 300s (env-overridable, floored at 60s), and treat unknown CI status as not-green so nothing is announced. Announcing late is cheap; announcing a red release is not, and issue 158 shows a red commit can reach main.",
+  "preconditions": [
+    {"check": "issue_state", "expect": "open"},
+    {"check": "issue_labels", "require": ["task", "test-change-authorized"]},
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "bot/bot.py",
+    "bot/README.md",
+    "tests/test_announce.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "assumptions/**", "packaging/**", "scripts/**",
+    "tasks/**", "bot/release_notes.py", "bot/digest.py",
+    "tests/test_bot.py", "tests/test_digest.py", "bot/tests/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md", "CLAUDE.md", "README.md"
+  ],
+  "constraints": [
+    "ORDERING IS THE WHOLE POINT: resolve the range end, then check that SHA is green, and only then run the INSERT OR IGNORE reservation. A SHA that gets reserved and then rejected as red is permanently un-announceable, because range_end is the dedup key. A test must pin this by asserting the release_announce row count is unchanged after a not-green cycle.",
+    "publish_release_announcement becomes `await self.wait_until_ready()` then `while not self.is_closed():` with the announce call wrapped in try/except printing the error, then `await asyncio.sleep(interval)` — structurally identical to publish_weekly_digests. Do not invent a scheduler, a discord.ext.tasks dependency, or a backoff policy.",
+    "Interval: read RELEASE_ANNOUNCE_POLL_SECONDS, default 300, floor 60 (a smaller value is raised to 60, not rejected). A non-numeric value falls back to 300 with a printed reason rather than crashing the loop.",
+    "Green detection reads GitHub for the resolved SHA using the requests/GH_API/GITHUB_TOKEN pattern already in this file, in a helper that is a plain function so tests can patch it. Green means: at least one completed check-run or commit status for that SHA, every one of them concluded success/neutral/skipped, and none are queued/in_progress/pending. Anything else — including zero checks — is not green.",
+    "FAIL CLOSED. Unset GITHUB_REPO or GITHUB_TOKEN, a non-2xx response, a timeout, a request exception, or an unparseable body all mean not green: print one line naming the reason and return False. Never announce on an assumption. This is I5's posture (honest under uncertainty) applied to the release loop.",
+    "Network calls in the loop go through asyncio.to_thread like the existing resolve_release_ref and collect_release calls; do not block the event loop, and set an explicit request timeout.",
+    "The green gate is unconditional — there is no env flag to disable it. If a green check ever becomes the thing blocking a release, that is a PM decision to revisit, not a runtime toggle for an operator to flip under pressure.",
+    "A not-green tip is not an error and must not spam: print at most one line per cycle, and do not raise.",
+    "Existing tests in tests/test_announce.py may be EXTENDED, and existing cases may be edited ONLY to stub the new green check so they exercise the green path. Their existing assertions — scrubbing, at-most-once, empty-range marker, send-failure reservation, composer capping — stay exactly as they are. No test is deleted, skipped, or weakened; the issue carries test-change-authorized for exactly this narrow edit.",
+    "Do not touch relay_decisions, publish_weekly_digests, on_message, /suggest, the nudge cache, or compose_release_announcement's content. The overlay copy is TASK-300-S4's job and merging the two makes both harder to review.",
+    "Branch backend/TASK-300-S3-<slug>. A literal role/... branch is refused by completion proof #4.",
+    "Issue 163 is a STAGE issue and closing it is correct: write 'Fixes #163' exactly once in the PR body. Do not write a bare '#163' anywhere else, and never write a bare '#97' or '#164' in any commit message or PR body — refer to them as 'issue 97' and 'issue 164'. Four accidental parent closures happened on 2026-08-04 from exactly this pattern. Check before pushing: `gh pr view <n> --json body -q .body | grep -c '#97'` must be 0."
+  ],
+  "forbidden_actions": [
+    "Reserving a range (INSERT OR IGNORE into release_announce) before the range end is confirmed green",
+    "Adding an env var, flag or code path that disables or bypasses the green gate",
+    "Treating an unknown, errored, missing or in-progress CI status as green",
+    "Deleting, skipping or loosening any existing assertion in tests/test_announce.py",
+    "Editing bot/release_notes.py, bot/digest.py, or anything under .github/",
+    "Changing announcement copy or the compose/scrub pipeline (that is TASK-300-S4)"
+  ],
+  "required_checks": [
+    "python3 -m pytest tests/test_announce.py tests/test_bot.py tests/test_digest.py bot/tests/test_release_notes.py -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "publish_release_announcement awaits readiness then loops until the client is closed, catching and printing per-iteration exceptions and sleeping the configured interval between cycles, in the same shape as publish_weekly_digests."},
+    {"id": "AC-2", "text": "The interval is RELEASE_ANNOUNCE_POLL_SECONDS, default 300, floored at 60, with a non-numeric value falling back to 300 and printing a reason; a test asserts the default, the override, the floor and the fallback."},
+    {"id": "AC-3", "text": "A test drives several loop iterations — including one where announce_release_once raises — and asserts the loop keeps running and the sleep interval is honored."},
+    {"id": "AC-4", "text": "announce_release_once resolves the range end, verifies that SHA is green, and returns False WITHOUT inserting any row when it is not; the test asserts the release_announce row count is identical before and after."},
+    {"id": "AC-5", "text": "Green detection is fail-closed for every failure mode: unset GITHUB_REPO or GITHUB_TOKEN, non-2xx, request exception, queued/in_progress checks, any non-success conclusion, and zero checks each yield not-green with a one-line printed reason; each is covered by a test case."},
+    {"id": "AC-6", "text": "On a green SHA the existing behavior is unchanged: reserve, send exactly once, set posted_at, never repost the same range_end — proven by the pre-existing test_announce cases still passing with only a green stub added."},
+    {"id": "AC-7", "text": "A red tip followed by a later green tip announces the range ending at the green SHA with range_start still the prior range_end, so no merged commit is skipped; asserted by a test over a red-then-green sequence."},
+    {"id": "AC-8", "text": "bot/README.md documents the periodic loop, RELEASE_ANNOUNCE_POLL_SECONDS, the green gate and its fail-closed posture, and the standing operator requirement that RELEASE_SINCE_REF be set in the bot runtime for the first announcement."},
+    {"id": "AC-9", "text": "Both required checks pass; no test is deleted or skipped; bot/release_notes.py, bot/digest.py, tests/test_bot.py and tests/test_digest.py are byte-identical to main; relay_decisions, publish_weekly_digests, on_message and /suggest are unmodified."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 3,
+    "max_diff_lines": 420,
+    "max_tool_calls": 70,
+    "max_wall_clock_seconds": 2400,
+    "cost_ceiling_usd": 30.0,
+    "value_usd": 140.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "Revert the branch: announcements go back to firing once per operator restart, and nothing is mis-announced in the meantime. Safe to revert alone — TASK-300-S4 depends on this stage's file state but not on its behavior, so a revert after S4 lands would leave the overlay headline correct but again human-triggered."
+}

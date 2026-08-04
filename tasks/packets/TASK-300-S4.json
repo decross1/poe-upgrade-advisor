@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "task_id": "TASK-300-S4",
+  "parent_task_id": "TASK-300",
+  "issue": 164,
+  "owner_role": "backend",
+  "tier": "green",
+  "objective": "Tell players the overlay shipped, and correct the post that says it did not. The overlay is now in the downloadable zip, proven artifact-level: CI run 30870851717 on main @ c824050 (windows-package-cleanroom) asserted 'PASS: overlay/PoEUpgradeAdvisorOverlay.exe present in extracted zip' against a fresh extraction on Windows. Meanwhile V0_HEADLINE — standing in the channel right now — says the overlay 'works, but it is not in this download yet; it ships in a later build'. True when posted, false today, and it can never self-correct because includes_v0 is permanently 1. This stage adds a one-shot OVERLAY_HEADLINE that rides the next non-empty announcement, mirroring the includes_v0 mechanism exactly: a new includes_overlay column reserved in the same INSERT OR IGNORE, attached once and never again. It must also migrate the live bot_state.sqlite3, which already holds rows under the old schema, and it must budget the headline in compose_release_announcement so truncation can never eat the very sentence the announcement exists to deliver. Runs AFTER TASK-300-S3 is on main: same function, same table, and an overlay note nobody can post is worth nothing.",
+  "preconditions": [
+    {"check": "issue_state", "expect": "open"},
+    {"check": "issue_labels", "require": ["task", "test-change-authorized"]},
+    {"check": "baseline_checks"}
+  ],
+  "files_in_scope": [
+    "bot/bot.py",
+    "bot/README.md",
+    "tests/test_announce.py"
+  ],
+  "files_out_of_scope": [
+    "agents/**", ".github/**", "contracts/**", "engine/**", "server/**",
+    "web/**", "overlay/**", "assumptions/**", "packaging/**", "scripts/**",
+    "tasks/**", "bot/release_notes.py", "bot/digest.py",
+    "tests/test_bot.py", "tests/test_digest.py", "bot/tests/**",
+    "PRODUCT_DOCTRINE.md", "AGENTS.md", "CLAUDE.md", "README.md"
+  ],
+  "constraints": [
+    "PRECONDITION IN PRACTICE: do not start until TASK-300-S3 is on main — `git fetch && git grep -q RELEASE_ANNOUNCE_POLL_SECONDS origin/main -- bot/bot.py`. If it is absent, stop and report needs_retry. S3 rewrites publish_release_announcement and the reservation path; landing S4 first guarantees a conflict and an announcement that still needs a human restart to appear.",
+    "The live bot_state.sqlite3 predates this column. Changing CREATE TABLE IF NOT EXISTS alone does NOTHING to an existing database — add an idempotent migration in open_database (PRAGMA table_info, then ALTER TABLE ADD COLUMN when absent) and prove it against a DB built with main's schema that already contains a posted row.",
+    "Reserve includes_overlay in the SAME INSERT OR IGNORE that reserves includes_v0, with the same EXISTS guard shape, so the one-shot survives a crash between reserve and send exactly the way v0 did. Do not add a second write, a second table, or a post-send flag.",
+    "OVERLAY_HEADLINE is player-facing copy and must say, in plain words a new player understands: the in-game overlay is now IN the download; it starts automatically with run.bat; the hotkey is Ctrl+Alt+D; OVERLAY_HOTKEY overrides it; run.bat --no-overlay runs the web page alone. Match packaging/README.txt — if these two disagree, players hit the disagreement on their first run.",
+    "It must also correct the record explicitly: state that the earlier post said the overlay was not in the download yet, and that this is no longer true. Do not quietly announce the new thing and hope nobody remembers the old one — players were told something false and are owed the correction.",
+    "Rewrite V0_HEADLINE's 'not in this download yet; it ships in a later build' clause so the repo carries no false claim, with a short comment noting it can never repost because includes_v0 is permanently 1. This is hygiene, not delivery: the correction reaches players only through OVERLAY_HEADLINE.",
+    "compose_release_announcement must put OVERLAY_HEADLINE in the `fixed` budget list exactly as V0_HEADLINE is, so an oversized render truncates the notes and never the headline or the /suggest footer. The 1900-char cap is not negotiable.",
+    "The composed message still goes through scrub, INTERNAL_RELEASE_PATTERNS and the role-word replacement — do not build a path around them, and do not put an internal task id, packet path, ledger id or role name in the headline copy.",
+    "Do not touch the S3 loop or the green gate, relay_decisions, publish_weekly_digests, on_message, /suggest, or bot/release_notes.py's rendering.",
+    "Existing tests in tests/test_announce.py may be EXTENDED, and existing cases edited ONLY where the new headline changes an expected message body. Their scrubbing, at-most-once, empty-range and send-failure assertions stay as they are; no test is deleted, skipped or weakened.",
+    "Branch backend/TASK-300-S4-<slug>. A literal role/... branch is refused by completion proof #4.",
+    "Issue 164 is a STAGE issue and closing it is correct: write 'Fixes #164' exactly once in the PR body. Never write a bare '#97' in any commit message or PR body — the ORG mission issue must stay open; refer to it as 'issue 97'. Check before pushing: `gh pr view <n> --json body -q .body | grep -c '#97'` must be 0."
+  ],
+  "forbidden_actions": [
+    "Adding includes_overlay to CREATE TABLE without an ALTER TABLE migration for existing databases",
+    "Sending the overlay headline more than once, or on an empty range",
+    "Letting truncation drop the headline or the /suggest footer, or exceeding 1900 characters",
+    "Leaving any 'not in this download yet' or 'ships in a later build' claim in bot/bot.py",
+    "Announcing the overlay without correcting the earlier post",
+    "Modifying the S3 announce loop or green gate, bot/release_notes.py, bot/digest.py, or anything under .github/"
+  ],
+  "required_checks": [
+    "python3 -m pytest tests/test_announce.py tests/test_bot.py tests/test_digest.py bot/tests/test_release_notes.py -q",
+    "python3 scripts/check_invariants.py"
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "text": "release_announce gains includes_overlay INTEGER NOT NULL DEFAULT 0 in CREATE TABLE plus an idempotent PRAGMA table_info / ALTER TABLE ADD COLUMN migration in open_database; a test opens a database created with main's schema and containing a posted row, runs open_database twice, and asserts the column exists and the row survives both times."},
+    {"id": "AC-2", "text": "includes_overlay is reserved in the same INSERT OR IGNORE as includes_v0 with the same EXISTS guard, so exactly one range ever carries it; a test asserts the first non-empty announcement carries the overlay headline and the next one does not."},
+    {"id": "AC-3", "text": "OVERLAY_HEADLINE states that the in-game overlay is now in the download, starts automatically with run.bat, uses the Ctrl+Alt+D hotkey, is overridable via OVERLAY_HOTKEY, and can be skipped with run.bat --no-overlay; a test asserts each of those five facts appears in the sent message."},
+    {"id": "AC-4", "text": "OVERLAY_HEADLINE explicitly corrects the earlier post — it says the previous note reported the overlay was not in the download yet and that this is no longer true; a test asserts the correcting sentence is present."},
+    {"id": "AC-5", "text": "V0_HEADLINE no longer claims the overlay is absent from the download; grep for 'later build' and 'not in this download' over bot/bot.py returns nothing, asserted by a test, and a comment records that it can never repost."},
+    {"id": "AC-6", "text": "compose_release_announcement budgets OVERLAY_HEADLINE in its fixed list; a test with an oversized rendered body asserts the headline and the /suggest footer survive intact, the notes are the part truncated, and the total length is at most 1900."},
+    {"id": "AC-7", "text": "The overlay announcement still passes scrub, the internal-pattern filters and the role-word replacement, and the headline copy contains no task id, packet path, ledger id or role name; asserted by extending the existing scrubbing test."},
+    {"id": "AC-8", "text": "bot/README.md documents the one-shot overlay headline, the new column and its migration, and that the headline attaches to the first non-empty announcement after this lands."},
+    {"id": "AC-9", "text": "Both required checks pass; no test is deleted or skipped; the S3 loop and green gate, relay_decisions, publish_weekly_digests, on_message and /suggest are unmodified, and bot/release_notes.py, bot/digest.py, tests/test_bot.py and tests/test_digest.py are byte-identical to main."}
+  ],
+  "budgets": {
+    "max_attempts": 2,
+    "max_files_modified": 3,
+    "max_diff_lines": 320,
+    "max_tool_calls": 60,
+    "max_wall_clock_seconds": 2100,
+    "cost_ceiling_usd": 25.0,
+    "value_usd": 120.0
+  },
+  "routing": { "reasoning_effort": "medium", "review_only_if": [] },
+  "rollback": "Revert the branch before the headline has posted and nothing is lost. Reverting AFTER it posts does not unsend it and would drop the includes_overlay column that records the send — so once posted, correct forward with a new stage rather than reverting."
+}
