@@ -1,0 +1,2 @@
+# Packaged Windows artifact (TASK-215-S1) — never commit a package run.
+dist-win/
