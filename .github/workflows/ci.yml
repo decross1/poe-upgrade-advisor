@@ -101,7 +101,10 @@ jobs:
     runs-on: windows-latest
     permissions:
       actions: read  # cross-run artifact download (lane A runtime)
-      contents: read
+      # contents: write is required by the release step below — `gh release
+      # create` 403s on read. Scoped to THIS job only; every other job in this
+      # workflow keeps the default read-only token.
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with: { submodules: true }
@@ -169,6 +172,43 @@ jobs:
           path: dist/poe-upgrade-advisor-v0-*-windows-x64.zip
           if-no-files-found: error
           retention-days: 7
+      # TASK-304-S1 part two (orchestrator; .github is PROTECTED, so no role
+      # can do this). Publish the zip as a real Release from the SAME commit,
+      # so the asset a player downloads and the build the bot announces are one
+      # thing: the announcer gates on release_sha_is_green() for this SHA, and
+      # this step only runs once that SHA's Windows clean-room has passed.
+      #
+      # Why automation rather than a human errand: v0.1.0 sat as `latest` for a
+      # week as a Linux bundle with NO overlay while the channel said the
+      # overlay had shipped, and the artifact behind the manual path EXPIRES
+      # after the 7-day retention above. A hand-cut release goes stale
+      # silently, and /download resolves releases/latest.
+      #
+      # main pushes only — a PR must never publish. continue-on-error because a
+      # publish failure must not turn the clean-room job red: the zip is
+      # already uploaded above and the BUILD is still proven either way.
+      - name: publish the Windows build as a Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $zip = Get-ChildItem dist/poe-upgrade-advisor-v0-*-windows-x64.zip | Select-Object -First 1
+          if ($null -eq $zip) { throw "no Windows zip to publish" }
+          $sha = "${{ github.sha }}"
+          $short = $sha.Substring(0, 7)
+          $lines = @(
+            "**Windows x86-64. The in-game overlay is included.**",
+            "",
+            "Extract anywhere and run run.bat - it starts the local server, the web page and the overlay together. Press Ctrl+Alt+D to show the overlay; set OVERLAY_HOTKEY to change it, or use 'run.bat --no-overlay' for the web page alone.",
+            "",
+            "Requires Windows x64 and Python 3.10+. Everything binds to 127.0.0.1; nothing is sent anywhere.",
+            "",
+            ("Built from " + $sha + " with the Windows clean-room check asserting overlay/PoEUpgradeAdvisorOverlay.exe is present in the extracted archive.")
+          )
+          Set-Content -LiteralPath notes.md -Value $lines -Encoding utf8
+          gh release create "build-$short" $zip.FullName --title "Windows build $short" --notes-file notes.md --target $sha 2>&1 | Write-Host
   windows-worker-pipes:
     # TASK-209 / issue #75: Windows selectors reject anonymous subprocess
     # pipes. Exercise the real JsonRpcWorker ping/response path on Windows so
