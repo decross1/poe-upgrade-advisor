@@ -463,10 +463,16 @@ own artifact suppresses the signal it waits for cannot be a completion test.
 | Item comparison for this season, real engine | yes (`9d63b72`, `69a1f6a`) | yes — Windows zip |
 | Verdict on an item you paste yourself | yes (`b8620b5`) | yes — web page in the zip |
 | Tier-2 "which mods drove it" | yes (`c05ae0e`) | yes — same page |
-| **In-game overlay that pops up on Ctrl+C** | yes (`1846df2`) | **NO** — `grep overlay scripts/package_mvp_windows.ps1` returns nothing |
+| **In-game overlay that pops up on Ctrl+C** | yes (`1846df2`) | **yes** — `22fb237` + `c824050`, asserted on the extracted zip (see the S3 closeout below) |
 
-So exactly one capability is unshipped, and the mission stays open until it is
-installable. **Checking the amendment is mechanical**, and that is deliberate:
+**Corrected 2026-08-04 after TASK-215-S3 landed** (the row above read **NO** —
+`grep overlay scripts/package_mvp_windows.ps1` returned nothing — from the
+amendment's authorship until then). Every capability named in the mission issue
+is now installable by a player, and that fact is pinned by a required check
+rather than by this paragraph. The mission nonetheless stays open on its second
+condition; see "the mission is not done yet" below.
+
+**Checking the amendment is mechanical**, and that is deliberate:
 run `scripts/package_mvp_windows.ps1`, extract the zip, and assert every named
 capability is present in it. TASK-215-S3 makes that assertion permanent in
 `scripts/cleanroom_windows_check.ps1`, so the next person does not have to
@@ -684,3 +690,82 @@ stop"), now on a job that additionally downloads ~100 MB of Electron every run.
 If it turns slow and flaky together, the split is real-overlay on `main` only and
 `-ExpectStubOverlay` on PRs — never a relaxed assertion. Revisit if #134 fires
 twice more.
+
+## TASK-215-S3 closeout — 2026-08-04 (backend STATUS, ledger `835c437a`)
+
+Backend's final STATUS on the stage: PR 156 green, tip `c38b463` pushed, stage
+complete. Verified against the tree and against CI, not against the report.
+
+**The stage meets all eight acceptance criteria** (`tasks/packets/TASK-215-S3.json`,
+read on `main`):
+
+- **AC-1** `-OverlayDir` is resolved to a full path, throws
+  `error: -OverlayDir is not a packaged Windows overlay: missing <path>` when the
+  executable is absent, and `Copy-Item -Recurse` stages the whole app folder to
+  `<stage>/overlay/` — the path `packaging/launch.py` resolves.
+- **AC-2** Without the flag the script writes `overlay/OVERLAY-STUB.txt` (what is
+  missing, the repackage command, what the launcher will say) and prints the
+  summary `NOTE: STUB overlay` line, mirroring the engine runtime stub.
+- **AC-3** `packaging/test_launch.py` gained Linux-runnable assertions over both
+  `.ps1` files covering the real branch, the stub branch and the resolved path.
+- **AC-4** `scripts/cleanroom_windows_check.ps1` asserts the **extracted** zip's
+  mutually exclusive real/stub layout, adds `-ExpectRealOverlay` /
+  `-ExpectStubOverlay`, fails on neither-or-both in auto mode, and still greps the
+  launcher log for the honest no-overlay line. No assertion was removed or
+  loosened; the later `c38b463` moved the log read after the clean shutdown
+  (`Start-Process -RedirectStandardOutput` holds the handle while `run.bat` lives)
+  with the assertion body byte-identical.
+- **AC-5/6/7** `packaging/README.txt` has no "later build" and no "upcoming
+  overlay"; it states auto-start with `run.bat`, `Ctrl+Alt+D`, the
+  `OVERLAY_HOTKEY` override, no focus stealing, "open details", and
+  `run.bat --no-overlay`; PRIVACY/SAFETY is present tense and unchanged in
+  substance (S1/S2/S3 of the doctrine).
+- **AC-8** On `main`: `python3 -m pytest packaging/test_launch.py -q` → 23 passed;
+  `python3 scripts/check_invariants.py` → `doctrine invariants: OK`.
+  `packaging/launch.py`, `packaging/run.bat` and `overlay/` are untouched by the
+  stage's diff.
+
+Backend's own diff is the four in-scope files, +174/-18, plus the +11/-10
+follow-up — inside the packet's four-file and 480-line budgets, zero PROTECTED
+paths. Green tier, no review requested: correct under L-31.
+
+**Independently re-confirmed at the tip.** Run `30871115720` on `294ab8b` — the
+tip *after* the log-timing follow-up — is green on all fourteen jobs, and the
+`windows-package-cleanroom` log shows the whole chain rather than a skip:
+`npm --prefix overlay run package:win` → `overlay: packaged
+dist-win\PoEUpgradeAdvisorOverlay-win32-x64` → `package_mvp_windows.ps1
+-OverlayDir …` → `overlay expected: real packaged app` → `PASS:
+overlay/PoEUpgradeAdvisorOverlay.exe present in extracted zip` → `clean-room
+result: 20 passed, 0 failed`. That is the artifact-level proof no `.ps1` source
+grep can give, and it is why the capability row above flipped.
+
+### The mission is not done yet, and this is why
+
+The done-rule amendment requires **both** conditions. The capability condition is
+now satisfied — every named capability is installable. The feedback condition is
+not, and it cannot start until the overlay release announcement ships, which
+still waits on the one operator action already recorded above:
+`RELEASE_SINCE_REF` set in the bot runtime. The 72-hour silence clock starts at
+the announcement, not at `c824050`. Closing the mission on capability alone would
+repeat exactly the error the operator ruled against — treating "we built it" as
+"they have it" — one step later in the pipeline. **The mission issue stays OPEN
+and its single remaining item is that announcement plus its clock.**
+
+**Reversal condition.** If a `windows-package-cleanroom` run on a release tag ever
+stages a stub despite `-ExpectRealOverlay`, the capability row is wrong about
+delivery and flips back; reopen issue 155 rather than loosening the switch.
+
+### Stale acceptance PRs closed, not left to land
+
+Six parallel pm invocations each opened a docs-only branch appending to this
+file for the same stage; five were still open with only one mergeable, and one of
+them (PR 159) recorded "S3 is **not** complete" — true when written, false since
+PR 156 landed. A record that lands after the closeout and contradicts it is worse
+than no record. PRs 157, 159, 160 and 161 are therefore closed as superseded,
+with their surviving substance carried into this section (the capability-row
+correction above is PR 161's, verbatim in substance). PR 162's content is already
+on `main` as `fb8fa51`.
+
+Standing note for the next PM: before opening an acceptance branch for a
+TASK-215-era stage, run `gh pr list --state open --search "author:@me"` — under
+concurrent dispatch the acceptance you are about to write may already exist.
