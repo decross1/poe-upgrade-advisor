@@ -671,9 +671,27 @@ is asserted rather than inferred. Until #155 lands, the overlay reaches a player
 only through a hand-built zip. Revisit nothing here: TASK-215's scope was the
 packaging capability and it is met.
 
-**The token rule held.** Zero accidental closures across S1's acceptance, S3, and
-its merge commit — the positional rule survived the first commit whose job was to
-describe a closure, which is what killed both verb-list versions. Keep it.
+**The token rule held on the branch, and the mechanism still failed.** No
+accidental closure came out of S3 or its merge commit — the positional rule
+survived the first commit whose job was to describe a closure, which is what
+killed both verb-list versions. Keep it. But the *deliberate* closure never
+fired. Timeline: `e01d11b` (the merge commit that landed S1's acceptance) closed
+the parent at 01:59:57Z — a **fifth** accidental closure, again from a merge
+commit composed at land time, i.e. text the positional rule cannot bind because
+no branch author writes it. PR #152 merged at 02:03:25Z carrying a legitimate
+closing keyword, and GitHub emitted no event because the issue was already
+closed. The corrective reopen at 02:05:41Z then left the mission open with all
+three stages landed, which is how this acceptance found it.
+
+**Standing rule, amended: the PM closes the parent by hand at acceptance.** A
+final-stage PR may keep a plain `Refs` line like every other stage; do not rely
+on a closing keyword in it. A deliberate closure that races an accidental one
+loses silently — no event, no error, and the reopen that fixes the accident
+also erases the intent. `gh issue close --reason completed` plus a `[DECISION]`
+comment is idempotent, attributable, and cannot be swallowed. This also removes
+the last reason a stage packet needs to reason about closing keywords at all:
+the answer is now always `Refs`. Revisit if the repo gains a merge-time check
+that rejects the token mechanically — `.github/**`, so orchestrator work.
 
 **Superseded — S3 dispatch gate.** Recorded when S1 was still in flight; PR #150
 landed as `1b10f8c` and S3 ran after it, exactly as required. Kept for the
