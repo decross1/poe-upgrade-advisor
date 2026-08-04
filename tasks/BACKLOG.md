@@ -517,7 +517,8 @@ game focus or failing to start on a real machine — the fallback is a separate
     honest line, keep serving (I5 posture). **Independent of S1 by design**: it
     spawns a path, not S1's build, and is fully testable on Linux with a fake
     executable. `run.bat` is frozen — it already passes `%*` to `launch.py`.
-14. **TASK-215-S3** (backend, green, issue #145). Stages the packaged app into
+14. **TASK-215-S3 — LANDED** (backend, green, issue 145; `22fb237`, merged
+    `e4afc3f`, PR #152). Stages the packaged app into
     the Windows zip via a validated `-OverlayDir` (explicit `OVERLAY-STUB.txt`
     when omitted, mirroring the engine-runtime stub so a stub build fails
     honestly), asserts the executable in the extracted zip from
@@ -527,8 +528,11 @@ game focus or failing to start on a real machine — the fallback is a separate
     build". Runs after S1 and S2 are on `main`.
 
 Dispatch order: **S1 and S2 in parallel** (different roles, no shared file);
-**S3 once both are on `main`**. S2 is done. **S1 is accepted** (PR #150,
-`frontend/TASK-215-S1-package-win` @816bcb3) and S3 is queued behind it landing.
+**S3 once both are on `main`**. **All three stages are landed and accepted**
+(S2 `1f9d181`/PR #147, S1 `816bcb3`/PR #150, S3 `22fb237`/PR #152). The parent
+mission issue 145 is closed, deliberately, by the last stage's PR body — the
+first correct closure after four accidental ones. TASK-215 is done; the
+remaining overlay work is CI/release wiring, split out to issue #155 below.
 
 **Ruling, 2026-08-04 — a stage PR does not close its parent issue.** PR #147
 (S2) used a closing keyword on #145, so merging it closed the parent TASK-215
@@ -613,7 +617,67 @@ no review requested — correct under L-31. `overlay/.gitignore` is outside the
 packet's `files_in_scope` list but is required by AC-6 and forbidden by no
 out-of-scope glob; accepted as written rather than round-tripped.
 
-**S3 dispatches when PR #150 is on `main`**, not before: the packet says it
+**TASK-215-S3 — ACCEPTED, 2026-08-04** (ledger `15f0095d`, backend STATUS).
+PR #152, `backend/TASK-215-S3-stage-overlay` @22fb237, merged `e4afc3f`.
+Verified on `main` against the packet's eight acceptance criteria:
+`scripts/package_mvp_windows.ps1` takes `-OverlayDir`, resolves it to a full
+path, throws `missing <path>\PoEUpgradeAdvisorOverlay.exe` when the artifact is
+not there, and `Copy-Item -Recurse` stages the whole app folder to
+`<stage>/overlay/` — the exact path `packaging/launch.py:50` resolves (AC-1);
+omitting the flag writes `overlay/OVERLAY-STUB.txt` naming the missing files,
+the repackage command, and the launcher's honest report, plus the summary
+`NOTE: STUB overlay` line mirroring the runtime stub (AC-2);
+`packaging/test_launch.py` gains two Linux-runnable text assertions over the
+`.ps1` files covering both modes and the resolved path (AC-3);
+`scripts/cleanroom_windows_check.ps1` asserts the **extracted** zip's layout —
+mutually exclusive exe/stub, new `-ExpectRealOverlay`/`-ExpectStubOverlay`
+switches, an auto mode that fails when neither or both are present, and in stub
+mode it greps the launcher log for the honest no-overlay line; no existing
+assertion was removed or loosened (AC-4); `packaging/README.txt` no longer
+contains "later build" or "upcoming overlay" and a test pins that (AC-5); the
+RUN and FIRST VERDICT sections state auto-start, `Ctrl+Alt+D`,
+`OVERLAY_HOTKEY`, no focus stealing, "open details", and `--no-overlay`, all of
+which I checked against the code — `overlay/src/hotkey.ts` `DEFAULT_HOTKEY =
+CommandOrControl+Alt+D`, `main.ts` reads `process.env.OVERLAY_HOTKEY`, and
+`overlay_environment()` copies the parent env so the override reaches the child
+(AC-6); PRIVACY/SAFETY is present tense and unchanged in substance — clipboard
+and `Client.txt` only, no memory reads, no injection, no input automation, one
+action per keypress, localhost only (AC-7); both required checks pass here
+(`packaging/test_launch.py` 23 passed, doctrine invariants OK) and
+`git diff` over `packaging/launch.py`, `packaging/run.bat` and `overlay/` is
+empty (AC-8). Four files, zero PROTECTED paths, no test deleted or skipped.
+Green tier, no review requested — correct under L-31.
+
+Two judgment calls recorded rather than round-tripped. (1) The clean-room script
+now runs `run.bat --no-overlay` when a real overlay is staged, so a headless
+runner never launches Electron; the artifact is proved by presence, not by a
+window. That is what the packet's constraint asks for, and `run.bat` forwards
+`%*`, so the flag reaches `launch.py`. The cost is that the one path that
+actually spawns the child is still unexercised by CI — acceptable, and the
+reason the stub path keeps the log-line assertion. (2) `OVERLAY-STUB.txt`'s body
+contains the bare parent token. Harmless: the token rule binds commit messages
+and PR bodies, which GitHub parses; a staged text file is neither. Not worth a
+round trip, but the next packet that touches that heredoc should drop the hash.
+
+**The capability shipped; the release artifact has not.** `.github/workflows/ci.yml`
+lines 139 and 141 still call the packager with no `-OverlayDir`, so every zip CI
+builds contains the stub. Backend flagged this in the PR's risk notes and it is
+correct to have flagged rather than fixed it — `.github/**` is PROTECTED and a
+`protected-change` label does not make it packetable. Filed as **issue #155**
+(orchestrator): build S1's artifact in the release path, pass it as
+`-OverlayDir`, and pin the result with `-ExpectRealOverlay`; the PR-time
+clean-room job may keep the stub but should pin `-ExpectStubOverlay` so the mode
+is asserted rather than inferred. Until #155 lands, the overlay reaches a player
+only through a hand-built zip. Revisit nothing here: TASK-215's scope was the
+packaging capability and it is met.
+
+**The token rule held.** Zero accidental closures across S1's acceptance, S3, and
+its merge commit — the positional rule survived the first commit whose job was to
+describe a closure, which is what killed both verb-list versions. Keep it.
+
+**Superseded — S3 dispatch gate.** Recorded when S1 was still in flight; PR #150
+landed as `1b10f8c` and S3 ran after it, exactly as required. Kept for the
+record: the packet says it
 runs after S1 and S2 land, and its clean-room assertion needs S1's artifact
 contract present. #150 is green on twelve required checks with
 `engine-integration` still running; the merge robot lands it on CI green with
@@ -625,13 +689,16 @@ not — a stage that starts early would hardcode names it cannot see.
 CI job should build or verify the overlay artifact, that is protected-path work
 — a `protected-change` label does not make a protected path packetable, because
 completion proof #12 fires at dispatch-time verification and does not read
-labels (see the routing note on TASK-213 above). Related: #134 (flaky
-`windows-package-cleanroom`), #126.
+labels (see the routing note on TASK-213 above). Related: **#155** (wire
+`-OverlayDir` into release packaging — the concrete instance of this), #134
+(flaky `windows-package-cleanroom`), #126.
 
 **Next announcement.** The v0 headline is spent (`includes_v0` is permanently 1
-and correctly cannot repost). When S3 lands, the next release announcement is
+and correctly cannot repost). S3 has landed, so the next release announcement is
 the overlay one and it should say plainly that the in-game overlay has landed
-for real and how to start it. It still needs the operator action recorded above
+for real and how to start it — but **not until #155 lands**: today's CI zip
+ships the stub, and announcing an overlay a downloader would not get is the
+dishonesty doctrine I5 exists to prevent. It still needs the operator action recorded above
 — `RELEASE_SINCE_REF` set in the bot runtime — because the range start comes
 from `BOT_DB` or that variable and nothing else.
 
