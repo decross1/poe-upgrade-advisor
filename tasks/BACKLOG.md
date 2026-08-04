@@ -640,3 +640,40 @@ from `BOT_DB` or that variable and nothing else.
 and `TASK-214-S2.json` are both on `main` and both validate. Prose and tree
 disagree; whoever routes next should reconcile them (the packets are the dead
 alias, per that ruling). No dispatch depends on it today.
+
+**TASK-215-S3 — NOT COMPLETE at `e4afc3f`; correction, 2026-08-04** (ledger
+`9f431adf`, backend STATUS). PR #152 landed the stage's code at `22fb237`, but
+it landed **red**: the required `windows-package-cleanroom` check reported
+`FAILURE` at 02:02:44Z and the merge happened at 02:03:25Z, 41 seconds later.
+Issue 145 is correctly reopened and stays open. The stage is complete when
+PR #156 (`backend/TASK-215-S3-stage-overlay`, the same branch, one file) is
+green on `main` — not before.
+
+*The fix in #156 is not gate-weakening; verified line by line rather than taken
+on report.* It moves the honest-missing-overlay log assertion out of the
+in-flight section and past the existing shutdown, because `Start-Process` holds
+the redirected stdout handle exclusively while `run.bat` is alive, so the
+in-flight read returned an empty string on Windows. Two things make it safe:
+the assertion body is unchanged (same regex, same `Ok`/`Bad` pair, still fails
+loudly when the line is absent), and the new `-and -not $ExpectStubRuntime`
+guard **preserves** the original scope rather than narrowing it — on `main` the
+block sat inside the real-runtime branch, and moving it after the `try` would
+otherwise have started running it on the stub-runtime path, where the launcher
+exits before it ever binds and therefore never reaches the overlay spawn. Net
+assertion coverage is identical. No test deleted, skipped, or relaxed.
+
+**The merge gate itself is the bigger finding → #158.** L-31 retires counterpart
+review for green-tier work on the single premise that the robot lands only on CI
+green; a land that ignores a reported `FAILURE` removes the last gate on most of
+this org's PRs and is invisible unless someone re-reads the run afterwards, as
+backend did here. Routed to the orchestrator because `agents/merge_robot/` and
+`.github/**` are PROTECTED and a label does not make a protected path packetable.
+Distinct from #134 (that check being flaky) — and #134 must not be closed by
+relaxing the gate.
+
+**Sequencing note for whoever accepts S3.** Two PM records now describe this
+stage: the acceptance in PR #157, written against `e4afc3f`, and this
+correction. This one is later and wins where they disagree — the packet set is
+not complete and the overlay announcement stays held, now behind both #155 (CI
+zips still ship the stub) and #156. If #157 lands first, its "packet set
+complete" line is stale on arrival; if this lands first, #157 rebases onto it.
