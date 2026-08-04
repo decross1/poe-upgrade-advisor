@@ -79,16 +79,60 @@ def _git(worktree: Path, *args: str) -> tuple[int, str]:
 
 
 def _diff_paths(ctx: dict) -> list[str] | None:
-    """Changed paths base..commit, cached in ctx. None = unobtainable."""
+    """Paths THIS AGENT changed. None = unobtainable.
+
+    L-34 (2026-08-04). This used a two-dot `base..commit`, where `base` is the
+    worktree base recorded at invocation. That is wrong whenever main moves
+    during a run: if the agent merges or rebases onto upstream — which it must,
+    to land anything — every commit that arrived in between lands inside the
+    range and is attributed to the agent.
+
+    Measured twice, both dead-letters of good work:
+
+      backend, message 5e192569, TASK-300-S2: refused by #12 for
+        `tasks/packets/TASK-300-S2.json` — a file PM wrote and the
+        orchestrator merged. The announce work itself was independently
+        verified and is on main at 674f6e7.
+      backend, earlier: refused for `agents/anti_loop.py`,
+        `agents/completion.py` and two TASK-213 packets — the orchestrator's
+        L-32 commit and pm's renumber.
+
+    The failure mode is nasty in three ways: it punishes an agent for other
+    people's commits, it CIRCUIT-BREAKS rather than merely failing when any
+    swept-in path is PROTECTED, and it gets MORE likely the faster the org
+    moves — so it bites hardest exactly when throughput matters. It also
+    corrupts the success telemetry the run exists to measure.
+
+    The fix is the three-dot form against current upstream:
+    `origin/main...commit` diffs from merge-base(origin/main, commit), which
+    is precisely the agent's own contribution and excludes anything that
+    arrived from upstream. Falls back to the old two-dot base range when
+    upstream cannot be resolved (a worktree with no origin/main, as in some
+    unit fixtures), so behaviour degrades rather than breaking.
+    """
     if "diff_paths" not in ctx:
-        base, sha = ctx.get("base_sha"), ctx["res"].get("commit_sha")
+        sha = ctx["res"].get("commit_sha")
+        base = ctx.get("base_sha")
         if not base or not sha:
             ctx["diff_paths"] = None
-        else:
+            return ctx["diff_paths"]
+        # Paths touched by commits reachable from the agent's HEAD but NOT
+        # from its base and NOT from upstream. `--not origin/main` is what
+        # drops commits that arrived mid-run; dropping only `base` (the old
+        # two-dot diff) let them through, and diffing only against upstream
+        # would sweep in commits that predated the agent.
+        rc, out = _git(ctx["worktree"], "log", "--format=", "--name-only",
+                       f"{base}..{sha}", "--not", "origin/main")
+        if rc != 0:
+            # No resolvable upstream (some unit fixtures): degrade to the
+            # historical two-dot range rather than reporting unprovable.
             rc, out = _git(ctx["worktree"], "diff", "--name-only",
                            f"{base}..{sha}")
-            ctx["diff_paths"] = ([ln.strip() for ln in out.splitlines()
-                                  if ln.strip()] if rc == 0 else None)
+        if rc != 0:
+            ctx["diff_paths"] = None
+        else:
+            ctx["diff_paths"] = sorted({ln.strip() for ln in out.splitlines()
+                                        if ln.strip()})
     return ctx["diff_paths"]
 
 

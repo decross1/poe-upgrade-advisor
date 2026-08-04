@@ -20,6 +20,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import agents.completion as C_MOD
 import agents.dispatch as dispatch_mod
 from agents.completion import Proof, refusal, verify_completion
 from agents.dispatch import dispatch
@@ -725,3 +726,53 @@ def test_l32_still_breaks_a_coordinator_on_protected_paths(mailroom, worktree):
                                  "diff_paths": ["agents/dispatch.py"],
                                  "packet": None, "base_sha": None})
     assert broke.passed is False and broke.severity == "break"
+
+
+# --- L-34: an agent is judged on ITS OWN commits, not upstream's ----------
+
+
+def test_upstream_commits_arriving_midrun_are_not_attributed_to_the_agent(
+        mailroom, worktree, origin):
+    """Measured twice on 2026-08-04, both dead-letters of good work: backend
+    was circuit-broken by #12 for tasks/packets/TASK-300-S2.json (pm wrote it,
+    the orchestrator merged it) and earlier for agents/completion.py plus two
+    TASK-213 packets (the orchestrator's L-32 commit and pm's renumber). The
+    two-dot base..commit range swept in every commit that landed upstream
+    while the agent was working, and because some were PROTECTED it
+    CIRCUIT-BROKE rather than merely failing."""
+    base = _git("rev-parse", "HEAD", cwd=worktree).strip()
+
+    # Upstream moves, touching a PROTECTED path — as pm and the orchestrator
+    # do constantly while an agent is mid-run.
+    _git("checkout", "-q", "main", cwd=origin)
+    (origin / "tasks").mkdir(exist_ok=True)
+    (origin / "tasks/packets").mkdir(parents=True, exist_ok=True)
+    (origin / "tasks/packets/TASK-999-upstream.json").write_text("{}\n")
+    _git("add", "-A", cwd=origin)
+    _git("commit", "-q", "-m", "upstream: pm authors a packet", cwd=origin)
+
+    # The agent fetches, merges upstream (it must, to land anything), and
+    # commits its own unremarkable change.
+    _git("fetch", "-q", "origin", cwd=worktree)
+    _git("checkout", "-q", "-b", "task/TASK-34", cwd=worktree)
+    _git("merge", "-q", "--no-edit", "origin/main", cwd=worktree)
+    (worktree / "agent_own_file.txt").write_text("the agent's actual work\n")
+    _git("add", "-A", cwd=worktree)
+    _git("commit", "-q", "-m", "agent work", cwd=worktree)
+    sha = _git("rev-parse", "HEAD", cwd=worktree).strip()
+
+    res = {"schema_version": "1.0", "run_id": "run-unit0001",
+           "task_id": "TASK-34", "status": "completed", "summary": "w",
+           "commit_sha": sha, "pushed": True, "checks": [],
+           "acceptance_criteria": []}
+    ctx = {"worktree": worktree, "res": res, "base_sha": base}
+
+    paths = C_MOD._diff_paths(ctx)
+    assert "agent_own_file.txt" in paths, paths
+    assert "tasks/packets/TASK-999-upstream.json" not in paths, (
+        "upstream's protected-path commit was attributed to the agent")
+
+    # And therefore #12 does not circuit-break the agent for it.
+    proof = C_MOD.p12_protected(res, {**ctx, "role": "backend",
+                                      "packet": None, "intent": "TASK_ASSIGN"})
+    assert proof.passed is not False, proof.detail
