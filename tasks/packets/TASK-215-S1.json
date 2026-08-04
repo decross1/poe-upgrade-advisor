@@ -34,7 +34,7 @@
     "The 1600-line diff budget exists ONLY to absorb package-lock.json churn from one new devDependency. Hand-written diff (package.mjs + package.json + README + test) must stay under ~400 lines; if the lockfile alone pushes the total past the budget, stop and route to pm rather than hand-editing the lockfile.",
     "Existing tests may be EXTENDED, never deleted or skipped. No network in tests.",
     "Branch frontend/TASK-215-S1-<slug>. A literal role/... branch is refused by completion proof #4.",
-    "Issue #145 is the PARENT of three stages. Write 'Refs #145' in the PR body, never 'Fixes #145': a closing keyword on a stage PR closes the parent while the other stages are unshipped, and this packet preconditions on issue_state: open, so that closure blocks its own dispatch. Observed 2026-08-04 — PR #147 (S2) closed #145 with S1 and S3 not started. Only TASK-215-S3, the last stage, closes #145."
+    "Issue #145 is the PARENT of three stages. Write 'Refs #145' and nothing else: no commit message on this branch and no line of the PR body may put a closing keyword (Fixes/Closes/Resolves and their variants) next to #145, not even inside backticks or while quoting this rule. GitHub parses those keywords in commit messages that reach main as well as in PR bodies, and closing the parent while other stages are unshipped trips the issue_state: open precondition that this packet and TASK-215-S3 both dispatch on. Observed 2026-08-04 twice: PR #147 (S2) closed #145 with S1 and S3 not started, then PR #148 — the acceptance PR that reopened it — re-closed it from a commit message that merely quoted the keyword. Only TASK-215-S3, the last stage, closes #145."
   ],
   "forbidden_actions": [
     "Editing anything under overlay/src/ or overlay/build.mjs",

@@ -33,7 +33,7 @@
     "Do not launch the overlay from the clean-room script's assertions — the runner is headless and Electron would hang. Assert the artifact's presence and the launcher's log line, not a running window.",
     "Existing tests may be EXTENDED, never deleted or skipped.",
     "Branch backend/TASK-215-S3-<slug>. A literal role/... branch is refused by completion proof #4.",
-    "Issue #145 is the PARENT of three stages and S3 is the LAST one: this is the only TASK-215 PR that may write 'Fixes #145'. Observed 2026-08-04 — PR #147 (S2) wrote 'Fixes #145' and closed the parent while S1 and S3 were unstarted, which trips the issue_state: open precondition on both remaining packets. Do not open S3 before S1's artifact contract is on main."
+    "Issue #145 is the PARENT of three stages and S3 is the LAST one: this is the only TASK-215 PR that may use a closing keyword on #145, and it belongs in the PR body only. Observed 2026-08-04 twice: PR #147 (S2) closed the parent while S1 and S3 were unstarted, and PR #148 re-closed it from a commit message that only quoted the keyword — GitHub parses commit messages that reach main too. Until this stage is genuinely the last one landing, write 'Refs #145'. Do not open S3 before S1's artifact contract is on main."
   ],
   "forbidden_actions": [
     "Editing packaging/launch.py, packaging/run.bat, anything under overlay/, or anything under .github/",

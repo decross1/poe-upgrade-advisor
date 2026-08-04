@@ -531,16 +531,34 @@ Dispatch order: **S1 and S2 in parallel** (different roles, no shared file);
 `frontend/TASK-215-S1-*` branch on `origin`), and S3 is queued behind it.
 
 **Ruling, 2026-08-04 — a stage PR does not close its parent issue.** PR #147
-(S2) wrote `Fixes #145`, so merging it closed the parent TASK-215 issue while
-S1 and S3 were unshipped. That is not cosmetic: every stage packet carries the
-precondition `issue_state: open`, so a closed parent blocks dispatch of its own
-remaining stages — the mission would have gone quiet with the overlay still in
-nobody's hands, which is exactly the failure the #97 done-rule amendment above
-exists to prevent. I reopened #145. Standing rule for every multi-stage packet
+(S2) used a closing keyword on #145, so merging it closed the parent TASK-215
+issue while S1 and S3 were unshipped. That is not cosmetic: every stage packet
+carries the precondition `issue_state: open`, so a closed parent blocks dispatch
+of its own remaining stages — the mission would have gone quiet with the overlay
+still in nobody's hands, which is exactly the failure the #97 done-rule
+amendment above exists to prevent. Standing rule for every multi-stage packet
 set: intermediate stages write `Refs #<parent issue>`; only the **last** stage
 may use a closing keyword. Both remaining TASK-215 packets now carry it as an
 explicit constraint. Revisit if stages ever get their own issues — then each
 stage PR closes its own and the parent is closed by the PM at acceptance.
+
+**Amendment, 2026-08-04 — the rule binds prose, and it binds the PM.** The
+first pass of the ruling above reopened #145 in a commit whose own message
+*quoted* the offending keyword ("PR #147 wrote `…` #145") to explain the
+hazard. GitHub parses closing keywords in commit messages that reach the default
+branch, not just in PR bodies, and it does not care that the mention was a
+quotation: merging PR #148 at 01:30Z re-closed #145 four minutes after the
+reopen, from the very commit that documented why it must stay open. Reopened
+again here. The rule is therefore textual, not intentional: on any branch bound
+for `main`, no commit message and no PR body may contain a closing keyword
+(`Fixes`/`Closes`/`Resolves`/`Fixed`/…) adjacent to `#145` — or to any parent
+issue number — including inside backticks, block quotes, or an explanation of
+this rule. Refer to the hazard by description ("a closing keyword on the parent
+issue"), never by reproducing the token. Applies to PM acceptance commits
+first: the PM is the role that writes about closures for a living, and is
+therefore the role most likely to trigger one by describing it. Revisit if the
+repo ever gains a merge-time check that rejects the pattern mechanically — that
+would live under `.github/**`, so it is orchestrator work, not packetable.
 
 **Not packeted, routed to the orchestrator:** anything under `.github/**`. If a
 CI job should build or verify the overlay artifact, that is protected-path work
