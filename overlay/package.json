@@ -9,7 +9,8 @@
     "start": "npm run build && electron .",
     "test": "vitest run && tsc --noEmit",
     "test:ui": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "package:win": "npm run build && node package.mjs"
   },
   "main": "dist/main.cjs",
   "dependencies": {
@@ -17,6 +18,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@electron/packager": "20.1.1",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.20.1",
     "@types/react": "^18.3.12",
